@@ -14,7 +14,7 @@ Cuatro formas de integrar IA, en un solo proyecto:
 cd server
 cp .env.example .env    # ponga su ANTHROPIC_API_KEY y una APP_KEY
 npm install
-node --env-file=.env index.js
+npm start
 ```
 Endpoints: `GET /health`, `POST /chat`, `POST /chat/stream` (header `x-app-key`), `POST /sms`, `POST /voice`.
 La clave de Anthropic vive solo en el servidor, nunca en la app.
@@ -39,5 +39,5 @@ Ver [docs/ASISTENTES.md](docs/ASISTENTES.md).
 
 ## Notas
 - El historial de SMS/llamadas está en memoria; use una base de datos en producción.
-- Las webhooks de Twilio no validan la firma; añada `twilio.webhook()` antes de publicarlo.
+- Los webhooks de Twilio validan la firma si define `TWILIO_AUTH_TOKEN` y `PUBLIC_URL` en `.env`.
 - Gasto: cada mensaje consume créditos de la API de Anthropic y de Twilio.

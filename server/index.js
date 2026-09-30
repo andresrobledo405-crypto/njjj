@@ -1,5 +1,6 @@
 import express from "express";
 import cors from "cors";
+import crypto from "node:crypto";
 import { ask, streamAsk } from "./claude.js";
 
 const app = express();
@@ -53,6 +54,18 @@ app.post("/chat/stream", requireAppKey, async (req, res) => {
 });
 
 // --- Twilio: SMS y llamadas (opción 4) ---
+// Valida la firma X-Twilio-Signature (activa solo si TWILIO_AUTH_TOKEN y PUBLIC_URL están definidos)
+function verifyTwilio(req, res, next) {
+  const token = process.env.TWILIO_AUTH_TOKEN;
+  const base = process.env.PUBLIC_URL;
+  if (!token || !base) return next();
+  const data = Object.keys(req.body).sort().reduce((a, k) => a + k + req.body[k], base + req.originalUrl);
+  const expected = crypto.createHmac("sha1", token).update(data).digest("base64");
+  const got = req.get("x-twilio-signature") || "";
+  const ok = got.length === expected.length && crypto.timingSafeEqual(Buffer.from(got), Buffer.from(expected));
+  return ok ? next() : res.status(403).send("Firma inválida");
+}
+
 // Historial por conversación en memoria (use una base de datos en producción).
 const history = new Map();
 function remember(key, role, content) {
@@ -65,7 +78,7 @@ const esc = (s) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
 // Webhook "A message comes in" del número de Twilio
-app.post("/sms", async (req, res) => {
+app.post("/sms", verifyTwilio, async (req, res) => {
   const from = req.body.From;
   const text = req.body.Body ?? "";
   let reply;
@@ -83,7 +96,7 @@ app.post("/sms", async (req, res) => {
 });
 
 // Webhook "A call comes in": conversación por voz con reconocimiento de habla
-app.post("/voice", async (req, res) => {
+app.post("/voice", verifyTwilio, async (req, res) => {
   const call = req.body.CallSid;
   const heard = req.body.SpeechResult;
   let say = "Hola, soy su asistente. ¿En qué puedo ayudarle?";
