@@ -41,3 +41,15 @@ Ver [docs/ASISTENTES.md](docs/ASISTENTES.md).
 - El historial de SMS/llamadas está en memoria; use una base de datos en producción.
 - Los webhooks de Twilio validan la firma si define `TWILIO_AUTH_TOKEN` y `PUBLIC_URL` en `.env`.
 - Gasto: cada mensaje consume créditos de la API de Anthropic y de Twilio.
+
+## Instalar en Android como app real (APK)
+Con una cuenta gratuita de Expo (expo.dev), sin Android Studio:
+```bash
+cd mobile
+npm install -g eas-cli
+eas login
+eas build -p android --profile apk    # ~15 min en la nube; al final da un enlace/QR para descargar el .apk
+```
+Abra el enlace en el teléfono e instale el APK (permita "instalar apps desconocidas").
+`usesCleartextTraffic` está activado para poder usar `http://IP-de-su-PC:3000` en pruebas; en producción use HTTPS.
+El modo local (llama.rn) funciona en esta versión porque el APK incluye código nativo.
