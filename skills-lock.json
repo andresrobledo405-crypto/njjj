@@ -1,6 +1,12 @@
 {
   "version": 1,
   "skills": {
+    "agents": {
+      "source": "elevenlabs/skills",
+      "sourceType": "github",
+      "skillPath": "agents/SKILL.md",
+      "computedHash": "90887d1c1c1c18b97c16a1ad7decedc48cce0c1f2b1642bfd51411424d8e569c"
+    },
     "animate": {
       "source": "emilkowalski/skill",
       "sourceType": "github",
@@ -43,6 +49,24 @@
       "skillPath": "skills/brandkit/SKILL.md",
       "computedHash": "b63012f3c3d21197e0185d3e9cc7ec40c589fb10e0b5a32a561739de31aa3f20"
     },
+    "character-design": {
+      "source": "fal-ai-community/skills",
+      "sourceType": "github",
+      "skillPath": "skills/character-design/SKILL.md",
+      "computedHash": "97a06f1ea2654a95b5eba864604f107b49b25a7acc2f33df62752803a02941f6"
+    },
+    "cinematography": {
+      "source": "fal-ai-community/skills",
+      "sourceType": "github",
+      "skillPath": "skills/cinematography/SKILL.md",
+      "computedHash": "c0c5ee6d1b570d61d622f4dfbd8ca55158101cfffcc9bf0819777476927b9dce"
+    },
+    "commercial": {
+      "source": "fal-ai-community/skills",
+      "sourceType": "github",
+      "skillPath": "skills/commercial/SKILL.md",
+      "computedHash": "f64268b63857a9b8a76706298169ef2780c3a9e9cb21547be6aec1d793230766"
+    },
     "design-taste-frontend": {
       "source": "leonxlnx/taste-skill",
       "sourceType": "github",
@@ -67,6 +91,12 @@
       "skillPath": "skills/dispatching-parallel-agents/SKILL.md",
       "computedHash": "b011107f17188e0b2898bb1856b5bac8b49537cc86e737c82126558a235bd62a"
     },
+    "dubbing": {
+      "source": "elevenlabs/skills",
+      "sourceType": "github",
+      "skillPath": "dubbing/SKILL.md",
+      "computedHash": "a1e90267056a299fe57d624657bde6ae34d98f0faa80fc2b4ded08ea12a9f483"
+    },
     "embedded-captions": {
       "source": "heygen-com/hyperframes",
       "sourceType": "github",
@@ -90,6 +120,48 @@
       "sourceType": "github",
       "skillPath": "skills/faceless-explainer/SKILL.md",
       "computedHash": "fc94c198fd156f39f4ec9f9a0ca9677609193851a72060120dc744de2bf52df4"
+    },
+    "fal-gamedev": {
+      "source": "fal-ai-community/skills",
+      "sourceType": "github",
+      "skillPath": "skills/fal-gamedev/SKILL.md",
+      "computedHash": "4b5bfec483e7aad6d6a79f99aa623eb0f5972f8e16ae2fd48f736bcef8c33208"
+    },
+    "fal-models-catalog": {
+      "source": "fal-ai-community/skills",
+      "sourceType": "github",
+      "skillPath": "skills/fal-models-catalog/SKILL.md",
+      "computedHash": "c6b1f23d45dc5a83c2af5da85ff7ceb20e065e541c58aee3d60b2ccac4e483db"
+    },
+    "fal-prompting": {
+      "source": "fal-ai-community/skills",
+      "sourceType": "github",
+      "skillPath": "skills/fal-prompting/SKILL.md",
+      "computedHash": "db18871bfcdb1a5e0162ab6193b1aa90c39d2f7e14ce3e448fcc35dce09ed6e6"
+    },
+    "fal-recipes": {
+      "source": "fal-ai-community/skills",
+      "sourceType": "github",
+      "skillPath": "skills/fal-recipes/SKILL.md",
+      "computedHash": "f12b12ea52e130e4cfc8886449ff3091a584278ea18f2b2d7e411c47d0bf4882"
+    },
+    "fal-redesign": {
+      "source": "fal-ai-community/skills",
+      "sourceType": "github",
+      "skillPath": "skills/fal-redesign/SKILL.md",
+      "computedHash": "6580f8d72be638772635c66c98f267c931c47fab1fea2fdf50cb77f918711965"
+    },
+    "fal-regenerate-3d": {
+      "source": "fal-ai-community/skills",
+      "sourceType": "github",
+      "skillPath": "skills/fal-regenerate-3d/SKILL.md",
+      "computedHash": "ae944cf9c77f279ae6a43f4019c42b708a69a3f88322954ff3f740fd32cd586f"
+    },
+    "fan-cam": {
+      "source": "fal-ai-community/skills",
+      "sourceType": "github",
+      "skillPath": "skills/fan-cam/SKILL.md",
+      "computedHash": "7bde1e4acfd3ab248ee0f4c1e3bf3efb8b2d60bfc210cd6eec9bab5985d3d15e"
     },
     "figma": {
       "source": "heygen-com/hyperframes",
@@ -127,11 +199,71 @@
       "skillPath": "skills/general-video/SKILL.md",
       "computedHash": "3abd8fefe782a9ede0f8e26f722cad2f55c9beb5e918ced3dbbc55f1937dfca4"
     },
+    "genmedia": {
+      "source": "fal-ai-community/skills",
+      "sourceType": "github",
+      "skillPath": "skills/genmedia/SKILL.md",
+      "computedHash": "a47ff36650f81dec36c3d35742b5c16da0a6216cd31e516538efea1ed0cb0123"
+    },
+    "genmedia-workflow": {
+      "source": "fal-ai-community/skills",
+      "sourceType": "github",
+      "skillPath": "skills/genmedia-workflow/SKILL.md",
+      "computedHash": "23269c703b6b4822b83036a7cec810af3cdc8cf7e6e81af9b8c99379a7320c33"
+    },
     "gpt-taste": {
       "source": "leonxlnx/taste-skill",
       "sourceType": "github",
       "skillPath": "skills/gpt-tasteskill/SKILL.md",
       "computedHash": "cc8f0c601d8240a124e1d11634351a2be7b8a72fd807c75e5b6bf7afcd5ddee0"
+    },
+    "gsap-core": {
+      "source": "greensock/gsap-skills",
+      "sourceType": "github",
+      "skillPath": "skills/gsap-core/SKILL.md",
+      "computedHash": "c4a01101d9e1aafbf4b49f75d74f9349790d8741981ba0237c990093863035a6"
+    },
+    "gsap-frameworks": {
+      "source": "greensock/gsap-skills",
+      "sourceType": "github",
+      "skillPath": "skills/gsap-frameworks/SKILL.md",
+      "computedHash": "4852e85a48088d9044b08ebd1db607915b628c0c3ec7e04300713f546728fbdf"
+    },
+    "gsap-performance": {
+      "source": "greensock/gsap-skills",
+      "sourceType": "github",
+      "skillPath": "skills/gsap-performance/SKILL.md",
+      "computedHash": "863842ac2d7aee53fd4f0025c960173d7ad3e658a5715b89b2211fa280213c1f"
+    },
+    "gsap-plugins": {
+      "source": "greensock/gsap-skills",
+      "sourceType": "github",
+      "skillPath": "skills/gsap-plugins/SKILL.md",
+      "computedHash": "791bda0e6e460511fe82a78e745db519b88ffaeeab4d04a74879a03ca4f41740"
+    },
+    "gsap-react": {
+      "source": "greensock/gsap-skills",
+      "sourceType": "github",
+      "skillPath": "skills/gsap-react/SKILL.md",
+      "computedHash": "7d3b52822681a4158e371f895c58fb7030ecaf33f585a534b7162f9e92c5d893"
+    },
+    "gsap-scrolltrigger": {
+      "source": "greensock/gsap-skills",
+      "sourceType": "github",
+      "skillPath": "skills/gsap-scrolltrigger/SKILL.md",
+      "computedHash": "1cdc5647693783cb7a662d84a5de434c88a051ed56b4d33597c9b5782b5973e6"
+    },
+    "gsap-timeline": {
+      "source": "greensock/gsap-skills",
+      "sourceType": "github",
+      "skillPath": "skills/gsap-timeline/SKILL.md",
+      "computedHash": "54981c2feec5a9c0d57988aeb32315af32bdeadd261550d5e9db7a7b1f08b487"
+    },
+    "gsap-utils": {
+      "source": "greensock/gsap-skills",
+      "sourceType": "github",
+      "skillPath": "skills/gsap-utils/SKILL.md",
+      "computedHash": "1ab2387f6e694718a4f1b5acf2a4ab16e1b884c3428adf5f6b26d830f00826cf"
     },
     "high-end-visual-design": {
       "source": "leonxlnx/taste-skill",
@@ -247,6 +379,12 @@
       "skillPath": "skills/manimgl-best-practices/SKILL.md",
       "computedHash": "2e6d569180c2e3c52d8d7089b64e952ecc7a200838b14523a8467289da6c4766"
     },
+    "marketing": {
+      "source": "fal-ai-community/skills",
+      "sourceType": "github",
+      "skillPath": "skills/marketing/SKILL.md",
+      "computedHash": "bd79b71846fe972a945fd725e643512bd54cae840256d6252250bd0371253886"
+    },
     "media-use": {
       "source": "heygen-com/hyperframes",
       "sourceType": "github",
@@ -265,11 +403,23 @@
       "skillPath": "skills/mobile-native/SKILL.md",
       "computedHash": "f221cea36642168df6d3d6d7f236237cbf1ae669138ff7df07775674223d49ad"
     },
+    "model-routing": {
+      "source": "fal-ai-community/skills",
+      "sourceType": "github",
+      "skillPath": "skills/model-routing/SKILL.md",
+      "computedHash": "b1e4e2e6caa563eca92069f3f2bd5051dc33d2425406d1bf0c8a3c74d193bd44"
+    },
     "motion-graphics": {
       "source": "heygen-com/hyperframes",
       "sourceType": "github",
       "skillPath": "skills/motion-graphics/SKILL.md",
       "computedHash": "c99fc89114add5b25b42a5947dd3ce366292ea0455a519ef802e72513e1e8b57"
+    },
+    "music": {
+      "source": "elevenlabs/skills",
+      "sourceType": "github",
+      "skillPath": "music/SKILL.md",
+      "computedHash": "7ceca67d5dcc5b777b876f1fe44a4a02134f9f78b71f7356a8b7791ba251b8e1"
     },
     "music-to-video": {
       "source": "heygen-com/hyperframes",
@@ -403,17 +553,107 @@
       "skillPath": "skills/review-animations/SKILL.md",
       "computedHash": "b4e5f0f4fe3e2743c85bf7354108f48a0b9d502cb20ef5c4a9c195da91f93736"
     },
+    "runway-dev": {
+      "source": "runwayml/skills",
+      "sourceType": "github",
+      "skillPath": "skills/runway-dev/SKILL.md",
+      "computedHash": "c01d7cb7ceef2a6e9d469f1b08fc867231d2c1264f00500ead75104ca8c6650d"
+    },
+    "runway-dev-characters": {
+      "source": "runwayml/skills",
+      "sourceType": "github",
+      "skillPath": "skills/runway-dev-characters/SKILL.md",
+      "computedHash": "1896916d7fc5a4cd1a76b3078cb30a8cd3d5bc982815e2ba87efcd33607adc4f"
+    },
+    "runway-dev-model-routers": {
+      "source": "runwayml/skills",
+      "sourceType": "github",
+      "skillPath": "skills/runway-dev-model-routers/SKILL.md",
+      "computedHash": "d0c522c961d64ff8a9da57d1057a3212212b1fce990eac87bba4cf21c7fb6202"
+    },
+    "runway-dev-models": {
+      "source": "runwayml/skills",
+      "sourceType": "github",
+      "skillPath": "skills/runway-dev-models/SKILL.md",
+      "computedHash": "19d47b4cdb13e79e064e6fb7bca915015b292bc59a332e8d2812631db6525d0b"
+    },
+    "runway-dev-recipes": {
+      "source": "runwayml/skills",
+      "sourceType": "github",
+      "skillPath": "skills/runway-dev-recipes/SKILL.md",
+      "computedHash": "ccc6437c0921ecd573cae7b1121b11bd82e498ae4e6607030b0024a818d908e4"
+    },
+    "runway-dev-workflows": {
+      "source": "runwayml/skills",
+      "sourceType": "github",
+      "skillPath": "skills/runway-dev-workflows/SKILL.md",
+      "computedHash": "604724180e655faad48314e1d42da0b8439ab963088571b81612b2d9fc4e8d75"
+    },
+    "rw-check-org-details": {
+      "source": "runwayml/skills",
+      "sourceType": "github",
+      "skillPath": "skills/rw-check-org-details/SKILL.md",
+      "computedHash": "f0289bd65bce326870c5e3f8b9d9d803a25af7184a78613e7d094f4f105cac24"
+    },
+    "rw-generate-audio": {
+      "source": "runwayml/skills",
+      "sourceType": "github",
+      "skillPath": "skills/rw-generate-audio/SKILL.md",
+      "computedHash": "37035c08b6bcb7adefd3f29280666721d6c29f568b39377744af40b427d03403"
+    },
+    "rw-generate-image": {
+      "source": "runwayml/skills",
+      "sourceType": "github",
+      "skillPath": "skills/rw-generate-image/SKILL.md",
+      "computedHash": "24e18c1ad63e260ed1f6a0c6bb0bfea47ea422c4c21ecbe6e27000680dff3216"
+    },
+    "rw-generate-video": {
+      "source": "runwayml/skills",
+      "sourceType": "github",
+      "skillPath": "skills/rw-generate-video/SKILL.md",
+      "computedHash": "6c39387cac9a811690f49942555e77e0603c2135dfad7aa794201028d050a090"
+    },
+    "setup-api-key": {
+      "source": "elevenlabs/skills",
+      "sourceType": "github",
+      "skillPath": "setup-api-key/SKILL.md",
+      "computedHash": "f8daa32a413354452b90480ffe5acd056dc04608108463bd5d014a8af56dd077"
+    },
     "slideshow": {
       "source": "heygen-com/hyperframes",
       "sourceType": "github",
       "skillPath": "skills/slideshow/SKILL.md",
       "computedHash": "627a8b17cab976bbc9d2779532ac15ac0c4f8e5b1b886bd885a210c4c072f580"
     },
+    "sound-effects": {
+      "source": "elevenlabs/skills",
+      "sourceType": "github",
+      "skillPath": "sound-effects/SKILL.md",
+      "computedHash": "4de004ec3405d836c33207320a477951ce3de2f3dcb68f5365734302b91ad72c"
+    },
+    "speech-engine": {
+      "source": "elevenlabs/skills",
+      "sourceType": "github",
+      "skillPath": "speech-engine/SKILL.md",
+      "computedHash": "de2964a7301bb12e81f1ca3cbf11c9954be296a1be7cbc9e7cdc0b7a08fe4e78"
+    },
+    "speech-to-text": {
+      "source": "elevenlabs/skills",
+      "sourceType": "github",
+      "skillPath": "speech-to-text/SKILL.md",
+      "computedHash": "06f18ad079255645ff81e3f2926a8e7dde145a6e6d6b0df06348cb2ba22d409d"
+    },
     "stitch-design-taste": {
       "source": "leonxlnx/taste-skill",
       "sourceType": "github",
       "skillPath": "skills/stitch-skill/SKILL.md",
       "computedHash": "13322f38406cd3abf16ba45e35bdc9b18002d0153a79b4612b97aefc65d5a335"
+    },
+    "storytelling": {
+      "source": "fal-ai-community/skills",
+      "sourceType": "github",
+      "skillPath": "skills/storytelling/SKILL.md",
+      "computedHash": "ddf9f642ce80c133115cab2d8ae9ab9c54c9263ef8fa03872fa98cf61d51c20f"
     },
     "subagent-driven-development": {
       "source": "obra/superpowers",
@@ -451,6 +691,30 @@
       "skillPath": "skills/text-to-lottie/SKILL.md",
       "computedHash": "143009abf43d2ac6bd9970c42373e6ae029b91cc56124e56287162010a0e9fc1"
     },
+    "text-to-speech": {
+      "source": "elevenlabs/skills",
+      "sourceType": "github",
+      "skillPath": "text-to-speech/SKILL.md",
+      "computedHash": "d07e420ac4a0d695b27c7a8cbe9af8ab3a8c60f3a9fc1a0fa2ce1748fbf883ae"
+    },
+    "ugc": {
+      "source": "fal-ai-community/skills",
+      "sourceType": "github",
+      "skillPath": "skills/ugc/SKILL.md",
+      "computedHash": "5a581eafc4db7c36ac78234e392cb49fc0857662cd72aeacb31f29c7a76a28bd"
+    },
+    "update-skills-from-changelog": {
+      "source": "elevenlabs/skills",
+      "sourceType": "github",
+      "skillPath": ".agents/skills/update-skills-from-changelog/SKILL.md",
+      "computedHash": "e5b444a842eace814536b815ad5c12f9f53a2a4e5953ecd430d542cd1722e5d4"
+    },
+    "use-runway-api": {
+      "source": "runwayml/skills",
+      "sourceType": "github",
+      "skillPath": "skills/use-runway-api/SKILL.md",
+      "computedHash": "e3587d72f88fac23ba16f6ca4fef0726283dc25062d7cb1a0e67c7d5a3ccbf0a"
+    },
     "using-git-worktrees": {
       "source": "obra/superpowers",
       "sourceType": "github",
@@ -468,6 +732,18 @@
       "sourceType": "github",
       "skillPath": "skills/verification-before-completion/SKILL.md",
       "computedHash": "b529822bdac4b197b180fe12225cff86b930b65910435103c10622df7f041651"
+    },
+    "voice-changer": {
+      "source": "elevenlabs/skills",
+      "sourceType": "github",
+      "skillPath": "voice-changer/SKILL.md",
+      "computedHash": "6e1542754e66fe21c8bffe419c0424c80d0c770217d5466e22813f9f302b75c9"
+    },
+    "voice-isolator": {
+      "source": "elevenlabs/skills",
+      "sourceType": "github",
+      "skillPath": "voice-isolator/SKILL.md",
+      "computedHash": "d4f7873a0b68ec3deb33d2073bf966551135c83964a37c9cf062a4fb7bc648ea"
     },
     "write-swift": {
       "source": "emilkowalski/skill",
