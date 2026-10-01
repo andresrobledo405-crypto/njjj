@@ -21,7 +21,7 @@ Requisitos de render: Node 22+, FFmpeg, Chromium (`PLAYWRIGHT_BROWSERS_PATH=/opt
 
 ## Dónde se aplicaron
 - `mobile/App.js`, `mobile/theme.js`: UI rediseñada (animate-expo / apple-design / impeccable): paleta cálida con modo oscuro, entrada de mensajes (220 ms ease-out), feedback de pulsación (scale 0.96), indicador "escribiendo", respeta "reducir movimiento".
-- `video/`: promo de 20 s con voz en español (Kokoro local, voz `ef_dora`) y música ambiental sintetizada con ffmpeg. `python3 video/build.py` genera `promo/` (vertical 1080x1920) y `promo-landscape/` (horizontal 1920x1080) desde una sola plantilla. Cada carpeta: `npx hyperframes check` y `npx hyperframes render --output ../promo-vertical.mp4`. Resultados: `video/promo-vertical.mp4` y `video/promo-horizontal.mp4`.
+- `video/`: promo de 20 s con voz en español (Kokoro local, voz `ef_dora`) y música generada con MusicGen (Meta, MIT, local en CPU, `video/gen_music.py`; requiere `pip install torch transformers scipy`; respaldo sintético en `assets/music_synth.wav`). `python3 video/build.py` genera `promo/` (vertical 1080x1920) y `promo-landscape/` (horizontal 1920x1080) desde una sola plantilla. Cada carpeta: `npx hyperframes check` y `npx hyperframes render --output ../promo-vertical.mp4`. Resultados: `video/promo-vertical.mp4` y `video/promo-horizontal.mp4`.
 - GSAP va en `vendor/` (el CDN falla detrás de proxies con TLS interceptado). La voz requiere `pip install kokoro-onnx soundfile` y `HYPERFRAMES_PYTHON` apuntando a ese Python.
 
 ## APIs externas (opcionales, de pago)
