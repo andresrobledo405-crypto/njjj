@@ -13,6 +13,7 @@
         "RECORD_AUDIO"
       ],
       "usesCleartextTraffic": true
-    }
+    },
+    "userInterfaceStyle": "automatic"
   }
 }

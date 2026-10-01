@@ -15,3 +15,7 @@ Skills instaladas en `.claude/skills/` (actualizar: `npx skills update`; buscar 
 | Todo-en-uno (agentes, hooks, 290+ skills) | plugin Everything Claude Code: `/plugin marketplace add https://github.com/affaan-m/ECC` y `/plugin install ecc@ecc` |
 
 Requisitos de render: Node 22+, FFmpeg, Chromium (`PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers`).
+
+## Dónde se aplicaron
+- `mobile/App.js`, `mobile/theme.js`: UI rediseñada (animate-expo / apple-design / impeccable): paleta cálida con modo oscuro, entrada de mensajes (220 ms ease-out), feedback de pulsación (scale 0.96), indicador "escribiendo", respeta "reducir movimiento".
+- `video/promo/`: promo vertical de 12 s con HyperFrames. `cd video/promo && npx hyperframes check && npx hyperframes render --output ../promo.mp4`. GSAP va en `vendor/` (el CDN falla detrás de proxies con TLS interceptado).
