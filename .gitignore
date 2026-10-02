@@ -1,4 +1,44 @@
+
+# Temporary files
+*.tmp
+*.cache
+*.log
+*~
+
+# Large media files
+*.mp4
+*.mov
+*.avi
+*.mkv
+*.wav
+*.mp3
+
+# Build/render outputs
+/renders/temp/*
+/renders/cache/*
+/exports/*
+!exports/.gitkeep
+
+# Node modules
 node_modules/
+package-lock.json
+
+# Environment
 .env
-.expo/
-dist/
+.env.local
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Python
+__pycache__/
+*.pyc
+venv/
+
+# Keep structure
+!exports/.gitkeep
+!renders/.gitkeep
+!queue/.gitkeep
