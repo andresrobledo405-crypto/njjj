@@ -1,0 +1,58 @@
+{
+  "viral-short": {
+    "name": "Viral Short (TikTok/Shorts)",
+    "prompt": "Create a 60-second viral video that is engaging, high-energy, and shareable",
+    "duration": 60,
+    "quality": "high",
+    "platforms": [
+      "tiktok",
+      "youtube",
+      "instagram"
+    ],
+    "priority": "high"
+  },
+  "educational-series": {
+    "name": "Educational Series",
+    "prompt": "Create an educational video with clear visuals and professional narration",
+    "duration": 120,
+    "quality": "professional",
+    "platforms": [
+      "youtube",
+      "facebook"
+    ],
+    "priority": "medium"
+  },
+  "promotional": {
+    "name": "Product Promotion",
+    "prompt": "Create a professional promotional video showcasing product features",
+    "duration": 30,
+    "quality": "ultra-quality",
+    "platforms": [
+      "all"
+    ],
+    "priority": "high"
+  },
+  "brand-content": {
+    "name": "Brand Content",
+    "prompt": "Create brand-aligned content with consistent visual language",
+    "duration": 60,
+    "quality": "professional",
+    "platforms": [
+      "instagram",
+      "facebook",
+      "twitter"
+    ],
+    "priority": "medium"
+  },
+  "batch-production": {
+    "name": "Batch Production (5 videos)",
+    "prompt": "Create 5 variations of a viral concept",
+    "duration": 60,
+    "quality": "professional",
+    "platforms": [
+      "all"
+    ],
+    "priority": "low",
+    "batch_size": 5
+  }
+}

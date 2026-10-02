@@ -1,0 +1,11 @@
+{
+  "project_name": "Huevitos 2.0",
+  "output_format": "1080x1920",
+  "fps": 30,
+  "duration_seconds": 60,
+  "render_engine": "Cycles",
+  "quality": "professional",
+  "budget_usd": 1200,
+  "deadline_weeks": 3,
+  "team_size": "1-2 persons"
+}
