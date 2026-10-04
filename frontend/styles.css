@@ -133,14 +133,13 @@ small, .small {
 /* Button */
 .cta {
   background: white;
-  color: #667eea;
+  color: #5568d3;
   border: none;
-  padding: 12px 30px;
-  border-radius: 6px;
+  padding: 14px 32px;
+  border-radius: 8px;
   font-size: 1em;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s ease;
 }
 
 .cta:hover {
@@ -302,7 +301,8 @@ small, .small {
 }
 
 .auth-card input::placeholder {
-  color: #9ca3af;
+  color: #6b7280;
+  opacity: 1;
 }
 
 .auth-card input:focus {
