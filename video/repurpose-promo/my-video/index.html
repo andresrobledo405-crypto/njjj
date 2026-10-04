@@ -364,32 +364,55 @@
     const tl = gsap.timeline({ paused: true });
     window.__timelines["repurpose-ai-promo"] = tl;
 
-    // Frame 1
-    gsap.set('.frame-1 .title-line-1, .frame-1 .title-line-2, .frame-1 .desktop-frame', { opacity: 0 });
-    tl.to('.frame-1 .desktop-frame', { opacity: 1, duration: 1 }, 0);
-    tl.to('.frame-1 .title-line-1', { opacity: 1, duration: 1 }, 0.3);
-    tl.to('.frame-1 .title-line-2', { opacity: 1, duration: 1 }, 0.6);
+    // Frame 1: Desktop frame with anticipation, then titles with bounce
+    gsap.set('.frame-1 .title-line-1, .frame-1 .title-line-2, .frame-1 .desktop-frame', { opacity: 0, scale: 0.9 });
+    tl.to('.frame-1 .desktop-frame', { opacity: 1, scale: 1, duration: 0.8, ease: 'back.out(1.7)' }, 0);
+    tl.to('.frame-1 .title-line-1', { opacity: 1, scale: 1, duration: 0.6, ease: 'back.out(1.5)' }, 0.3);
+    tl.to('.frame-1 .title-line-2', { opacity: 1, scale: 1, duration: 0.6, ease: 'back.out(1.5)' }, 0.6);
 
-    // Frame 2
-    gsap.set('.frame-2 .progress-bar, .frame-2 .viral-scores, .frame-2 .score-badge', { opacity: 0 });
-    tl.to('.frame-2 .progress-bar', { width: '100%', duration: 2 }, 8);
-    tl.to('.frame-2 .viral-scores', { opacity: 1, duration: 1 }, 10);
+    // Frame 2: Progress bar with smooth ease, badges with elastic bounce
+    gsap.set('.frame-2 .progress-bar, .frame-2 .viral-scores, .frame-2 .score-badge', { opacity: 0, scale: 0.8 });
+    tl.to('.frame-2 .progress-bar', { width: '100%', duration: 2.5, ease: 'power2.inOut' }, 8);
+    tl.to('.frame-2 .viral-scores', { opacity: 1, duration: 0.4 }, 10);
     [0, 1, 2, 3].forEach((i) => {
-      tl.to(`.frame-2 .score-badge:nth-child(${i + 1})`, { opacity: 1, duration: 0.5 }, 10.3 + i * 0.2);
+      tl.to(`.frame-2 .score-badge:nth-child(${i + 1})`, {
+        opacity: 1,
+        scale: 1,
+        duration: 0.6,
+        ease: 'elastic.out(1, 0.5)'
+      }, 10.2 + i * 0.18);
     });
 
-    // Frame 3
-    gsap.set('.frame-3 .clip-card, .frame-3 .platform-label', { opacity: 0 });
+    // Frame 3: Clips slide in from edges with rotation and scale
+    gsap.set('.frame-3 .clip-card, .frame-3 .platform-label', { opacity: 0, scale: 0.85, y: 20 });
     [0, 1, 2, 3].forEach((i) => {
-      tl.to(`.frame-3 .clip-card:nth-child(${i + 1})`, { opacity: 1, duration: 0.6 }, 16 + i * 0.3);
+      const delays = [0, 0.3, 0.15, 0.45]; // Cascade pattern
+      tl.to(`.frame-3 .clip-card:nth-child(${i + 1})`, {
+        opacity: 1,
+        scale: 1,
+        y: 0,
+        duration: 0.7,
+        ease: 'back.out(1.4)'
+      }, 16 + delays[i]);
     });
-    tl.to('.frame-3 .platform-label', { opacity: 1, duration: 0.5 }, 17.5);
+    tl.to('.frame-3 .platform-label', { opacity: 1, y: 0, duration: 0.5, ease: 'power2.out' }, 17.5);
 
-    // Frame 4
-    gsap.set('.frame-4 .logo-box, .frame-4 .cta-button, .frame-4 .cta-subtitle', { opacity: 0 });
-    tl.to('.frame-4 .logo-box', { opacity: 1, duration: 0.8 }, 25);
-    tl.to('.frame-4 .cta-button', { opacity: 1, duration: 0.6 }, 25.5);
-    tl.to('.frame-4 .cta-subtitle', { opacity: 1, duration: 0.6 }, 26);
+    // Frame 4: Logo with spin, button with pulse and glow
+    gsap.set('.frame-4 .logo-box, .frame-4 .cta-button, .frame-4 .cta-subtitle', { opacity: 0, scale: 0, rotation: -45 });
+    tl.to('.frame-4 .logo-box', {
+      opacity: 1,
+      scale: 1,
+      rotation: 0,
+      duration: 0.9,
+      ease: 'back.out(1.6)'
+    }, 25);
+
+    // CTA button with continuous pulse
+    tl.to('.frame-4 .cta-button', { opacity: 1, scale: 1, rotation: 0, duration: 0.7, ease: 'back.out(1.5)' }, 25.4);
+    tl.to('.frame-4 .cta-button', { boxShadow: '0 20px 60px rgba(102, 126, 234, 0.6)', duration: 0.4 }, 26);
+
+    // Subtitle with delayed entrance
+    tl.to('.frame-4 .cta-subtitle', { opacity: 1, scale: 1, duration: 0.5, ease: 'power2.out' }, 26.1);
   </script>
 </body>
 </html>
