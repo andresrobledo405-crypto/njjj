@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Artesanos Panadería - Panadería artesanal con masa madre en La Serena, Chile. Pan, focaccia, baguette y más.">
+  <meta name="og:image" content="/images/artesanos-og.jpg">
+  <title>Artesanos Panadería - Pan Artesanal Premium La Serena</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --primary: #d4a574;
+      --secondary: #8b6f47;
+      --accent: #f5e6d3;
+      --dark: #2b2416;
+      --light: #f9f7f4;
+      --success: #7cb342;
+      --error: #d32f2f;
+      --border-radius: 8px;
+      --transition: all 0.3s ease;
+    }
+
+    body {
+      font-family: 'Georgia', serif;
+      background-color: var(--light);
+      color: var(--dark);
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 20px;
+    }
+
+    /* Navigation */
+    nav {
+      background: var(--dark);
+      color: white;
+      padding: 1rem 0;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .nav-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo {
+      font-size: 1.8rem;
+      font-weight: bold;
+      color: var(--primary);
+      letter-spacing: 1px;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 2rem;
+    }
+
+    .nav-links a {
+      color: white;
+      text-decoration: none;
+      transition: var(--transition);
+      font-size: 0.95rem;
+    }
+
+    .nav-links a:hover {
+      color: var(--primary);
+    }
+
+    /* Hero */
+    .hero {
+      background: linear-gradient(135deg, var(--secondary) 0%, var(--dark) 100%);
+      color: white;
+      padding: 6rem 0;
+      text-align: center;
+    }
+
+    .hero h1 {
+      font-size: 3.5rem;
+      margin-bottom: 1rem;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+
+    .hero p {
+      font-size: 1.3rem;
+      margin-bottom: 2rem;
+      opacity: 0.95;
+      font-style: italic;
+    }
+
+    .cta-button {
+      display: inline-block;
+      background: var(--primary);
+      color: var(--dark);
+      padding: 1rem 2.5rem;
+      border: none;
+      border-radius: var(--border-radius);
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: var(--transition);
+      text-decoration: none;
+      margin: 0.5rem;
+    }
+
+    .cta-button:hover {
+      background: #e0b896;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+    }
+
+    /* Section */
+    .section {
+      padding: 4rem 0;
+    }
+
+    .section-title {
+      font-size: 2.5rem;
+      margin-bottom: 3rem;
+      text-align: center;
+      color: var(--secondary);
+      position: relative;
+      padding-bottom: 1rem;
+    }
+
+    .section-title::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100px;
+      height: 3px;
+      background: var(--primary);
+    }
+
+    /* Products Grid */
+    .products-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 2rem;
+      margin-bottom: 2rem;
+    }
+
+    .product-card {
+      background: white;
+      border-radius: var(--border-radius);
+      padding: 1.5rem;
+      text-align: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      transition: var(--transition);
+      cursor: pointer;
+    }
+
+    .product-card:hover {
+      transform: translateY(-8px);
+      box-shadow: 0 12px 24px rgba(0,0,0,0.15);
+    }
+
+    .product-icon {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+    }
+
+    .product-card h3 {
+      font-size: 1.3rem;
+      margin-bottom: 0.5rem;
+      color: var(--secondary);
+    }
+
+    .product-card p {
+      color: #666;
+      font-size: 0.95rem;
+      margin-bottom: 1rem;
+    }
+
+    .product-card .badge {
+      display: inline-block;
+      background: var(--accent);
+      color: var(--dark);
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: bold;
+    }
+
+    /* Gemini Analysis Panel */
+    .gemini-panel {
+      background: white;
+      border-radius: var(--border-radius);
+      padding: 2rem;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      margin: 2rem 0;
+    }
+
+    .gemini-panel h2 {
+      color: var(--secondary);
+      margin-bottom: 1.5rem;
+      font-size: 1.8rem;
+    }
+
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+
+    .form-group label {
+      display: block;
+      font-weight: bold;
+      margin-bottom: 0.5rem;
+      color: var(--dark);
+    }
+
+    .form-group input,
+    .form-group textarea {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid #ddd;
+      border-radius: var(--border-radius);
+      font-family: inherit;
+      font-size: 1rem;
+    }
+
+    .form-group textarea {
+      resize: vertical;
+      min-height: 120px;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      padding: 0.75rem 1.5rem;
+      border: none;
+      border-radius: var(--border-radius);
+      font-size: 0.95rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: var(--dark);
+    }
+
+    .btn-primary:hover {
+      background: #e0b896;
+    }
+
+    .btn-secondary {
+      background: var(--secondary);
+      color: white;
+    }
+
+    .btn-secondary:hover {
+      background: #6b5436;
+    }
+
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    /* Analysis Result */
+    .analysis-result {
+      background: var(--accent);
+      border-left: 4px solid var(--primary);
+      padding: 1.5rem;
+      border-radius: var(--border-radius);
+      margin-top: 1.5rem;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .analysis-result h3 {
+      color: var(--secondary);
+      margin-bottom: 1rem;
+      font-size: 1.2rem;
+    }
+
+    .analysis-result p {
+      color: #333;
+      margin-bottom: 0.75rem;
+      line-height: 1.8;
+    }
+
+    .loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      color: var(--secondary);
+      font-weight: bold;
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid var(--accent);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Social Links */
+    .social-links {
+      display: flex;
+      justify-content: center;
+      gap: 2rem;
+      margin: 2rem 0;
+    }
+
+    .social-links a {
+      color: var(--secondary);
+      font-size: 1.5rem;
+      transition: var(--transition);
+      text-decoration: none;
+    }
+
+    .social-links a:hover {
+      color: var(--primary);
+      transform: scale(1.2);
+    }
+
+    /* Footer */
+    footer {
+      background: var(--dark);
+      color: white;
+      padding: 2rem 0;
+      text-align: center;
+      margin-top: 3rem;
+    }
+
+    footer p {
+      margin: 0.5rem 0;
+    }
+
+    /* Error & Success Messages */
+    .message {
+      padding: 1rem;
+      border-radius: var(--border-radius);
+      margin-bottom: 1rem;
+      display: none;
+    }
+
+    .message.success {
+      background: #c8e6c9;
+      color: #1b5e20;
+      border-left: 4px solid var(--success);
+      display: block;
+    }
+
+    .message.error {
+      background: #ffcdd2;
+      color: #b71c1c;
+      border-left: 4px solid var(--error);
+      display: block;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .hero h1 {
+        font-size: 2rem;
+      }
+
+      .hero p {
+        font-size: 1rem;
+      }
+
+      .nav-links {
+        gap: 1rem;
+        font-size: 0.85rem;
+      }
+
+      .section-title {
+        font-size: 1.8rem;
+      }
+
+      .button-group {
+        flex-direction: column;
+      }
+
+      .btn {
+        width: 100%;
+      }
+    }
+
+    /* Modal */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.5);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal.active {
+      display: flex;
+    }
+
+    .modal-content {
+      background: white;
+      padding: 2rem;
+      border-radius: var(--border-radius);
+      max-width: 500px;
+      width: 90%;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+    }
+
+    .modal-close {
+      float: right;
+      font-size: 2rem;
+      cursor: pointer;
+      color: #999;
+      border: none;
+      background: none;
+      margin: -1rem -1rem 0 0;
+    }
+
+    .modal-close:hover {
+      color: var(--dark);
+    }
+  </style>
+</head>
+<body>
+  <!-- Navigation -->
+  <nav>
+    <div class="container nav-container">
+      <div class="logo">🥖 Artesanos</div>
+      <div class="nav-links">
+        <a href="#products">Productos</a>
+        <a href="#analyzer">Análisis</a>
+        <a href="#instagram">Instagram</a>
+        <a href="#contact">Contacto</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="container">
+      <h1>Pan Artesanal Premium</h1>
+      <p>Hecho con masa madre y ingredientes puros en La Serena, Chile</p>
+      <a href="#products" class="cta-button">Ver Productos</a>
+      <a href="#analyzer" class="cta-button">Analizar Imágenes</a>
+    </div>
+  </section>
+
+  <!-- Products Section -->
+  <section class="section" id="products">
+    <div class="container">
+      <h2 class="section-title">Nuestros Productos</h2>
+      <div class="products-grid">
+        <div class="product-card">
+          <div class="product-icon">🥖</div>
+          <h3>Baguette Artesanal</h3>
+          <p>Crujiente por fuera, tierno por dentro. Hecho con masa madre de 3 días.</p>
+          <span class="badge">Clásico</span>
+        </div>
+        <div class="product-card">
+          <div class="product-icon">🫒</div>
+          <h3>Focaccia</h3>
+          <p>Suave con toque de aceite de oliva, romero fresco y sal marina.</p>
+          <span class="badge">Premium</span>
+        </div>
+        <div class="product-card">
+          <div class="product-icon">🥐</div>
+          <h3>Croissant</h3>
+          <p>100% mantequilla francesa. Delicado y hojaldrado.</p>
+          <span class="badge">Especial</span>
+        </div>
+        <div class="product-card">
+          <div class="product-icon">🍞</div>
+          <h3>Ciabatta</h3>
+          <p>Italiana, aireada y perfecta para sándwiches gourmet.</p>
+          <span class="badge">Clásico</span>
+        </div>
+        <div class="product-card">
+          <div class="product-icon">🥖</div>
+          <h3>Marraqueta</h3>
+          <p>Pan chileno tradicional mejorado con técnica artesanal.</p>
+          <span class="badge">Local</span>
+        </div>
+        <div class="product-card">
+          <div class="product-icon">🌾</div>
+          <h3>Pan Integral</h3>
+          <p>Harina de granos ancestrales, nutritivo y delicioso.</p>
+          <span class="badge">Saludable</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Gemini Analyzer Section -->
+  <section class="section" id="analyzer">
+    <div class="container">
+      <h2 class="section-title">Analizador de Contenido con Gemini AI</h2>
+
+      <div class="gemini-panel">
+        <h2>📸 Analizar Imagen de Instagram</h2>
+
+        <div id="message" class="message"></div>
+
+        <div class="form-group">
+          <label for="imageUrl">URL de Imagen</label>
+          <input
+            type="url"
+            id="imageUrl"
+            placeholder="https://example.com/image.jpg"
+            value="https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=500"
+          >
+        </div>
+
+        <div class="form-group">
+          <label for="productName">Nombre del Producto</label>
+          <input
+            type="text"
+            id="productName"
+            placeholder="ej: Focaccia con Romero"
+            value="Focaccia Artesanal"
+          >
+        </div>
+
+        <div class="form-group">
+          <label for="analysisPrompt">Personalizar análisis (opcional)</label>
+          <textarea
+            id="analysisPrompt"
+            placeholder="Describe qué te gustaría que Gemini analice..."
+          ></textarea>
+        </div>
+
+        <div class="button-group">
+          <button class="btn btn-primary" id="analyzeBtn" onclick="analyzeImage()">
+            🤖 Analizar con Gemini
+          </button>
+          <button class="btn btn-secondary" id="generateBtn" onclick="generateContent()" disabled>
+            ✨ Generar Contenido
+          </button>
+          <button class="btn btn-secondary" id="promptBtn" onclick="generateRunwayPrompt()" disabled>
+            🎬 Prompt para Runway
+          </button>
+        </div>
+      </div>
+
+      <div id="analysisResult" class="analysis-result" style="display: none;">
+        <h3>📊 Análisis de Imagen</h3>
+        <div id="analysisContent"></div>
+      </div>
+
+      <div id="generatedContent" class="analysis-result" style="display: none;">
+        <h3>✨ Contenido Generado</h3>
+        <div id="contentResult"></div>
+      </div>
+
+      <div id="runwayPrompt" class="analysis-result" style="display: none;">
+        <h3>🎬 Prompts para Runway/Pika</h3>
+        <div id="promptResult"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Instagram Section -->
+  <section class="section" id="instagram" style="background: var(--accent);">
+    <div class="container">
+      <h2 class="section-title">Síguenos en Instagram</h2>
+      <div style="text-align: center;">
+        <p style="font-size: 1.2rem; margin-bottom: 1.5rem;">
+          Mira nuestro trabajo diario y las historias detrás de cada pan
+        </p>
+        <a href="https://instagram.com/artesanospanaderials" class="cta-button" target="_blank">
+          @artesanospanaderials
+        </a>
+        <div class="social-links">
+          <a href="https://instagram.com/artesanospanaderials" title="Instagram">📷</a>
+          <a href="https://wa.me/56912345678" title="WhatsApp">💬</a>
+          <a href="mailto:contacto@artesanospan.cl" title="Email">✉️</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Contact Section -->
+  <section class="section" id="contact">
+    <div class="container">
+      <h2 class="section-title">Contacto</h2>
+      <div style="text-align: center; max-width: 500px; margin: 0 auto;">
+        <p style="margin-bottom: 1rem;">
+          <strong>📍 Ubicación:</strong><br>
+          La Serena, Chile
+        </p>
+        <p style="margin-bottom: 1rem;">
+          <strong>📧 Email:</strong><br>
+          contacto@artesanospan.cl
+        </p>
+        <p style="margin-bottom: 1rem;">
+          <strong>📱 WhatsApp:</strong><br>
+          +56 9 1234 5678
+        </p>
+        <p style="margin-bottom: 1rem;">
+          <strong>🕐 Horario:</strong><br>
+          Lunes a Sábado: 7:00 - 20:00<br>
+          Domingo: 8:00 - 18:00
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <p>&copy; 2024 Artesanos Panadería. Hecho con amor en La Serena.</p>
+      <p>Pan artesanal hecho con masa madre y técnica tradicional.</p>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script>
+    // Configuration
+    const CONFIG = {
+      API_KEY: localStorage.getItem('gemini_api_key') || 'YOUR_API_KEY_HERE',
+      USE_BACKEND: true, // Set to false for direct API calls (not recommended for production)
+      BACKEND_URL: '/api/gemini'
+    };
+
+    // Helper: Show message
+    function showMessage(text, type = 'success') {
+      const msg = document.getElementById('message');
+      msg.textContent = text;
+      msg.className = `message ${type}`;
+      setTimeout(() => {
+        msg.style.display = 'none';
+      }, 5000);
+    }
+
+    // Helper: Loading state
+    function setLoading(buttonId, loading) {
+      const btn = document.getElementById(buttonId);
+      if (loading) {
+        btn.innerHTML = '<span class="spinner"></span> Analizando...';
+        btn.disabled = true;
+      } else {
+        btn.innerHTML = '🤖 Analizar con Gemini';
+        btn.disabled = false;
+      }
+    }
+
+    // Main: Analyze Image
+    async function analyzeImage() {
+      const imageUrl = document.getElementById('imageUrl').value;
+      const productName = document.getElementById('productName').value;
+      const customPrompt = document.getElementById('analysisPrompt').value;
+
+      if (!imageUrl) {
+        showMessage('Por favor ingresa una URL de imagen', 'error');
+        return;
+      }
+
+      setLoading('analyzeBtn', true);
+
+      try {
+        const prompt = customPrompt || `Analiza esta imagen de panadería artesanal.
+Producto: ${productName}
+
+Proporciona:
+1. **Composición Visual**: Describe la disposición de elementos, ángulo, profundidad
+2. **Paleta de Colores**: Colores dominantes (hexadecimales)
+3. **Calidad**: Evaluación 1-10
+4. **Mood/Atmósfera**: Cómo se siente la imagen
+5. **SEO Description**: 100 caracteres máximo
+6. **Hashtags**: 10 hashtags relevantes
+7. **Mejoras Sugeridas**: 3 mejoras para máximo engagement
+
+Responde en formato claro y estructurado.`;
+
+        let result;
+        if (CONFIG.USE_BACKEND) {
+          result = await callBackendAPI('/analyze-image', {
+            imageUrl,
+            prompt
+          });
+        } else {
+          result = await callGeminiDirect(imageUrl, prompt);
+        }
+
+        displayAnalysis(result);
+        document.getElementById('generateBtn').disabled = false;
+        document.getElementById('promptBtn').disabled = false;
+        showMessage('Análisis completado exitosamente', 'success');
+      } catch (error) {
+        showMessage(`Error: ${error.message}`, 'error');
+        console.error('Analysis error:', error);
+      } finally {
+        setLoading('analyzeBtn', false);
+      }
+    }
+
+    // Display Analysis Results
+    function displayAnalysis(result) {
+      const content = document.getElementById('analysisContent');
+      content.innerHTML = `<pre style="white-space: pre-wrap; word-break: break-word;">${result}</pre>`;
+      document.getElementById('analysisResult').style.display = 'block';
+      window.lastAnalysis = result;
+    }
+
+    // Generate Content
+    async function generateContent() {
+      const productName = document.getElementById('productName').value;
+
+      if (!window.lastAnalysis) {
+        showMessage('Primero debes analizar una imagen', 'error');
+        return;
+      }
+
+      setLoading('generateBtn', true);
+
+      try {
+        const prompt = `Eres un experto en marketing de panaderías artesanales premium.
+
+Basado en este análisis de imagen:
+${window.lastAnalysis}
+
+Genera para el producto "${productName}":
+
+1. **Caption Instagram** (150 caracteres max, incluye emojis)
+2. **CTA Micro-copy** (llamada a la acción efectiva)
+3. **Testimonios** (2 testimonios realistas de clientes)
+4. **Tags recomendados** (10 hashtags)
+
+Tono: Artesanal, Premium, Auténtico, Local
+Público objetivo: Foodies, Health-conscious, Amantes de lo local
+
+Responde en formato claro, pronto para copiar y pegar en Instagram.`;
+
+        let result;
+        if (CONFIG.USE_BACKEND) {
+          result = await callBackendAPI('/generate-content', { prompt });
+        } else {
+          result = await callGeminiDirect(null, prompt);
+        }
+
+        document.getElementById('contentResult').innerHTML = `<pre style="white-space: pre-wrap; word-break: break-word;">${result}</pre>`;
+        document.getElementById('generatedContent').style.display = 'block';
+        window.lastContent = result;
+        showMessage('Contenido generado exitosamente', 'success');
+      } catch (error) {
+        showMessage(`Error: ${error.message}`, 'error');
+      } finally {
+        setLoading('generateBtn', false);
+      }
+    }
+
+    // Generate Runway Prompts
+    async function generateRunwayPrompt() {
+      const productName = document.getElementById('productName').value;
+
+      if (!window.lastAnalysis) {
+        showMessage('Primero debes analizar una imagen', 'error');
+        return;
+      }
+
+      setLoading('promptBtn', true);
+
+      try {
+        const prompt = `Basado en este análisis de imagen:
+${window.lastAnalysis}
+
+Genera 3 prompts PERFECTOS para Runway ML o Pika AI, para crear videos de 15-20 segundos.
+
+Cada prompt debe:
+- Ser descriptivo y específico (150-250 palabras)
+- Incluir: escena, producto, lighting, audio, mood, text overlay, CTA
+- Ser pronto para copiar-pegar directamente en Runway/Pika
+- Mencionar estilo cinematográfico (food porn, slow-motion, high-quality)
+- Enfatizar que es panadería artesanal en La Serena
+
+Producto: "${productName}"
+
+Formato:
+**Opción 1 - [Estilo]:**
+[Prompt completo]
+
+**Opción 2 - [Estilo]:**
+[Prompt completo]
+
+**Opción 3 - [Estilo]:**
+[Prompt completo]`;
+
+        let result;
+        if (CONFIG.USE_BACKEND) {
+          result = await callBackendAPI('/generate-content', { prompt });
+        } else {
+          result = await callGeminiDirect(null, prompt);
+        }
+
+        document.getElementById('promptResult').innerHTML = `<pre style="white-space: pre-wrap; word-break: break-word;">${result}</pre>`;
+        document.getElementById('runwayPrompt').style.display = 'block';
+        showMessage('Prompts para video generados exitosamente', 'success');
+      } catch (error) {
+        showMessage(`Error: ${error.message}`, 'error');
+      } finally {
+        setLoading('promptBtn', false);
+      }
+    }
+
+    // API Calls
+    async function callBackendAPI(endpoint, data) {
+      const response = await fetch(`${CONFIG.BACKEND_URL}${endpoint}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'API error');
+      }
+
+      const result = await response.json();
+      return result.content || result.analysis;
+    }
+
+    async function callGeminiDirect(imageUrl, prompt) {
+      // This is a simplified version - in production, use backend proxy
+      throw new Error('Use backend configuration for production. Set CONFIG.USE_BACKEND = true');
+    }
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+      // Check if API key is configured
+      if (CONFIG.API_KEY === 'YOUR_API_KEY_HERE') {
+        console.warn('⚠️ Gemini API key not configured. Please set it in localStorage or configure backend.');
+      }
+
+      // Setup localStorage for API key
+      const setupApiBtn = document.createElement('button');
+      if (!localStorage.getItem('gemini_api_key')) {
+        const key = prompt('Ingresa tu clave de API de Google Gemini (o deja en blanco para usar backend):');
+        if (key) {
+          localStorage.setItem('gemini_api_key', key);
+          location.reload();
+        }
+      }
+    });
+  </script>
+</body>
+</html>
