@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Video Details - Repurpose AI</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="container">
+      <div class="logo">Repurpose AI</div>
+      <div class="nav-links">
+        <a href="dashboard.html">Dashboard</a>
+        <a href="#" onclick="logout(event)">Logout</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container video-detail">
+    <a href="dashboard.html">&larr; Back to Dashboard</a>
+    <h1 id="video-title"></h1>
+
+    <div class="video-info">
+      <p>Status: <strong id="video-status"></strong></p>
+      <p>Uploaded: <strong id="video-date"></strong></p>
+    </div>
+
+    <div class="viral-scores" id="viral-scores"></div>
+
+    <div class="clips-section">
+      <h2>Generated Clips</h2>
+      <div id="clips-list" class="clips-grid"></div>
+    </div>
+
+    <p id="detail-msg" style="display:none; color: red;"></p>
+  </div>
+
+  <script>
+    const API_URL = 'http://localhost:3001';
+
+    window.addEventListener('load', () => {
+      const token = localStorage.getItem('auth_token');
+      if (!token) {
+        location.href = 'auth.html';
+      } else {
+        const params = new URLSearchParams(location.search);
+        const videoId = params.get('id');
+        if (videoId) loadVideoDetail(videoId);
+      }
+    });
+
+    async function loadVideoDetail(videoId) {
+      const token = localStorage.getItem('auth_token');
+      try {
+        const response = await fetch(`${API_URL}/videos/${videoId}`, {
+          headers: { 'Authorization': `Bearer ${token}` },
+        });
+
+        const data = await response.json();
+        const video = data.video;
+        const clips = data.clips || [];
+
+        document.getElementById('video-title').textContent = video.title;
+        document.getElementById('video-status').textContent = video.status;
+        document.getElementById('video-date').textContent = new Date(video.created_at).toLocaleDateString();
+
+        // Viral scores
+        const scoresHtml = `
+          <h2>Viral Scores</h2>
+          <div class="scores">
+            <div class="score-bar">
+              <span>TikTok</span>
+              <div class="bar"><div style="width: ${(video.viral_score_tiktok || 0) * 10}%"></div></div>
+              <span>${video.viral_score_tiktok || 0}/10</span>
+            </div>
+            <div class="score-bar">
+              <span>Instagram Reels</span>
+              <div class="bar"><div style="width: ${(video.viral_score_reels || 0) * 10}%"></div></div>
+              <span>${video.viral_score_reels || 0}/10</span>
+            </div>
+            <div class="score-bar">
+              <span>YouTube Shorts</span>
+              <div class="bar"><div style="width: ${(video.viral_score_shorts || 0) * 10}%"></div></div>
+              <span>${video.viral_score_shorts || 0}/10</span>
+            </div>
+            <div class="score-bar">
+              <span>LinkedIn</span>
+              <div class="bar"><div style="width: ${(video.viral_score_linkedin || 0) * 10}%"></div></div>
+              <span>${video.viral_score_linkedin || 0}/10</span>
+            </div>
+          </div>
+        `;
+        document.getElementById('viral-scores').innerHTML = scoresHtml;
+
+        // Clips
+        const clipsList = document.getElementById('clips-list');
+        if (clips.length > 0) {
+          clipsList.innerHTML = clips.map(clip => `
+            <div class="clip-card">
+              <h3>${clip.platform}</h3>
+              <p>Status: <strong>${clip.status}</strong></p>
+              <p>Duration: ${clip.duration_sec}s</p>
+              ${clip.clip_url ? `<a href="${clip.clip_url}" target="_blank">View Clip</a>` : ''}
+            </div>
+          `).join('');
+        } else {
+          clipsList.innerHTML = '<p>No clips generated yet. Check back in a moment.</p>';
+        }
+      } catch (error) {
+        document.getElementById('detail-msg').textContent = 'Error: ' + error.message;
+        document.getElementById('detail-msg').style.display = 'block';
+      }
+    }
+
+    function logout(e) {
+      e.preventDefault();
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('user_email');
+      location.href = 'index.html';
+    }
+  </script>
+</body>
+</html>

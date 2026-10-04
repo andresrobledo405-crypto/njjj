@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Auth - Repurpose AI</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="container">
+      <div class="logo">Repurpose AI</div>
+      <div class="nav-links">
+        <a href="index.html">Home</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="auth-container">
+    <div class="auth-card">
+      <h1 id="auth-title">Sign Up</h1>
+      <form id="auth-form">
+        <input type="email" id="email" placeholder="Email" required>
+        <input type="password" id="password" placeholder="Password (min 8 chars)" required>
+        <button type="submit" class="cta">Sign Up</button>
+      </form>
+      <p id="auth-toggle">Already have an account? <a href="#" onclick="toggleMode(event)">Login</a></p>
+      <p id="error-msg" style="color: red; display: none;"></p>
+    </div>
+  </div>
+
+  <script>
+    let isSignup = true;
+    const API_URL = 'http://localhost:3001';
+
+    function toggleMode(e) {
+      e.preventDefault();
+      isSignup = !isSignup;
+      const title = document.getElementById('auth-title');
+      const button = document.querySelector('button');
+      const toggle = document.getElementById('auth-toggle');
+
+      if (isSignup) {
+        title.textContent = 'Sign Up';
+        button.textContent = 'Sign Up';
+        toggle.innerHTML = 'Already have an account? <a href="#" onclick="toggleMode(event)">Login</a>';
+      } else {
+        title.textContent = 'Login';
+        button.textContent = 'Login';
+        toggle.innerHTML = 'Don\'t have an account? <a href="#" onclick="toggleMode(event)">Sign Up</a>';
+      }
+    }
+
+    document.getElementById('auth-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      const endpoint = isSignup ? '/auth/signup' : '/auth/login';
+
+      try {
+        const response = await fetch(`${API_URL}${endpoint}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password }),
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.token) {
+          localStorage.setItem('auth_token', data.token);
+          localStorage.setItem('user_email', email);
+          location.href = 'dashboard.html';
+        } else {
+          document.getElementById('error-msg').textContent = data.error || 'Auth failed';
+          document.getElementById('error-msg').style.display = 'block';
+        }
+      } catch (error) {
+        document.getElementById('error-msg').textContent = 'Network error: ' + error.message;
+        document.getElementById('error-msg').style.display = 'block';
+      }
+    });
+
+    // Check if already logged in
+    window.addEventListener('load', () => {
+      if (localStorage.getItem('auth_token')) {
+        location.href = 'dashboard.html';
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Repurpose AI - Landing</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="container">
+      <div class="logo">Repurpose AI</div>
+      <div class="nav-links">
+        <a href="index.html">Home</a>
+        <a href="auth.html" id="nav-auth">Login</a>
+        <a href="dashboard.html" id="nav-dashboard" style="display:none;">Dashboard</a>
+      </div>
+    </div>
+  </nav>
+
+  <section class="hero">
+    <div class="container">
+      <h1>Turn 1 Video Into 4 Viral Clips</h1>
+      <p>AI-powered repurposing for TikTok, Instagram, YouTube, and LinkedIn</p>
+      <button class="cta" onclick="location.href='auth.html'">Get Started Free</button>
+    </div>
+  </section>
+
+  <section class="pricing">
+    <div class="container">
+      <h2>Simple Pricing</h2>
+      <div class="price-cards">
+        <div class="card">
+          <h3>Free</h3>
+          <p class="price">$0</p>
+          <ul>
+            <li>1 video/month</li>
+            <li>Basic analysis</li>
+            <li>No publishing</li>
+          </ul>
+        </div>
+        <div class="card highlighted">
+          <h3>Starter</h3>
+          <p class="price">$29<span>/mo</span></p>
+          <ul>
+            <li>25 videos/month</li>
+            <li>Viral scoring</li>
+            <li>Auto-publish ready</li>
+          </ul>
+          <button onclick="selectPlan('starter')">Choose</button>
+        </div>
+        <div class="card">
+          <h3>Pro</h3>
+          <p class="price">$79<span>/mo</span></p>
+          <ul>
+            <li>100 videos/month</li>
+            <li>Full AI analysis</li>
+            <li>API access</li>
+          </ul>
+          <button onclick="selectPlan('pro')">Choose</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p>&copy; 2026 Repurpose AI. All rights reserved.</p>
+  </footer>
+
+  <script>
+    function selectPlan(plan) {
+      const token = localStorage.getItem('auth_token');
+      if (!token) {
+        location.href = 'auth.html?plan=' + plan;
+      } else {
+        location.href = 'billing.html?plan=' + plan;
+      }
+    }
+
+    // Check if user is logged in
+    window.addEventListener('load', () => {
+      const token = localStorage.getItem('auth_token');
+      if (token) {
+        document.getElementById('nav-auth').style.display = 'none';
+        document.getElementById('nav-dashboard').style.display = 'inline';
+      }
+    });
+  </script>
+</body>
+</html>

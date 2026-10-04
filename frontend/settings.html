@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Settings - Repurpose AI</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="container">
+      <div class="logo">Repurpose AI</div>
+      <div class="nav-links">
+        <a href="dashboard.html">Dashboard</a>
+        <a href="#" onclick="logout(event)">Logout</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container settings">
+    <h1>Settings</h1>
+
+    <div class="settings-section">
+      <h2>Account</h2>
+      <p>Email: <strong id="account-email"></strong></p>
+    </div>
+
+    <div class="settings-section">
+      <h2>Current Plan</h2>
+      <p>Plan: <strong id="current-plan">Free</strong></p>
+      <p id="plan-info"></p>
+    </div>
+
+    <div class="settings-section">
+      <h2>Upgrade Plan</h2>
+      <div class="plan-options">
+        <div class="plan-card">
+          <h3>Starter</h3>
+          <p class="price">$29<span>/mo</span></p>
+          <button class="cta" onclick="upgradePlan('starter')">Choose Starter</button>
+        </div>
+        <div class="plan-card">
+          <h3>Pro</h3>
+          <p class="price">$79<span>/mo</span></p>
+          <button class="cta" onclick="upgradePlan('pro')">Choose Pro</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="settings-section danger">
+      <h2>Danger Zone</h2>
+      <p>Cancel your subscription. You'll lose access to premium features.</p>
+      <button class="danger-btn" onclick="if(confirm('Cancel subscription?')) cancelSubscription()">Cancel Subscription</button>
+    </div>
+
+    <p id="settings-msg" style="display:none;"></p>
+  </div>
+
+  <script>
+    const API_URL = 'http://localhost:3001';
+
+    window.addEventListener('load', () => {
+      const token = localStorage.getItem('auth_token');
+      const email = localStorage.getItem('user_email');
+      if (!token) {
+        location.href = 'auth.html';
+      } else {
+        document.getElementById('account-email').textContent = email;
+        loadPlanInfo();
+      }
+    });
+
+    async function loadPlanInfo() {
+      const token = localStorage.getItem('auth_token');
+      try {
+        const response = await fetch(`${API_URL}/videos`, {
+          headers: { 'Authorization': `Bearer ${token}` },
+        });
+
+        // In real app, would fetch actual plan from user table
+        // For now, default to Free
+        document.getElementById('current-plan').textContent = 'Free';
+        document.getElementById('plan-info').textContent = '1 video/month, basic analysis';
+      } catch (error) {
+        console.error('Error loading plan:', error);
+      }
+    }
+
+    async function upgradePlan(plan) {
+      const token = localStorage.getItem('auth_token');
+      try {
+        const response = await fetch(`${API_URL}/billing/checkout`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ plan }),
+        });
+
+        const data = await response.json();
+        if (data.sessionUrl) {
+          // In real app, redirect to Stripe checkout
+          window.location.href = data.sessionUrl;
+        } else {
+          showMessage('Error: ' + (data.error || 'Could not create checkout'), 'error');
+        }
+      } catch (error) {
+        showMessage('Error: ' + error.message, 'error');
+      }
+    }
+
+    async function cancelSubscription() {
+      const token = localStorage.getItem('auth_token');
+      try {
+        // Placeholder: in real app, would call actual cancellation endpoint
+        showMessage('Subscription cancellation feature coming soon', 'info');
+      } catch (error) {
+        showMessage('Error: ' + error.message, 'error');
+      }
+    }
+
+    function showMessage(msg, type) {
+      const msgDiv = document.getElementById('settings-msg');
+      msgDiv.textContent = msg;
+      msgDiv.style.display = 'block';
+      msgDiv.style.color = type === 'error' ? 'red' : 'green';
+    }
+
+    function logout(e) {
+      e.preventDefault();
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('user_email');
+      location.href = 'index.html';
+    }
+  </script>
+</body>
+</html>

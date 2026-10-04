@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Billing - Repurpose AI</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="container">
+      <div class="logo">Repurpose AI</div>
+      <div class="nav-links">
+        <a href="dashboard.html">Dashboard</a>
+        <a href="#" onclick="logout(event)">Logout</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container billing">
+    <h1>Upgrade Your Plan</h1>
+
+    <div class="plans">
+      <div class="plan-card">
+        <h2>Starter</h2>
+        <p class="price">$29<span>/month</span></p>
+        <ul>
+          <li>✓ 25 videos/month</li>
+          <li>✓ Viral scoring</li>
+          <li>✓ Auto-publish ready</li>
+          <li>✓ Email support</li>
+        </ul>
+        <button class="cta" onclick="choosePlan('starter')">Choose Starter</button>
+      </div>
+
+      <div class="plan-card highlighted">
+        <h2>Pro</h2>
+        <p class="price">$79<span>/month</span></p>
+        <ul>
+          <li>✓ 100 videos/month</li>
+          <li>✓ Full AI analysis</li>
+          <li>✓ API access</li>
+          <li>✓ Priority support</li>
+        </ul>
+        <button class="cta" onclick="choosePlan('pro')">Choose Pro</button>
+      </div>
+
+      <div class="plan-card">
+        <h2>Agency</h2>
+        <p class="price">$199<span>/month</span></p>
+        <ul>
+          <li>✓ Unlimited videos</li>
+          <li>✓ Advanced AI features</li>
+          <li>✓ Team collaboration</li>
+          <li>✓ Dedicated support</li>
+        </ul>
+        <button class="cta" onclick="choosePlan('agency')">Choose Agency</button>
+      </div>
+    </div>
+
+    <p id="billing-msg" style="display:none;"></p>
+  </div>
+
+  <script>
+    const API_URL = 'http://localhost:3001';
+
+    window.addEventListener('load', () => {
+      const token = localStorage.getItem('auth_token');
+      if (!token) {
+        location.href = 'auth.html';
+      }
+    });
+
+    async function choosePlan(plan) {
+      const token = localStorage.getItem('auth_token');
+      const msgDiv = document.getElementById('billing-msg');
+
+      try {
+        msgDiv.textContent = 'Redirecting to checkout...';
+        msgDiv.style.display = 'block';
+
+        const response = await fetch(`${API_URL}/billing/checkout`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ plan }),
+        });
+
+        const data = await response.json();
+
+        if (data.sessionUrl) {
+          // Redirect to Stripe checkout
+          window.location.href = data.sessionUrl;
+        } else {
+          msgDiv.style.color = 'red';
+          msgDiv.textContent = 'Error: ' + (data.error || 'Could not create checkout session');
+        }
+      } catch (error) {
+        msgDiv.style.color = 'red';
+        msgDiv.textContent = 'Error: ' + error.message;
+      }
+    }
+
+    function logout(e) {
+      e.preventDefault();
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('user_email');
+      location.href = 'index.html';
+    }
+  </script>
+</body>
+</html>

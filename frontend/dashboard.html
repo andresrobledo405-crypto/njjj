@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard - Repurpose AI</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="container">
+      <div class="logo">Repurpose AI</div>
+      <div class="nav-links">
+        <span id="user-email"></span>
+        <a href="settings.html">Settings</a>
+        <a href="#" onclick="logout(event)">Logout</a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container dashboard">
+    <h1>Dashboard</h1>
+
+    <div class="upload-section">
+      <h2>Upload Your Video</h2>
+      <div class="upload-area" id="upload-area">
+        <input type="file" id="video-input" accept="video/*" style="display:none;">
+        <p>Drag & drop video or <a href="#" onclick="document.getElementById('video-input').click(); return false;">click to upload</a></p>
+        <p style="font-size: 0.9em; color: #666;">MP4, MOV, or WebM (max 2GB)</p>
+      </div>
+      <input type="text" id="video-title" placeholder="Video title (optional)">
+      <button class="cta" id="upload-btn" style="display:none;" onclick="uploadVideo()">Upload & Analyze</button>
+      <p id="upload-status"></p>
+    </div>
+
+    <div class="videos-section">
+      <h2>Your Videos</h2>
+      <div id="videos-list" class="videos-grid"></div>
+    </div>
+  </div>
+
+  <script>
+    const API_URL = 'http://localhost:3001';
+    let selectedFile = null;
+
+    // Auth check
+    window.addEventListener('load', () => {
+      const token = localStorage.getItem('auth_token');
+      const email = localStorage.getItem('user_email');
+      if (!token) {
+        location.href = 'auth.html';
+      } else {
+        document.getElementById('user-email').textContent = email;
+        loadVideos();
+      }
+    });
+
+    // File upload handlers
+    const uploadArea = document.getElementById('upload-area');
+    const videoInput = document.getElementById('video-input');
+
+    uploadArea.addEventListener('click', () => videoInput.click());
+
+    uploadArea.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      uploadArea.style.backgroundColor = '#f0f0f0';
+    });
+
+    uploadArea.addEventListener('dragleave', () => {
+      uploadArea.style.backgroundColor = 'transparent';
+    });
+
+    uploadArea.addEventListener('drop', (e) => {
+      e.preventDefault();
+      uploadArea.style.backgroundColor = 'transparent';
+      const files = e.dataTransfer.files;
+      if (files.length > 0) {
+        handleFileSelect(files[0]);
+      }
+    });
+
+    videoInput.addEventListener('change', (e) => {
+      if (e.target.files.length > 0) {
+        handleFileSelect(e.target.files[0]);
+      }
+    });
+
+    function handleFileSelect(file) {
+      selectedFile = file;
+      uploadArea.innerHTML = `<p>✓ ${file.name} selected</p>`;
+      document.getElementById('upload-btn').style.display = 'block';
+    }
+
+    async function uploadVideo() {
+      if (!selectedFile) return;
+
+      const token = localStorage.getItem('auth_token');
+      const title = document.getElementById('video-title').value || selectedFile.name;
+      const statusDiv = document.getElementById('upload-status');
+
+      const formData = new FormData();
+      formData.append('video', selectedFile);
+      formData.append('title', title);
+
+      try {
+        statusDiv.textContent = 'Uploading...';
+        const response = await fetch(`${API_URL}/videos/upload`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` },
+          body: formData,
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          statusDiv.textContent = '✓ Video uploaded! Processing...';
+          selectedFile = null;
+          document.getElementById('video-input').value = '';
+          document.getElementById('video-title').value = '';
+          uploadArea.innerHTML = '<p>Drag & drop video or <a href="#" onclick="document.getElementById(\'video-input\').click(); return false;">click to upload</a></p><p style="font-size: 0.9em; color: #666;">MP4, MOV, or WebM (max 2GB)</p>';
+          document.getElementById('upload-btn').style.display = 'none';
+
+          // Process video
+          await processVideo(data.video.id);
+          loadVideos();
+        } else {
+          statusDiv.textContent = '✗ ' + (data.error || 'Upload failed');
+        }
+      } catch (error) {
+        statusDiv.textContent = '✗ ' + error.message;
+      }
+    }
+
+    async function processVideo(videoId) {
+      const token = localStorage.getItem('auth_token');
+      try {
+        await fetch(`${API_URL}/videos/${videoId}/process`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` },
+        });
+      } catch (error) {
+        console.error('Process error:', error);
+      }
+    }
+
+    async function loadVideos() {
+      const token = localStorage.getItem('auth_token');
+      try {
+        const response = await fetch(`${API_URL}/videos`, {
+          headers: { 'Authorization': `Bearer ${token}` },
+        });
+
+        const data = await response.json();
+        const list = document.getElementById('videos-list');
+
+        if (data.videos && data.videos.length > 0) {
+          list.innerHTML = data.videos.map((video) => `
+            <div class="video-card">
+              <h3>${video.title}</h3>
+              <p>Status: <strong>${video.status}</strong></p>
+              <p>Created: ${new Date(video.created_at).toLocaleDateString()}</p>
+              <a href="video-detail.html?id=${video.id}">View Details</a>
+            </div>
+          `).join('');
+        } else {
+          list.innerHTML = '<p>No videos yet. Upload one to get started!</p>';
+        }
+      } catch (error) {
+        console.error('Load error:', error);
+        document.getElementById('videos-list').innerHTML = '<p>Error loading videos</p>';
+      }
+    }
+
+    function logout(e) {
+      e.preventDefault();
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('user_email');
+      location.href = 'index.html';
+    }
+  </script>
+</body>
+</html>
