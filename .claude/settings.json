@@ -1,0 +1,25 @@
+{
+  "design": {
+    "visual_refinement": "impeccable",
+    "required_before_ship": true,
+    "workflow": [
+      "layout",
+      "typeset",
+      "animate",
+      "polish"
+    ],
+    "acceptance_criteria": {
+      "typography": "WCAG AA contrast (4.5:1 min)",
+      "spacing": "4px base unit system",
+      "touch_targets": "14px minimum",
+      "reduced_motion": "respected",
+      "states": "focus, hover, active, disabled, loading, error"
+    }
+  },
+  "skills_enabled": {
+    "impeccable": true,
+    "design_taste_frontend": true,
+    "emil_design_eng": true,
+    "review_animations": true
+  }
+}
