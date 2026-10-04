@@ -1,0 +1,37 @@
+{
+  "ultra-quality": {
+    "preset": "slow",
+    "crf": 12,
+    "bitrate": "10000k",
+    "audio": "256k",
+    "description": "Ultra high quality (8-12 MB/min)"
+  },
+  "professional": {
+    "preset": "slow",
+    "crf": 14,
+    "bitrate": "8000k",
+    "audio": "192k",
+    "description": "Professional quality (6-8 MB/min)"
+  },
+  "high-quality": {
+    "preset": "medium",
+    "crf": 18,
+    "bitrate": "6000k",
+    "audio": "192k",
+    "description": "High quality (4-6 MB/min)"
+  },
+  "balanced": {
+    "preset": "medium",
+    "crf": 20,
+    "bitrate": "4000k",
+    "audio": "128k",
+    "description": "Balanced quality/size (2-4 MB/min)"
+  },
+  "web-optimized": {
+    "preset": "fast",
+    "crf": 23,
+    "bitrate": "2000k",
+    "audio": "128k",
+    "description": "Web optimized (1-2 MB/min)"
+  }
+}

@@ -1,0 +1,75 @@
+{
+  "name": "design-masters-studio",
+  "version": "1.0.0",
+  "description": "Professional video, animation, and graphic design studio with integrated AI skills",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "setup": "bash setup-design-tools.sh",
+    "setup:design": "bash setup-design-tools.sh",
+    "test:design": "npm run test:ffmpeg && npm run test:node && npm run test:python",
+    "test:ffmpeg": "ffmpeg -version | head -3 && echo '✓ FFmpeg OK'",
+    "test:node": "node --version && echo '✓ Node OK'",
+    "test:python": "python3 --version && echo '✓ Python OK'",
+    "create:video": "echo 'Use skills: /hyperframes or /remotion-*'",
+    "create:animation": "echo 'Use skills: /animate or /text-to-lottie'",
+    "create:graphics": "echo 'Use skills: /impeccable or /design-taste-frontend'",
+    "design:master": "echo 'Design Master Agent - Ready for /design commands'",
+    "render:hyperframes": "npx hyperframes check && npx hyperframes render",
+    "render:remotion": "npx remotion still src/composition.tsx --props '{}'",
+    "export:all": "npm run export:youtube && npm run export:tiktok && npm run export:instagram",
+    "export:youtube": "echo 'Export to YouTube Shorts (1080×1920, 60s)'",
+    "export:tiktok": "echo 'Export to TikTok (1080×1920, 60s)'",
+    "export:instagram": "echo 'Export to Instagram Reels (1080×1920, 60s)'",
+    "serve": "npx http-server . -p 8080 -o",
+    "dev": "npm run serve"
+  },
+  "keywords": [
+    "video",
+    "animation",
+    "design",
+    "graphics",
+    "gsap",
+    "remotion",
+    "hyperframes",
+    "manim",
+    "lottie"
+  ],
+  "author": "Design Masters Studio",
+  "license": "MIT",
+  "dependencies": {
+    "@remotion/cli": "^4.0.0",
+    "remotion": "^4.0.0",
+    "gsap": "^3.12.2",
+    "lottie-web": "^5.12.2",
+    "three": "^r166",
+    "canvas": "^2.11.2",
+    "sharp": "^0.33.1",
+    "ffmpeg-static": "^5.1.0",
+    "ffprobe-static": "^3.1.0"
+  },
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  },
+  "engines": {
+    "node": ">=22.0.0",
+    "npm": ">=10.0.0"
+  },
+  "config": {
+    "hyperframes": {
+      "input": "video/",
+      "output": "exports/",
+      "format": "mp4",
+      "quality": "high"
+    },
+    "remotion": {
+      "concurrency": 4,
+      "timeout": 120000
+    },
+    "ffmpeg": {
+      "preset": "slow",
+      "crf": 14,
+      "audio_bitrate": "192k"
+    }
+  }
+}
