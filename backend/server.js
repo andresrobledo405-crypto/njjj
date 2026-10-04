@@ -2,6 +2,8 @@ import express from 'express';
 import { config } from './config/env.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import authRoutes from './routes/auth.routes.js';
+import videoRoutes from './routes/videos.routes.js';
+import billingRoutes from './routes/billing.routes.js';
 
 const app = express();
 
@@ -11,6 +13,8 @@ app.use(express.urlencoded({ extended: true }));
 
 // Routes
 app.use('/auth', authRoutes);
+app.use('/videos', videoRoutes);
+app.use('/billing', billingRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
