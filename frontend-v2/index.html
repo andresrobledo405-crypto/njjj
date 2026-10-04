@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Artesanos Panadería - Pan artesanal premium en La Serena, Chile. Masa Madre, Focaccia, Baguette y más.">
+  <meta property="og:title" content="Artesanos Panadería - Pan Artesanal Premium">
+  <meta property="og:description" content="Descubre nuestro pan artesanal hecho con ingredientes premium y técnicas tradicionales.">
+  <meta property="og:image" content="/assets/placeholders/og-image.jpg">
+
+  <title>Artesanos Panadería - Pan Artesanal Premium La Serena</title>
+
+  <!-- Estilos -->
+  <link rel="stylesheet" href="styles/main.css">
+
+  <!-- Alpine.js para interactividad -->
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <!-- Partículas de fondo -->
+  <canvas id="particles-canvas" style="position: fixed; top: 0; left: 0; z-index: 1; pointer-events: none;"></canvas>
+
+  <!-- Navegación -->
+  <nav>
+    <div class="nav-container">
+      <a href="#home" class="logo">ARTESANOS</a>
+      <ul class="nav-links">
+        <li><a href="#productos">Productos</a></li>
+        <li><a href="#videos">Videos</a></li>
+        <li><a href="#instagram">Instagram</a></li>
+        <li><a href="#contacto">Contacto</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <section class="hero" id="home">
+    <div class="container">
+      <div class="hero-content">
+        <h1>Panadería Artesanos</h1>
+        <p>Pan elaborado con pasión, tradición e ingredientes premium</p>
+        <a href="#productos" class="cta-button">Descubre nuestros productos</a>
+        <a href="#videos" class="cta-button cta-button-secondary">Ver proceso</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Sección Sobre Nosotros -->
+  <section class="light" id="sobre">
+    <div class="container">
+      <h2>Nuestra Historia</h2>
+      <div class="grid grid-2" style="margin-top: 3rem;">
+        <div>
+          <h3>Tradición + Innovación</h3>
+          <p style="font-size: 1.1rem; line-height: 1.8; color: #666;">
+            Desde 2015, elaboramos pan artesanal usando técnicas tradicionales y los mejores ingredientes.
+            Cada pza es única, hecha a mano, fermentada lentamente para desarrollar sabor completo.
+          </p>
+        </div>
+        <div class="card">
+          <h4>✨ ¿Qué nos diferencia?</h4>
+          <ul style="list-style: none; line-height: 2;">
+            <li>🌾 100% ingredientes naturales</li>
+            <li>⏰ Fermentación lenta (24-48 horas)</li>
+            <li>🔥 Horno de piedra tradicional</li>
+            <li>👨‍🍳 Maestros panaderos certificados</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Productos -->
+  <section class="accent" id="productos">
+    <div class="container">
+      <h2>Nuestros Productos</h2>
+      <p style="text-align: center; font-size: 1.1rem; color: #666; margin-bottom: 3rem;">
+        Cada producto está analizado con IA para brindarte información detallada
+      </p>
+      <div class="grid grid-3" id="productos-container">
+        <!-- Se renderiza con JS -->
+      </div>
+    </div>
+  </section>
+
+  <!-- Videos -->
+  <section class="dark" id="videos">
+    <div class="container">
+      <h2 style="color: white;">Galería de Videos</h2>
+      <p style="text-align: center; color: rgba(255,255,255,0.8); margin-bottom: 3rem; font-size: 1.05rem;">
+        YouTube • MP4 • Runway ML - Integración completa
+      </p>
+      <div id="videos-container" style="margin-top: 3rem;">
+        <!-- Se renderiza con JS -->
+      </div>
+    </div>
+  </section>
+
+  <!-- Instagram Feed -->
+  <section class="light" id="instagram">
+    <div class="container">
+      <h2>Feed Instagram</h2>
+      <p style="text-align: center; color: #666; margin-bottom: 2rem;">
+        Carga tus imágenes - Gemini genera captions y análisis automáticamente
+      </p>
+      <div id="instagram-feed" style="margin-top: 2rem;">
+        <!-- Se renderiza con JS -->
+      </div>
+    </div>
+  </section>
+
+  <!-- Contacto -->
+  <section class="dark" id="contacto">
+    <div class="container">
+      <h2 style="color: white;">Contacto</h2>
+      <div class="grid grid-2" style="margin-top: 3rem;">
+        <div class="card card-dark">
+          <h3 style="color: var(--primary);">📞 Teléfono</h3>
+          <p style="font-size: 1.2rem; margin-top: 1rem;">+56 9 7204 4704</p>
+        </div>
+        <div class="card card-dark">
+          <h3 style="color: var(--primary);">📍 Ubicación</h3>
+          <p style="margin-top: 1rem;">
+            La Serena, Región de Coquimbo<br>
+            <a href="#" style="color: var(--primary); text-decoration: none;">Ver en Google Maps →</a>
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer style="background: var(--bg-dark); color: white; text-align: center; padding: 2rem; margin-top: 3rem;">
+    <p>© 2026 Artesanos Panadería. Todos los derechos reservados.</p>
+    <p style="font-size: 0.9rem; color: #999; margin-top: 0.5rem;">Potenciado por Gemini AI ✨</p>
+  </footer>
+
+  <!-- Modal styles -->
+  <style>
+    .modal {
+      display: flex;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.5);
+      align-items: center;
+      justify-content: center;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .modal-content {
+      background-color: white;
+      padding: 30px;
+      border-radius: 12px;
+      max-width: 600px;
+      max-height: 80vh;
+      overflow-y: auto;
+      position: relative;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+
+    .close-btn {
+      position: absolute;
+      top: 12px;
+      right: 16px;
+      font-size: 28px;
+      font-weight: bold;
+      color: #999;
+      cursor: pointer;
+      transition: color 0.2s;
+    }
+
+    .close-btn:hover {
+      color: #333;
+    }
+
+    .analysis-content {
+      margin-top: 20px;
+      line-height: 1.8;
+    }
+
+    @media (max-width: 768px) {
+      .modal-content {
+        margin: 20px;
+        max-width: calc(100% - 40px);
+      }
+    }
+  </style>
+
+  <!-- Scripts -->
+  <script src="js/particle-system.js"></script>
+  <script src="js/gemini-client.js"></script>
+  <script src="js/video-manager.js"></script>
+  <script src="js/instagram-loader.js"></script>
+  <script src="js/app.js"></script>
+
+  <script>
+    // Inicializar video gallery después de que app esté listo
+    document.addEventListener('DOMContentLoaded', () => {
+      setTimeout(() => {
+        if (window.videoManager) {
+          window.videoManager.renderGallery('videos-container');
+        }
+        if (window.instagramLoader) {
+          window.instagramLoader.renderFeed('instagram-feed');
+        }
+      }, 500);
+    });
+  </script>
+</body>
+</html>
