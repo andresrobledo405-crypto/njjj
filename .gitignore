@@ -42,3 +42,4 @@ venv/
 !exports/.gitkeep
 !renders/.gitkeep
 !queue/.gitkeep
+video/repurpose-promo/my-video/renders/
