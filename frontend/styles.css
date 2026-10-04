@@ -145,7 +145,18 @@ small, .small {
 
 .cta:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+  box-shadow: 0 12px 28px rgba(102, 126, 234, 0.2);
+}
+
+.cta:active {
+  transform: translateY(0);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .cta {
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
 }
 
 .danger-btn {
@@ -281,16 +292,30 @@ small, .small {
 }
 
 .auth-card input {
-  padding: 12px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
+  padding: 14px 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
   font-size: 1em;
+  color: #374151;
+  background: #fafbfc;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.auth-card input::placeholder {
+  color: #9ca3af;
 }
 
 .auth-card input:focus {
   outline: none;
   border-color: #667eea;
+  background: white;
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.auth-card input:disabled {
+  background: #f3f4f6;
+  color: #9ca3af;
+  cursor: not-allowed;
 }
 
 .auth-card button {
