@@ -1,0 +1,42 @@
+{
+  "narration": {
+    "language": "en-US",
+    "provider": "kokoro-local",
+    "voice": "af_julia",
+    "status": "pending",
+    "file": "audio/voiceover.wav",
+    "duration_seconds": 29.5,
+    "word_timings": [
+      { "word": "Have", "start": 0.0, "end": 0.3 },
+      { "word": "you", "start": 0.3, "end": 0.6 },
+      { "word": "ever", "start": 0.6, "end": 0.9 },
+      { "word": "spent", "start": 0.9, "end": 1.2 },
+      { "word": "hours", "start": 1.2, "end": 1.5 }
+    ]
+  },
+  "music": {
+    "mood": "upbeat-electronic",
+    "bpm": 125,
+    "library": "heygen-music",
+    "track": "upbeat-tech-promo-120bpm",
+    "status": "pending",
+    "file": "audio/music.wav",
+    "duration_seconds": 30.0,
+    "fade_in": 0.5,
+    "fade_out": 0.5
+  },
+  "sfx": [
+    { "name": "digital-beep", "timing": 11.5, "file": "audio/sfx-beep.wav" },
+    { "name": "badge-ding-1", "timing": 13.5, "file": "audio/sfx-ding-1.wav" },
+    { "name": "badge-ding-2", "timing": 14.0, "file": "audio/sfx-ding-2.wav" },
+    { "name": "badge-ding-3", "timing": 14.5, "file": "audio/sfx-ding-3.wav" },
+    { "name": "badge-ding-4", "timing": 15.0, "file": "audio/sfx-ding-4.wav" },
+    { "name": "whoosh", "timing": 27.5, "file": "audio/sfx-whoosh.wav" }
+  ],
+  "metadata": {
+    "total_duration": 30.0,
+    "sample_rate": 44100,
+    "bit_depth": 16,
+    "channels": 2
+  }
+}

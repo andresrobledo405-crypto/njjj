@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Repurpose AI - Promotional Video</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+      background: #000;
+      overflow: hidden;
+    }
+
+    #root {
+      width: 1920px;
+      height: 1080px;
+      position: relative;
+      background: linear-gradient(135deg, #0a0a0a 0%, #1a0a2e 50%, #16213e 100%);
+      overflow: hidden;
+    }
+
+    .clip {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      top: 0;
+      left: 0;
+    }
+
+    /* Frame 1: Problem Setup */
+    .frame-1 {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+    }
+
+    .desktop-frame {
+      width: 600px;
+      height: 400px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .video-thumbnail {
+      width: 90%;
+      height: 85%;
+      background: linear-gradient(135deg, #ff6b6b, #ffa500);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 48px;
+      color: white;
+    }
+
+    .title-text {
+      position: absolute;
+      font-size: 72px;
+      font-weight: bold;
+      color: white;
+      text-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      z-index: 10;
+      text-align: center;
+      width: 90%;
+    }
+
+    .title-line-1 {
+      top: 80px;
+    }
+
+    .title-line-2 {
+      top: 200px;
+    }
+
+    /* Frame 2: AI Analysis */
+    .frame-2 {
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+    }
+
+    .ai-interface {
+      width: 70%;
+      height: 80%;
+      background: rgba(255, 255, 255, 0.1);
+      border: 2px solid #00d4ff;
+      border-radius: 16px;
+      backdrop-filter: blur(10px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .upload-progress {
+      width: 80%;
+      height: 8px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+      position: relative;
+      margin: 40px 0;
+      overflow: hidden;
+    }
+
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #00d4ff, #667eea);
+      border-radius: 4px;
+      width: 0%;
+    }
+
+    .scanner-animation {
+      font-size: 32px;
+      color: #00d4ff;
+      margin: 20px 0;
+      letter-spacing: 2px;
+    }
+
+    .viral-scores {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      width: 80%;
+      margin-top: 40px;
+    }
+
+    .score-badge {
+      width: 140px;
+      height: 140px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      color: white;
+      box-shadow: 0 8px 32px rgba(102, 126, 234, 0.4);
+      text-align: center;
+    }
+
+    .score-number {
+      font-size: 48px;
+      font-weight: bold;
+    }
+
+    .score-label {
+      font-size: 14px;
+      margin-top: 8px;
+      opacity: 0.9;
+    }
+
+    /* Frame 3: Generated Clips */
+    .frame-3 {
+      background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+    }
+
+    .clips-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+      width: 85%;
+      height: 85%;
+    }
+
+    .clip-card {
+      background: linear-gradient(135deg, rgba(102, 126, 234, 0.3), rgba(118, 75, 162, 0.3));
+      border: 2px solid #00d4ff;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+      backdrop-filter: blur(10px);
+    }
+
+    .clip-content {
+      width: 90%;
+      height: 90%;
+      background: linear-gradient(135deg, #ff6b6b, #ffa500);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      color: white;
+      font-weight: bold;
+      position: relative;
+    }
+
+    .play-button {
+      width: 60px;
+      height: 60px;
+      background: rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      color: #00d4ff;
+      position: absolute;
+    }
+
+    .platform-label {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      font-size: 14px;
+      color: white;
+      font-weight: 600;
+      background: rgba(0, 0, 0, 0.5);
+      padding: 6px 12px;
+      border-radius: 6px;
+    }
+
+    /* Frame 4: CTA */
+    .frame-4 {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+    }
+
+    .logo-box {
+      font-size: 64px;
+      font-weight: bold;
+      color: white;
+      margin-bottom: 40px;
+      text-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+
+    .cta-button {
+      padding: 16px 40px;
+      font-size: 24px;
+      font-weight: 600;
+      color: #667eea;
+      background: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+      margin-bottom: 20px;
+    }
+
+    .cta-subtitle {
+      font-size: 16px;
+      color: rgba(255, 255, 255, 0.8);
+      margin-top: 10px;
+    }
+
+    @keyframes shimmer {
+      0% { opacity: 0.6; }
+      50% { opacity: 1; }
+      100% { opacity: 0.6; }
+    }
+
+    .shimmer {
+      animation: shimmer 1s infinite;
+    }
+  </style>
+</head>
+<body>
+  <div id="root" data-composition-id="repurpose-ai-promo" data-width="1920" data-height="1080">
+
+    <!-- Frame 1: Problem Setup (0-8s) -->
+    <div id="frame-1-problem" class="clip frame-1" data-start="0" data-duration="8" data-track-index="0">
+      <div class="desktop-frame">
+        <div class="video-thumbnail">▶</div>
+      </div>
+      <div class="title-text title-line-1">One Video.</div>
+      <div class="title-text title-line-2">Four Platforms.</div>
+    </div>
+
+    <!-- Frame 2: AI Analysis (8-16s) -->
+    <div id="frame-2-analysis" class="clip frame-2" data-start="8" data-duration="8" data-track-index="1">
+      <div class="ai-interface">
+        <h2 style="color: #00d4ff; margin-bottom: 20px;">Analyzing...</h2>
+        <div class="upload-progress">
+          <div class="progress-bar"></div>
+        </div>
+        <div class="scanner-animation shimmer">⟳ ⟳ ⟳</div>
+        <div class="viral-scores">
+          <div class="score-badge">
+            <div class="score-number">8</div>
+            <div class="score-label">TikTok</div>
+          </div>
+          <div class="score-badge">
+            <div class="score-number">7</div>
+            <div class="score-label">Reels</div>
+          </div>
+          <div class="score-badge">
+            <div class="score-number">9</div>
+            <div class="score-label">Shorts</div>
+          </div>
+          <div class="score-badge">
+            <div class="score-number">6</div>
+            <div class="score-label">LinkedIn</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Frame 3: Generated Clips (16-25s) -->
+    <div id="frame-3-clips" class="clip frame-3" data-start="16" data-duration="9" data-track-index="2">
+      <div class="clips-grid">
+        <div class="clip-card">
+          <div class="clip-content">TikTok</div>
+          <div class="play-button">▶</div>
+          <div class="platform-label">TikTok</div>
+        </div>
+        <div class="clip-card">
+          <div class="clip-content">Reels</div>
+          <div class="play-button">▶</div>
+          <div class="platform-label">Instagram Reels</div>
+        </div>
+        <div class="clip-card">
+          <div class="clip-content">Shorts</div>
+          <div class="play-button">▶</div>
+          <div class="platform-label">YouTube Shorts</div>
+        </div>
+        <div class="clip-card">
+          <div class="clip-content">LinkedIn</div>
+          <div class="play-button">▶</div>
+          <div class="platform-label">LinkedIn</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Frame 4: CTA (25-30s) -->
+    <div id="frame-4-cta" class="clip frame-4" data-start="25" data-duration="5" data-track-index="3">
+      <div class="logo-box">Repurpose AI</div>
+      <button class="cta-button">Get Started Free</button>
+      <div class="cta-subtitle">No credit card required</div>
+    </div>
+
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+  <script>
+    window.__timelines = window.__timelines || {};
+    const tl = gsap.timeline({ paused: true });
+    window.__timelines["repurpose-ai-promo"] = tl;
+
+    // Frame 1
+    gsap.set('.frame-1 .title-line-1, .frame-1 .title-line-2, .frame-1 .desktop-frame', { opacity: 0 });
+    tl.to('.frame-1 .desktop-frame', { opacity: 1, duration: 1 }, 0);
+    tl.to('.frame-1 .title-line-1', { opacity: 1, duration: 1 }, 0.3);
+    tl.to('.frame-1 .title-line-2', { opacity: 1, duration: 1 }, 0.6);
+
+    // Frame 2
+    gsap.set('.frame-2 .progress-bar, .frame-2 .viral-scores, .frame-2 .score-badge', { opacity: 0 });
+    tl.to('.frame-2 .progress-bar', { width: '100%', duration: 2 }, 8);
+    tl.to('.frame-2 .viral-scores', { opacity: 1, duration: 1 }, 10);
+    [0, 1, 2, 3].forEach((i) => {
+      tl.to(`.frame-2 .score-badge:nth-child(${i + 1})`, { opacity: 1, duration: 0.5 }, 10.3 + i * 0.2);
+    });
+
+    // Frame 3
+    gsap.set('.frame-3 .clip-card, .frame-3 .platform-label', { opacity: 0 });
+    [0, 1, 2, 3].forEach((i) => {
+      tl.to(`.frame-3 .clip-card:nth-child(${i + 1})`, { opacity: 1, duration: 0.6 }, 16 + i * 0.3);
+    });
+    tl.to('.frame-3 .platform-label', { opacity: 1, duration: 0.5 }, 17.5);
+
+    // Frame 4
+    gsap.set('.frame-4 .logo-box, .frame-4 .cta-button, .frame-4 .cta-subtitle', { opacity: 0 });
+    tl.to('.frame-4 .logo-box', { opacity: 1, duration: 0.8 }, 25);
+    tl.to('.frame-4 .cta-button', { opacity: 1, duration: 0.6 }, 25.5);
+    tl.to('.frame-4 .cta-subtitle', { opacity: 1, duration: 0.6 }, 26);
+  </script>
+</body>
+</html>
