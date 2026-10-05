@@ -1,31 +1,11 @@
 {
-  "buildCommand": "echo 'Static site - no build needed'",
-  "outputDirectory": "docs",
+  "buildCommand": "cp -r docs/* . && cp docs/.nojekyll .",
+  "outputDirectory": ".",
   "framework": "static",
   "rewrites": [
     {
       "source": "/(.*)",
       "destination": "/index.html"
-    }
-  ],
-  "headers": [
-    {
-      "source": "/styles/(.*)",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=3600"
-        }
-      ]
-    },
-    {
-      "source": "/js/(.*)",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=3600"
-        }
-      ]
     }
   ]
 }
