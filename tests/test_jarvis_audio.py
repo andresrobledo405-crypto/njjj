@@ -49,5 +49,13 @@ class CapturaAudio(unittest.TestCase):
         self.assertIsNone(self.capturar([bloque(50)] * 200, espera_max=1.0))
 
 
+
+class Voz(unittest.TestCase):
+    def test_speak_vuelve_y_registra_en_gui(self):
+        mensajes = []
+        j.speak("hola", mensajes.append)
+        self.assertEqual(mensajes, ["JARVIS: hola"])
+
+
 if __name__ == "__main__":
     unittest.main()

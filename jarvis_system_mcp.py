@@ -3,6 +3,7 @@ import datetime
 import math
 import os
 import platform
+import queue
 import re
 import sqlite3
 import subprocess
@@ -211,6 +212,7 @@ def inicializar_ia():
         config=types.GenerateContentConfig(
             system_instruction=instrucciones_sistema,
             temperature=0.3,
+            thinking_config=types.ThinkingConfig(thinking_budget=0),
             tools=herramientas_jarvis,
         )
     )
@@ -218,18 +220,42 @@ def inicializar_ia():
 # =====================================================================
 # 5. ENTORNO VISUAL Y CONTROL DE AUDIO (GUI)
 # =====================================================================
-engine = pyttsx3.init()
-voices = engine.getProperty('voices')
-if voices:
-    engine.setProperty('voice', voices[0].id)
-engine.setProperty('rate', 190)
+_cola_voz = queue.Queue()
+
+def _hilo_voz():
+    """Hilo único que crea y usa el motor de voz (evita cuelgues de SAPI5 entre hilos)."""
+    try:
+        import comtypes
+        comtypes.CoInitialize()
+    except Exception:
+        pass
+    motor = pyttsx3.init()
+    voces = motor.getProperty('voices')
+    for v in voces or []:  # prefiere una voz en español si existe
+        if "spanish" in v.name.lower() or "es-" in v.id.lower() or "helena" in v.name.lower() or "sabina" in v.name.lower():
+            motor.setProperty('voice', v.id)
+            break
+    motor.setProperty('rate', 200)
+    while True:
+        texto, listo = _cola_voz.get()
+        try:
+            motor.say(texto)
+            motor.runAndWait()
+        except Exception as e:
+            print(f"Voz: {e}")
+        finally:
+            listo.set()
+
+threading.Thread(target=_hilo_voz, daemon=True).start()
 
 def speak(text, gui_callback=None):
     if gui_callback:
         gui_callback(f"JARVIS: {text}")
     print(f"JARVIS: {text}")
-    engine.say(text)
-    engine.runAndWait()
+    listo = threading.Event()
+    _cola_voz.put((text, listo))
+    listo.wait(timeout=60)  # nunca se queda pegado más de 60 s
+
 
 TASA_MUESTREO = 16000
 BLOQUE = 1600  # 100 ms
@@ -240,7 +266,7 @@ def _rms(datos: bytes) -> float:
         return 0.0
     return math.sqrt(sum(m * m for m in muestras) / len(muestras))
 
-def capturar_audio(espera_max=8.0, frase_max=15.0, silencio_fin=0.9):
+def capturar_audio(espera_max=8.0, frase_max=15.0, silencio_fin=0.7):
     """Graba del micrófono por defecto con sounddevice (no requiere PyAudio).
     Espera a que empiece la voz y corta tras un silencio. Devuelve sr.AudioData o None."""
     import sounddevice as sd
@@ -438,8 +464,11 @@ class JarvisMasterOS(ctk.CTk):
             self.fijar_estado("idle")
             palabra = escuchar_comando()
             if palabra and "jarvis" in palabra.lower():
-                self.fijar_estado("speaking")
-                speak("A su total disposición, Señor.", self._log_jarvis)
+                resto = re.split(r"jarvis[,\s]*", palabra, maxsplit=1, flags=re.IGNORECASE)[-1].strip()
+                if resto:  # la orden venía en la misma frase
+                    if not self.procesar_orden(resto):
+                        break
+                    continue
                 self.fijar_estado("listening")
                 orden = escuchar_comando()
                 if orden and not self.procesar_orden(orden):
