@@ -42,8 +42,49 @@
     </div>
   </nav>
 
-  <!-- Hero Section -->
-  <section class="hero" id="home">
+  <!-- Hero Section - Video Background -->
+  <section class="hero hero-video" id="home">
+    <!-- Video Background Container -->
+    <div class="hero-video-container" id="hero-video-container">
+      <!-- YouTube Embed (Desktop) -->
+      <div class="hero-video-embed">
+        <iframe
+          id="hero-iframe"
+          src="https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1&mute=1&controls=0&loop=1&playlist=dQw4w9WgXcQ&modestbranding=1"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowfullscreen
+          style="display: none;">
+        </iframe>
+      </div>
+
+      <!-- Fallback: SVG Animated (if video fails) -->
+      <svg class="hero-fallback-svg" viewBox="0 0 1200 600" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="heroGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:#8b6f47;stop-opacity:1" />
+            <stop offset="100%" style="stop-color:#2b2416;stop-opacity:1" />
+          </linearGradient>
+          <pattern id="grainPattern" x="0" y="0" width="4" height="4" patternUnits="userSpaceOnUse">
+            <rect width="4" height="4" fill="white" opacity="0.03"/>
+          </pattern>
+        </defs>
+        <rect width="1200" height="600" fill="url(#heroGradient)"/>
+        <rect width="1200" height="600" fill="url(#grainPattern)"/>
+        <!-- Animated bread icon -->
+        <g class="animated-bread" transform="translate(600, 300)">
+          <ellipse cx="0" cy="0" rx="80" ry="100" fill="#d4a574" opacity="0.8"/>
+          <path d="M -40 -60 Q -30 -80 0 -80 Q 30 -80 40 -60" stroke="#d4a574" stroke-width="8" fill="none" opacity="0.6"/>
+          <circle cx="-20" cy="-20" r="8" fill="#d4a574" opacity="0.7"/>
+          <circle cx="20" cy="-30" r="7" fill="#d4a574" opacity="0.7"/>
+          <circle cx="0" cy="20" r="9" fill="#d4a574" opacity="0.7"/>
+        </g>
+      </svg>
+    </div>
+
+    <!-- Dark Overlay (opacity 0.4 for text readability) -->
+    <div class="hero-overlay"></div>
+
+    <!-- Hero Content (Text Layer) -->
     <div class="container">
       <div class="hero-content">
         <h1>Panadería Artesanos</h1>
