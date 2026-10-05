@@ -441,6 +441,215 @@ section.dark { background: var(--dark); color: white; }
   animation: pulse 2s ease-in-out infinite;
 }
 
+/* Testimonios Section */
+.testimonial-card {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: var(--radius-lg);
+  padding: 32px 24px;
+  text-align: center;
+  transition: var(--transition);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.testimonial-card:hover {
+  transform: translateY(-8px);
+  box-shadow: var(--shadow-lg);
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.testimonial-avatar {
+  font-size: 3rem;
+  line-height: 1;
+}
+
+.testimonial-stars {
+  font-size: 1.2rem;
+  color: #f59e0b;
+  letter-spacing: 2px;
+}
+
+.testimonial-quote {
+  font-size: 1rem;
+  line-height: 1.8;
+  color: #333;
+  font-style: italic;
+}
+
+.testimonial-author {
+  font-weight: 700;
+  color: var(--dark);
+  font-size: 1.1rem;
+}
+
+/* FAQ Accordion Section */
+.faq-section {
+  background: var(--dark);
+  color: white;
+  padding: 6rem 0;
+}
+
+.faq-container {
+  max-width: 800px;
+  margin: 0 auto;
+  display: grid;
+  gap: 16px;
+}
+
+.faq-item {
+  border: 1px solid rgba(212, 165, 116, 0.2);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: rgba(43, 36, 22, 0.4);
+  transition: var(--transition);
+}
+
+.faq-header {
+  padding: 20px 24px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: var(--transition);
+  background: rgba(212, 165, 116, 0.05);
+}
+
+.faq-header:hover {
+  background: rgba(212, 165, 116, 0.1);
+}
+
+.faq-item.active .faq-header {
+  background: rgba(212, 165, 116, 0.15);
+  color: var(--primary);
+}
+
+.faq-header h4 {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.95);
+  font-size: 1.1rem;
+  text-align: left;
+}
+
+.faq-item.active .faq-header h4 {
+  color: var(--primary);
+}
+
+.faq-toggle {
+  font-size: 1.5rem;
+  transition: var(--transition);
+  user-select: none;
+  color: var(--primary);
+}
+
+.faq-item.active .faq-toggle {
+  transform: rotate(180deg);
+}
+
+.faq-content {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease-out;
+  background: rgba(212, 165, 116, 0.05);
+}
+
+.faq-item.active .faq-content {
+  max-height: 500px;
+  transition: max-height 0.4s ease-in;
+}
+
+.faq-text {
+  padding: 24px;
+  line-height: 1.8;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 1rem;
+}
+
+/* CTA Final Section */
+.cta-final {
+  background: linear-gradient(135deg, var(--secondary) 0%, var(--dark) 100%);
+  color: white;
+  padding: 6rem 0;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.cta-final::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 600"><defs><pattern id="grain" x="0" y="0" width="4" height="4" patternUnits="userSpaceOnUse"><rect width="4" height="4" fill="white" opacity="0.03"/></pattern></defs><rect width="1200" height="600" fill="url(%23grain)"/></svg>');
+  pointer-events: none;
+}
+
+.cta-content {
+  position: relative;
+  z-index: 2;
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.cta-final h2 {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  color: white;
+  animation: fadeInUp 0.8s ease-out;
+}
+
+.cta-final p {
+  font-size: 1.2rem;
+  margin-bottom: 3rem;
+  opacity: 0.95;
+  animation: fadeInUp 0.8s ease-out 0.2s both;
+}
+
+.cta-buttons {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
+  animation: fadeInUp 0.8s ease-out 0.4s both;
+}
+
+.cta-primary {
+  background: var(--primary);
+  color: var(--dark);
+  border-color: var(--primary);
+  font-weight: 700;
+  padding: 14px 40px;
+  font-size: 1.05rem;
+}
+
+.cta-primary:hover {
+  background: white;
+  color: var(--dark);
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-lg);
+}
+
+.cta-secondary {
+  background: transparent;
+  color: white;
+  border-color: white;
+  border: 2px solid white;
+  font-weight: 700;
+  padding: 12px 38px;
+  font-size: 1.05rem;
+}
+
+.cta-secondary:hover {
+  background: white;
+  color: var(--dark);
+  transform: translateY(-3px);
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   h1 { font-size: 2.2rem; }
@@ -461,6 +670,32 @@ section.dark { background: var(--dark); color: white; }
 
   section {
     padding: 4rem 0;
+  }
+
+  .cta-final h2 {
+    font-size: 2rem;
+  }
+
+  .cta-buttons {
+    gap: 12px;
+  }
+
+  .cta-primary,
+  .cta-secondary {
+    flex: 1;
+    min-width: 150px;
+  }
+
+  .testimonial-card {
+    padding: 24px 16px;
+  }
+
+  .faq-header {
+    padding: 16px 20px;
+  }
+
+  .faq-text {
+    padding: 16px 20px;
   }
 }
 
