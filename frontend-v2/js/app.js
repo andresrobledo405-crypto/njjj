@@ -7,6 +7,52 @@ class ArtesanosApp {
       productsFile: '/data/productos.json',
     };
     this.productos = [];
+    this.testimonios = [
+      {
+        avatar: '👨‍🍳',
+        nombre: 'Carlos Mendoza',
+        stars: '⭐⭐⭐⭐⭐',
+        quote: 'El mejor pan que he probado en La Serena. La masa madre tiene un sabor incomparable y la textura es perfecta.'
+      },
+      {
+        avatar: '👩‍💼',
+        nombre: 'María García',
+        stars: '⭐⭐⭐⭐⭐',
+        quote: 'Desayunar con el pan de Artesanos se ha convertido en mi ritual diario. Siempre fresco y de excelente calidad.'
+      },
+      {
+        avatar: '👴',
+        nombre: 'Jorge López',
+        stars: '⭐⭐⭐⭐⭐',
+        quote: 'Llevo 30 años comiendo pan y este es el más cercano a la tradición panadería. ¡Felicitaciones al equipo!'
+      }
+    ];
+    this.faqs = [
+      {
+        pregunta: '¿Qué ingredientes usan en el pan?',
+        respuesta: 'Utilizamos solo ingredientes naturales: harina de trigo premium, agua filtrada, sal marina y masa madre casera. No usamos aditivos ni conservantes artificiales.'
+      },
+      {
+        pregunta: '¿Cuál es el proceso de fermentación?',
+        respuesta: 'Nuestro pan se fermenta lentamente entre 24-48 horas. Este proceso desarrolla sabor completo, mejora la digestibilidad y crea la estructura característica de nuestro pan artesanal.'
+      },
+      {
+        pregunta: '¿A qué hora puedo comprar el pan?',
+        respuesta: 'Estamos abiertos de lunes a viernes de 7am a 8pm, y sábados de 8am a 6pm. Los domingos vendemos hasta agotar stock. Recomendamos comprar temprano para mejores variedades.'
+      },
+      {
+        pregunta: '¿Hacen entregas a domicilio?',
+        respuesta: 'Sí, hacemos entregas en La Serena y sectores cercanos. Para pedidos a domicilio, contacta al +56 9 7204 4704 con 24 horas de anticipación.'
+      },
+      {
+        pregunta: '¿Tienen opciones sin gluten?',
+        respuesta: 'Actualmente no ofrecemos pan sin gluten. Contáctanos para futuras disponibilidades o si tienes alergias específicas, podemos explorar alternativas.'
+      },
+      {
+        pregunta: '¿Cuánto tiempo se conserva el pan?',
+        respuesta: 'El pan artesanal es mejor consumir dentro de 24-48 horas. Se conserva mejor en bolsa de papel a temperatura ambiente. Si deseas guardarlo más tiempo, congélalo hasta 30 días.'
+      }
+    ];
     this.init();
   }
 
@@ -16,8 +62,10 @@ class ArtesanosApp {
     // Cargar productos
     await this.loadProducts();
 
-    // Renderizar productos
+    // Renderizar productos y nuevas secciones
     this.renderProducts();
+    this.renderTestimonios();
+    this.renderFAQ();
 
     // Inicializar sistemas
     this.initParticles();
@@ -25,6 +73,7 @@ class ArtesanosApp {
     this.initGemini();
     this.initVideoGallery();
     this.initInstagram();
+    this.initAccordion();
 
     console.log('✅ Artesanos v2 listo');
   }
@@ -84,7 +133,7 @@ class ArtesanosApp {
       });
     }, { threshold: 0.1 });
 
-    document.querySelectorAll('.card, .product-card, .video-container').forEach(el => {
+    document.querySelectorAll('.card, .product-card, .video-container, .testimonial-card').forEach(el => {
       observer.observe(el);
     });
   }
@@ -132,6 +181,59 @@ class ArtesanosApp {
       </div>
     `;
     document.body.appendChild(modal);
+  }
+
+  renderTestimonios() {
+    const container = document.getElementById('testimonios-container');
+    if (!container) return;
+
+    container.innerHTML = this.testimonios.map(t => `
+      <div class="testimonial-card">
+        <div class="testimonial-avatar">${t.avatar}</div>
+        <div class="testimonial-stars">${t.stars}</div>
+        <p class="testimonial-quote">"${t.quote}"</p>
+        <p class="testimonial-author">— ${t.nombre}</p>
+      </div>
+    `).join('');
+  }
+
+  renderFAQ() {
+    const container = document.getElementById('faq-container');
+    if (!container) return;
+
+    container.innerHTML = this.faqs.map((faq, index) => `
+      <div class="faq-item" data-faq-index="${index}">
+        <div class="faq-header">
+          <h4>${faq.pregunta}</h4>
+          <span class="faq-toggle">∧</span>
+        </div>
+        <div class="faq-content">
+          <p class="faq-text">${faq.respuesta}</p>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  initAccordion() {
+    const faqItems = document.querySelectorAll('.faq-item');
+
+    faqItems.forEach(item => {
+      const header = item.querySelector('.faq-header');
+
+      header.addEventListener('click', () => {
+        const isActive = item.classList.contains('active');
+
+        // Cerrar otros acordeones si uno se abre
+        faqItems.forEach(otherItem => {
+          if (otherItem !== item) {
+            otherItem.classList.remove('active');
+          }
+        });
+
+        // Toggle del item actual
+        item.classList.toggle('active');
+      });
+    });
   }
 }
 

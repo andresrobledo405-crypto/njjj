@@ -1,6 +1,9 @@
 // Gestor de videos - YouTube, MP4, Runway
 class VideoManager {
   constructor() {
+    this.isMobile = this.detectMobile();
+    this.videoInitialized = false;
+
     this.videos = [
       {
         id: 'hero-video',
@@ -21,6 +24,51 @@ class VideoManager {
         title: 'Video IA - Runway ML Demo',
       },
     ];
+  }
+
+  // Detect mobile devices
+  detectMobile() {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+      || window.innerWidth <= 768;
+  }
+
+  // Initialize hero video with fallback handling
+  initializeHeroVideo() {
+    const container = document.getElementById('hero-video-container');
+    if (!container || this.videoInitialized) return;
+
+    if (this.isMobile) {
+      // Mobile: Hide iframe, show fallback SVG
+      const iframe = document.getElementById('hero-iframe');
+      if (iframe) {
+        iframe.style.display = 'none';
+      }
+      const svg = document.querySelector('.hero-fallback-svg');
+      if (svg) {
+        svg.style.display = 'block';
+      }
+      console.log('📱 Mobile detected: Using SVG fallback');
+    } else {
+      // Desktop: Show YouTube embed with error handling
+      const iframe = document.getElementById('hero-iframe');
+      if (iframe) {
+        iframe.style.display = 'block';
+        iframe.addEventListener('error', () => this.onVideoError());
+      }
+      console.log('🎥 Desktop: YouTube video loaded');
+    }
+
+    this.videoInitialized = true;
+  }
+
+  // Handle video loading error with fallback
+  onVideoError() {
+    console.warn('⚠️ Video failed to load, showing SVG fallback');
+    const iframe = document.getElementById('hero-iframe');
+    const svg = document.querySelector('.hero-fallback-svg');
+
+    if (iframe) iframe.style.display = 'none';
+    if (svg) svg.style.display = 'block';
   }
 
   getVideoHtml(videoId) {
