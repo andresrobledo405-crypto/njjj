@@ -10,7 +10,8 @@ instalar_jarvis.cmd claude/modest-fermat-p6jnyk
 Descarga o actualiza JARVIS en `%USERPROFILE%\jarvis` y lo abre. Tras el merge, omita la rama (usa `main`).
 
 ## Uso manual (Windows)
-1. Haga doble clic en `JARVIS.bat`. La primera vez pide su clave de Google AI Studio y la guarda.
+1. Haga doble clic en `JARVIS.vbs` (o `JARVIS.bat`). Tras la primera vez abre sin ventana de consola; errores en `jarvis.log`.
+   La primera vez La primera vez pide su clave de Google AI Studio y la guarda.
 2. Instala dependencias y abre la interfaz.
 3. Diga "Jarvis" y luego la orden.
 

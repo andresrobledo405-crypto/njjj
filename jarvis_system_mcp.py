@@ -1,4 +1,5 @@
 import datetime
+import math
 import os
 import platform
 import re
@@ -6,6 +7,7 @@ import sqlite3
 import subprocess
 import threading
 import time
+import sys
 import webbrowser
 import customtkinter as ctk
 import pyttsx3
@@ -15,6 +17,11 @@ import pyperclip
 import psutil
 from google import genai
 from google.genai import types
+
+if sys.stdout is None or sys.stderr is None:  # pythonw: sin consola
+    _log = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "jarvis.log"), "a", encoding="utf-8", buffering=1)
+    sys.stdout = sys.stdout or _log
+    sys.stderr = sys.stderr or _log
 
 # =====================================================================
 # 1. BASE DE DATOS Y MEMORIA PERSISTENTE (SQLITE3)
@@ -234,64 +241,174 @@ def escuchar_comando():
         return None
 
 class JarvisMasterOS(ctk.CTk):
+    """Interfaz tipo asistente: orbe animado + conversación + entrada de texto."""
+    BG = "#0a0f1e"
+    PANEL = "#111a33"
+    CIAN = "#00d2ff"
+    AZUL = "#3a7bff"
+    VIOLETA = "#8a5cff"
+    TEXTO = "#e6f1ff"
+    TENUE = "#7f93b8"
+    ESTADOS = {
+        "idle": ("Diga \"Jarvis\"...", "#3a7bff"),
+        "listening": ("Escuchando...", "#00d2ff"),
+        "thinking": ("Pensando...", "#8a5cff"),
+        "speaking": ("Hablando...", "#00e5a8"),
+    }
+
     def __init__(self):
         super().__init__()
-        self.title("J.A.R.V.I.S. OS - Servidor Omnicanal")
-        self.geometry("700x550")
+        self.title("J.A.R.V.I.S.")
+        self.geometry("460x720")
+        self.minsize(380, 560)
+        self.configure(fg_color=self.BG)
         ctk.set_appearance_mode("dark")
-        ctk.set_default_color_theme("blue")
 
         self.running = True
+        self.estado = "idle"
+        self.fase = 0.0
+        self.nivel = 0.0  # suavizado de la amplitud del orbe
         inicializar_base_datos()
         self.chat = inicializar_ia()
 
-        self.label_titulo = ctk.CTkLabel(self, text="NÚCLEO PRINCIPAL DE OPERACIONES J.A.R.V.I.S.", font=("Courier New", 18, "bold"), text_color="#00d2ff")
-        self.label_titulo.pack(pady=20)
+        ctk.CTkLabel(self, text="J.A.R.V.I.S.", font=("Segoe UI Light", 22), text_color=self.TEXTO).pack(pady=(18, 0))
+        self.lbl_estado = ctk.CTkLabel(self, text="", font=("Segoe UI", 13), text_color=self.TENUE)
+        self.lbl_estado.pack(pady=(2, 0))
 
-        self.console_output = ctk.CTkTextbox(self, width=640, height=350, font=("Courier New", 13), fg_color="#0b132b", text_color="#48cae4")
-        self.console_output.pack(pady=10)
-        self.log_message("Sistemas Base: Conectores sqlite3, psutil, pyperclip y tinytuya acoplados correctamente.")
+        self.canvas = ctk.CTkCanvas(self, width=300, height=260, bg=self.BG, highlightthickness=0)
+        self.canvas.pack(pady=(6, 0))
 
-        self.status_bar = ctk.CTkLabel(self, text="Modo Escucha: Palabra clave activa ('Jarvis')", font=("Arial", 11), text_color="gray")
-        self.status_bar.pack(side="bottom", pady=15)
+        self.console_output = ctk.CTkTextbox(
+            self, fg_color=self.PANEL, text_color=self.TEXTO, font=("Segoe UI", 13),
+            corner_radius=14, wrap="word", border_width=0)
+        self.console_output.pack(fill="both", expand=True, padx=18, pady=(8, 8))
+        self.console_output.tag_config("jarvis", foreground=self.CIAN)
+        self.console_output.tag_config("usuario", foreground=self.TEXTO)
+        self.console_output.tag_config("sistema", foreground=self.TENUE)
+        self.console_output.configure(state="disabled")
 
-        self.protocol_thread = threading.Thread(target=self.bucle_principal, daemon=True)
-        self.protocol_thread.start()
+        barra = ctk.CTkFrame(self, fg_color="transparent")
+        barra.pack(fill="x", padx=18, pady=(0, 16))
+        self.entrada = ctk.CTkEntry(
+            barra, placeholder_text="Escriba una orden...", height=42, corner_radius=21,
+            fg_color=self.PANEL, border_color=self.AZUL, text_color=self.TEXTO)
+        self.entrada.pack(side="left", fill="x", expand=True)
+        self.entrada.bind("<Return>", self.enviar_texto)
+        ctk.CTkButton(barra, text="\u27a4", width=42, height=42, corner_radius=21,
+                      fg_color=self.AZUL, hover_color=self.CIAN, command=self.enviar_texto
+                      ).pack(side="left", padx=(8, 0))
+
+        self.log_message("Sistemas listos. Diga \"Jarvis\" o escriba una orden.", "sistema")
+        self.fijar_estado("idle")
+        self.animar()
+
         self.protocol("WM_DELETE_WINDOW", self.on_closing)
+        threading.Thread(target=self.bucle_principal, daemon=True).start()
 
-    def log_message(self, message):
-        self.console_output.insert("end", f"[{datetime.datetime.now().strftime('%H:%M:%S')}] {message}\n")
-        self.console_output.see("end")
+    # ---- estado y animación (siempre desde el hilo de la interfaz) ----
+    def fijar_estado(self, estado):
+        self.estado = estado
+        texto, _ = self.ESTADOS[estado]
+        self.after(0, lambda: self.lbl_estado.configure(text=texto))
+
+    @staticmethod
+    def _mezclar(c1, c2, t):
+        a = [int(c1[k:k + 2], 16) for k in (1, 3, 5)]
+        b = [int(c2[k:k + 2], 16) for k in (1, 3, 5)]
+        return "#%02x%02x%02x" % tuple(int(x + (y - x) * t) for x, y in zip(a, b))
+
+    def animar(self):
+        if not self.running:
+            return
+        c = self.canvas
+        c.delete("all")
+        cx, cy = 150, 130
+        self.fase += 0.06
+        objetivo = {"idle": 0.15, "listening": 0.55, "thinking": 0.35, "speaking": 0.9}[self.estado]
+        self.nivel += (objetivo - self.nivel) * 0.08
+        color = self.ESTADOS[self.estado][1]
+        respiro = (math.sin(self.fase) + 1) / 2
+
+        # halo exterior (capas translucidas simuladas mezclando con el fondo)
+        for k in range(8, 0, -1):
+            r = 52 + k * 7 + self.nivel * 14 * respiro
+            c.create_oval(cx - r, cy - r, cx + r, cy + r, outline="",
+                          fill=self._mezclar(self.BG, color, 0.05 + 0.03 * (9 - k) * (0.5 + self.nivel)))
+        # ondas al escuchar / hablar
+        if self.estado in ("listening", "speaking"):
+            for k in range(3):
+                t = (self.fase * 0.5 + k / 3) % 1
+                r = 55 + t * 60
+                c.create_oval(cx - r, cy - r, cx + r, cy + r, outline=self._mezclar(self.BG, color, 1 - t), width=2)
+        # anillo giratorio al pensar
+        if self.estado == "thinking":
+            c.create_arc(cx - 66, cy - 66, cx + 66, cy + 66, start=-self.fase * 160, extent=110,
+                         style="arc", outline=self.VIOLETA, width=4)
+            c.create_arc(cx - 66, cy - 66, cx + 66, cy + 66, start=-self.fase * 160 + 180, extent=60,
+                         style="arc", outline=self.CIAN, width=4)
+        # nucleo
+        r = 44 + self.nivel * 8 * respiro
+        c.create_oval(cx - r, cy - r, cx + r, cy + r, fill=self._mezclar(self.BG, color, 0.55), outline=color, width=2)
+        r2 = r * 0.55
+        c.create_oval(cx - r2, cy - r2, cx + r2, cy + r2, fill=self._mezclar(color, "#ffffff", 0.55), outline="")
+        self.after(33, self.animar)
+
+    # ---- conversación ----
+    def log_message(self, message, etiqueta="sistema"):
+        def escribir():
+            self.console_output.configure(state="normal")
+            hora = datetime.datetime.now().strftime("%H:%M")
+            self.console_output.insert("end", f"{hora}  {message}\n\n", etiqueta)
+            self.console_output.see("end")
+            self.console_output.configure(state="disabled")
+        self.after(0, escribir)
+
+    def _log_jarvis(self, message):
+        self.log_message(message.replace("JARVIS: ", "", 1), "jarvis")
 
     def on_closing(self):
         self.running = False
         self.destroy()
 
+    def procesar_orden(self, orden):
+        self.log_message(orden, "usuario")
+        if any(x in orden.lower() for x in ["desconectar", "apagar", "salir"]):
+            speak("Desactivando núcleos lógicos. Hasta pronto, Señor.", self._log_jarvis)
+            self.after(0, self.on_closing)
+            return False
+        self.fijar_estado("thinking")
+        try:
+            response = self.chat.send_message(orden)
+            self.fijar_estado("speaking")
+            speak(response.text, self._log_jarvis)
+        except Exception as e:
+            self.log_message(f"Fallo del núcleo: {e}", "sistema")
+            self.fijar_estado("speaking")
+            speak("Disculpe Señor, mi canal de procesamiento ha devuelto un error.", self._log_jarvis)
+        self.fijar_estado("idle")
+        return True
+
+    def enviar_texto(self, _evento=None):
+        orden = self.entrada.get().strip()
+        if not orden:
+            return
+        self.entrada.delete(0, "end")
+        threading.Thread(target=self.procesar_orden, args=(orden,), daemon=True).start()
+
     def bucle_principal(self):
         time.sleep(1)
-        speak("Sistemas centrales acoplados. Servidor unificado listo para Claude y ejecución local, Señor.", self.log_message)
-
+        self.fijar_estado("speaking")
+        speak("Sistemas centrales acoplados. Listo, Señor.", self._log_jarvis)
         while self.running:
-            self.status_bar.configure(text="Estado: Escuchando palabra clave...", text_color="gray")
+            self.fijar_estado("idle")
             palabra = escuchar_comando()
-
             if palabra and "jarvis" in palabra.lower():
-                self.status_bar.configure(text="Estado: Procesando instrucción entrante...", text_color="#00d2ff")
-                speak("A su total disposición, Señor.", self.log_message)
-
+                self.fijar_estado("speaking")
+                speak("A su total disposición, Señor.", self._log_jarvis)
+                self.fijar_estado("listening")
                 orden = escuchar_comando()
-                if orden:
-                    self.log_message(f"Usuario: {orden}")
-                    if any(x in orden.lower() for x in ['desconectar', 'apagar', 'salir']):
-                        speak("Desactivando núcleos lógicos. Hasta pronto, Señor.", self.log_message)
-                        self.on_closing()
-                        break
-                    try:
-                        response = self.chat.send_message(orden)
-                        speak(response.text, self.log_message)
-                    except Exception as e:
-                        self.log_message(f"Fallo del Núcleo: {e}")
-                        speak("Disculpe Señor, mi canal de procesamiento ha devuelto un error.", self.log_message)
+                if orden and not self.procesar_orden(orden):
+                    break
 
 if __name__ == "__main__":
     app = JarvisMasterOS()

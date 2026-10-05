@@ -19,5 +19,5 @@ if exist "%DESTINO%\.git" (
     git clone --branch "%RAMA%" "%REPO%" "%DESTINO%" || exit /b 1
 )
 
-call "%DESTINO%\JARVIS.bat"
+wscript "%DESTINO%\JARVIS.vbs"
 endlocal

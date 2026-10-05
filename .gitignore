@@ -46,3 +46,5 @@ venv/
 # JARVIS
 jarvis_system.db
 __pycache__/
+.jarvis_ok
+jarvis.log
