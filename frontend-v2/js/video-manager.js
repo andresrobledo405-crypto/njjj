@@ -136,3 +136,6 @@ class VideoManager {
     }
   }
 }
+
+// Crear instancia global
+window.videoManager = new VideoManager();

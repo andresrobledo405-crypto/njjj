@@ -237,5 +237,6 @@ class ArtesanosApp {
   }
 }
 
-// Iniciar app
+// Iniciar app y exponer globalmente
 const app = new ArtesanosApp();
+window.app = app;
