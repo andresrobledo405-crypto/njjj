@@ -24,14 +24,16 @@ try {
     # 2. CONFIGURACIÓN DEL ENTORNO SEGURO
     Write-Host "[2/3] Verificando variables de entorno del sistema..." -ForegroundColor Yellow
     if ([string]::IsNullOrEmpty($ApiKey) -or $ApiKey -eq "tu_clave_aqui") {
-        # Si no pasas clave, busca o define una temporal aquí para la sesión
-        $env:GEMINI_API_KEY = "AIzaSyTuClaveRealDeGeminiAqui"
-    } else {
-        $env:GEMINI_API_KEY = $ApiKey
+        # Primera ejecución: pide la clave una sola vez y la guarda para el usuario actual
+        $ApiKey = Read-Host "Pegue su clave de Google AI Studio (se guarda solo en su usuario de Windows)"
+        if (-not [string]::IsNullOrWhiteSpace($ApiKey)) {
+            [Environment]::SetEnvironmentVariable("GEMINI_API_KEY", $ApiKey.Trim(), "User")
+        }
     }
+    $env:GEMINI_API_KEY = "$ApiKey".Trim()
 
-    if ([string]::IsNullOrEmpty($env:GEMINI_API_KEY) -or $env:GEMINI_API_KEY -eq "AIzaSyTuClaveRealDeGeminiAqui") {
-        throw "La variable GEMINI_API_KEY está vacía. Por favor edite el script y ponga su clave válida de Google AI Studio."
+    if ([string]::IsNullOrEmpty($env:GEMINI_API_KEY)) {
+        throw "No se ingresó ninguna clave GEMINI_API_KEY. Obtenga una gratis en https://aistudio.google.com/apikey"
     }
     Write-Host "[OK] Variables de entorno de la IA inyectadas correctamente." -ForegroundColor Green
     Write-Host ""

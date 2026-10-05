@@ -3,8 +3,8 @@
 Asistente de voz de escritorio (Gemini + herramientas locales).
 
 ## Uso (Windows)
-1. Defina `GEMINI_API_KEY` (Google AI Studio) o pásela: `./run_jarvis.ps1 -ApiKey "..."`.
-2. Ejecute `./run_jarvis.ps1`. Instala dependencias y abre la interfaz.
+1. Haga doble clic en `JARVIS.bat`. La primera vez pide su clave de Google AI Studio y la guarda.
+2. Instala dependencias y abre la interfaz.
 3. Diga "Jarvis" y luego la orden.
 
 ## Herramientas
