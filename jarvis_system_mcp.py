@@ -1,3 +1,4 @@
+import array
 import datetime
 import math
 import os
@@ -230,14 +231,48 @@ def speak(text, gui_callback=None):
     engine.say(text)
     engine.runAndWait()
 
+TASA_MUESTREO = 16000
+BLOQUE = 1600  # 100 ms
+
+def _rms(datos: bytes) -> float:
+    muestras = array.array("h", datos)
+    if not muestras:
+        return 0.0
+    return math.sqrt(sum(m * m for m in muestras) / len(muestras))
+
+def capturar_audio(espera_max=8.0, frase_max=15.0, silencio_fin=0.9):
+    """Graba del micrófono por defecto con sounddevice (no requiere PyAudio).
+    Espera a que empiece la voz y corta tras un silencio. Devuelve sr.AudioData o None."""
+    import sounddevice as sd
+    with sd.RawInputStream(samplerate=TASA_MUESTREO, channels=1, dtype="int16", blocksize=BLOQUE) as flujo:
+        ruido = max(_rms(bytes(flujo.read(BLOQUE)[0])) for _ in range(4))
+        umbral = max(ruido * 2.5, 350.0)
+        grabado, hablando, silencio, t = [], False, 0.0, 0.0
+        while True:
+            bloque = bytes(flujo.read(BLOQUE)[0])
+            t += BLOQUE / TASA_MUESTREO
+            if _rms(bloque) > umbral:
+                hablando, silencio = True, 0.0
+            elif hablando:
+                silencio += BLOQUE / TASA_MUESTREO
+            if hablando:
+                grabado.append(bloque)
+                if silencio >= silencio_fin or t >= frase_max:
+                    break
+            elif t >= espera_max:
+                return None
+    return sr.AudioData(b"".join(grabado), TASA_MUESTREO, 2)
+
 def escuchar_comando():
     r = sr.Recognizer()
-    with sr.Microphone() as source:
-        r.adjust_for_ambient_noise(source, duration=0.4)
-        audio = r.listen(source)
     try:
+        audio = capturar_audio()
+        if audio is None:
+            return None
         return r.recognize_google(audio, language='es-ES')
-    except Exception:
+    except Exception as e:
+        print(f"Micrófono/reconocimiento: {e}")
+        time.sleep(1)
         return None
 
 class JarvisMasterOS(ctk.CTk):

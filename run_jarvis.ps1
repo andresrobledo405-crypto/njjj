@@ -19,7 +19,7 @@ try {
     Write-Host "[1/3] Validando entorno de dependencias Python..." -ForegroundColor Yellow
     $Marca = Join-Path $PSScriptRoot ".jarvis_ok"
     if (-not (Test-Path $Marca)) {
-        & pip install google-genai pyttsx3 speechrecognition customtkinter requests tinytuya pyperclip psutil mcp pycaw comtypes pyaudio --quiet
+        & pip install google-genai pyttsx3 speechrecognition customtkinter requests tinytuya pyperclip psutil mcp pycaw comtypes sounddevice --quiet
         if ($LASTEXITCODE -ne 0) { throw "Falló la instalación de dependencias (pip). Revise su conexión y que Python esté en el PATH." }
         New-Item -ItemType File -Path $Marca -Force | Out-Null
     }
