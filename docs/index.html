@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Artesanos Panadería - Pan artesanal premium en La Serena, Chile. Masa Madre, Focaccia, Baguette y más.">
+  <meta property="og:title" content="Artesanos Panadería - Pan Artesanal Premium">
+  <meta property="og:description" content="Descubre nuestro pan artesanal hecho con ingredientes premium y técnicas tradicionales.">
+  <meta property="og:image" content="/assets/placeholders/og-image.jpg">
+
+  <title>Artesanos Panadería - Pan Artesanal Premium La Serena</title>
+
+  <!-- Estilos -->
+  <link rel="stylesheet" href="styles/main.css">
+
+  <!-- Alpine.js para interactividad -->
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+
+  <!-- GSAP y ScrollTrigger -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+</head>
+<body>
+  <!-- Partículas de fondo -->
+  <canvas id="particles-canvas" style="position: fixed; top: 0; left: 0; z-index: 1; pointer-events: none;"></canvas>
+
+  <!-- Navegación -->
+  <nav>
+    <div class="nav-container">
+      <a href="#home" class="logo">ARTESANOS</a>
+      <ul class="nav-links">
+        <li><a href="#productos">Productos</a></li>
+        <li><a href="#testimonios">Testimonios</a></li>
+        <li><a href="#faq">FAQ</a></li>
+        <li><a href="#contacto">Contacto</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <!-- Hero Section - Video Background -->
+  <section class="hero hero-video" id="home">
+    <!-- Video Background Container -->
+    <div class="hero-video-container" id="hero-video-container">
+      <!-- YouTube Embed (Desktop) -->
+      <div class="hero-video-embed">
+        <iframe
+          id="hero-iframe"
+          src="https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1&mute=1&controls=0&loop=1&playlist=dQw4w9WgXcQ&modestbranding=1"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowfullscreen
+          style="display: none;">
+        </iframe>
+      </div>
+
+      <!-- Fallback: SVG Animated (if video fails) -->
+      <svg class="hero-fallback-svg" viewBox="0 0 1200 600" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="heroGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:#8b6f47;stop-opacity:1" />
+            <stop offset="100%" style="stop-color:#2b2416;stop-opacity:1" />
+          </linearGradient>
+          <pattern id="grainPattern" x="0" y="0" width="4" height="4" patternUnits="userSpaceOnUse">
+            <rect width="4" height="4" fill="white" opacity="0.03"/>
+          </pattern>
+        </defs>
+        <rect width="1200" height="600" fill="url(#heroGradient)"/>
+        <rect width="1200" height="600" fill="url(#grainPattern)"/>
+        <!-- Animated bread icon -->
+        <g class="animated-bread" transform="translate(600, 300)">
+          <ellipse cx="0" cy="0" rx="80" ry="100" fill="#d4a574" opacity="0.8"/>
+          <path d="M -40 -60 Q -30 -80 0 -80 Q 30 -80 40 -60" stroke="#d4a574" stroke-width="8" fill="none" opacity="0.6"/>
+          <circle cx="-20" cy="-20" r="8" fill="#d4a574" opacity="0.7"/>
+          <circle cx="20" cy="-30" r="7" fill="#d4a574" opacity="0.7"/>
+          <circle cx="0" cy="20" r="9" fill="#d4a574" opacity="0.7"/>
+        </g>
+      </svg>
+    </div>
+
+    <!-- Dark Overlay (opacity 0.4 for text readability) -->
+    <div class="hero-overlay"></div>
+
+    <!-- Hero Content (Text Layer) -->
+    <div class="container">
+      <div class="hero-content">
+        <h1>Panadería Artesanos</h1>
+        <p>Pan elaborado con pasión, tradición e ingredientes premium</p>
+        <a href="#productos" class="cta-button">Descubre nuestros productos</a>
+        <a href="#videos" class="cta-button cta-button-secondary">Ver proceso</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Sección Sobre Nosotros -->
+  <section class="light" id="sobre">
+    <div class="container">
+      <h2>Nuestra Historia</h2>
+      <div class="grid grid-2" style="margin-top: 3rem;">
+        <div>
+          <h3>Tradición + Innovación</h3>
+          <p style="font-size: 1.1rem; line-height: 1.8; color: #666;">
+            Desde 2015, elaboramos pan artesanal usando técnicas tradicionales y los mejores ingredientes.
+            Cada pza es única, hecha a mano, fermentada lentamente para desarrollar sabor completo.
+          </p>
+        </div>
+        <div class="card">
+          <h4>✨ ¿Qué nos diferencia?</h4>
+          <ul style="list-style: none; line-height: 2;">
+            <li>🌾 100% ingredientes naturales</li>
+            <li>⏰ Fermentación lenta (24-48 horas)</li>
+            <li>🔥 Horno de piedra tradicional</li>
+            <li>👨‍🍳 Maestros panaderos certificados</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Productos -->
+  <section class="accent" id="productos">
+    <div class="container">
+      <h2>Nuestros Productos</h2>
+      <p style="text-align: center; font-size: 1.1rem; color: #666; margin-bottom: 3rem;">
+        Cada producto está analizado con IA para brindarte información detallada
+      </p>
+      <div class="grid grid-3" id="productos-container">
+        <!-- Se renderiza con JS -->
+      </div>
+    </div>
+  </section>
+
+  <!-- Videos -->
+  <section class="dark" id="videos">
+    <div class="container">
+      <h2 style="color: white;">Galería de Videos</h2>
+      <p style="text-align: center; color: rgba(255,255,255,0.8); margin-bottom: 3rem; font-size: 1.05rem;">
+        YouTube • MP4 • Runway ML - Integración completa
+      </p>
+      <div id="videos-container" style="margin-top: 3rem;">
+        <!-- Se renderiza con JS -->
+      </div>
+    </div>
+  </section>
+
+  <!-- Testimonios -->
+  <section class="light" id="testimonios">
+    <div class="container">
+      <h2>Lo que dicen nuestros clientes</h2>
+      <p style="text-align: center; color: #666; margin-bottom: 3rem; font-size: 1.05rem;">
+        Miles de clientes satisfechos con nuestro pan artesanal
+      </p>
+      <div class="grid grid-3" id="testimonios-container">
+        <!-- Renderizado con JS -->
+      </div>
+    </div>
+  </section>
+
+  <!-- Instagram Feed -->
+  <section class="light" id="instagram">
+    <div class="container">
+      <h2>Feed Instagram</h2>
+      <p style="text-align: center; color: #666; margin-bottom: 2rem;">
+        Carga tus imágenes - Gemini genera captions y análisis automáticamente
+      </p>
+      <div id="instagram-feed" style="margin-top: 2rem;">
+        <!-- Se renderiza con JS -->
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ Accordion -->
+  <section class="faq-section" id="faq">
+    <div class="container">
+      <h2 style="color: white; text-align: center;">Preguntas Frecuentes</h2>
+      <p style="text-align: center; color: rgba(255,255,255,0.8); margin-bottom: 3rem; font-size: 1.05rem;">
+        Resolvemos tus dudas sobre nuestros productos y servicio
+      </p>
+      <div class="faq-container" id="faq-container">
+        <!-- Renderizado con JS -->
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA Final -->
+  <section class="cta-final" id="cta-final">
+    <div class="container">
+      <div class="cta-content">
+        <h2>¿Listo para probar nuestro pan artesanal?</h2>
+        <p>Experimenta la diferencia del pan hecho con pasión y tradición</p>
+        <div class="cta-buttons">
+          <a href="#contacto" class="cta-button cta-primary">Ordenar Ahora</a>
+          <a href="#sobre" class="cta-button cta-secondary">Conocer Más</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Contacto -->
+  <section class="dark" id="contacto">
+    <div class="container">
+      <h2 style="color: white;">Contacto</h2>
+      <div class="grid grid-2" style="margin-top: 3rem;">
+        <div class="card card-dark">
+          <h3 style="color: var(--primary);">📞 Teléfono</h3>
+          <p style="font-size: 1.2rem; margin-top: 1rem;">+56 9 7204 4704</p>
+        </div>
+        <div class="card card-dark">
+          <h3 style="color: var(--primary);">📍 Ubicación</h3>
+          <p style="margin-top: 1rem;">
+            La Serena, Región de Coquimbo<br>
+            <a href="#" style="color: var(--primary); text-decoration: none;">Ver en Google Maps →</a>
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer style="background: var(--bg-dark); color: white; text-align: center; padding: 2rem; margin-top: 3rem;">
+    <p>© 2026 Artesanos Panadería. Todos los derechos reservados.</p>
+    <p style="font-size: 0.9rem; color: #999; margin-top: 0.5rem;">Potenciado por Gemini AI ✨</p>
+  </footer>
+
+  <!-- Modal styles -->
+  <style>
+    .modal {
+      display: flex;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.5);
+      align-items: center;
+      justify-content: center;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .modal-content {
+      background-color: white;
+      padding: 30px;
+      border-radius: 12px;
+      max-width: 600px;
+      max-height: 80vh;
+      overflow-y: auto;
+      position: relative;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+
+    .close-btn {
+      position: absolute;
+      top: 12px;
+      right: 16px;
+      font-size: 28px;
+      font-weight: bold;
+      color: #999;
+      cursor: pointer;
+      transition: color 0.2s;
+    }
+
+    .close-btn:hover {
+      color: #333;
+    }
+
+    .analysis-content {
+      margin-top: 20px;
+      line-height: 1.8;
+    }
+
+    @media (max-width: 768px) {
+      .modal-content {
+        margin: 20px;
+        max-width: calc(100% - 40px);
+      }
+    }
+  </style>
+
+  <!-- Scripts -->
+  <script src="js/particle-system.js"></script>
+  <script src="js/gemini-client.js"></script>
+  <script src="js/video-manager.js"></script>
+  <script src="js/instagram-loader.js"></script>
+  <script src="js/app.js"></script>
+
+  <!-- GSAP Animations (ScrollTrigger) -->
+  <script src="js/gsap-animations.js"></script>
+
+  <script>
+    // Inicializar app y video gallery
+    document.addEventListener('DOMContentLoaded', () => {
+      // Inicializar aplicación principal
+      if (window.app && window.app.init) {
+        window.app.init();
+      }
+
+      // Inicializar hero video
+      setTimeout(() => {
+        if (window.videoManager) {
+          window.videoManager.initializeHeroVideo();
+          window.videoManager.renderGallery('videos-container');
+        }
+        if (window.instagramLoader) {
+          window.instagramLoader.renderFeed('instagram-feed');
+        }
+      }, 500);
+    });
+  </script>
+</body>
+</html>

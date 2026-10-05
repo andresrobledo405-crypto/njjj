@@ -1,0 +1,58 @@
+{
+  "productos": [
+    {
+      "id": "masa-madre",
+      "nombre": "Masa Madre",
+      "descripcion": "Pan tradicional fermentado naturalmente",
+      "imagen": "/assets/placeholders/masa-madre.svg",
+      "precio": "$4.500",
+      "tags": ["clásico", "artesanal", "fermentado"],
+      "geminiTopic": "Pan de masa madre tradicional chileno"
+    },
+    {
+      "id": "focaccia",
+      "nombre": "Focaccia",
+      "descripcion": "Pan plano italiano con aceite de oliva",
+      "imagen": "/assets/placeholders/focaccia.svg",
+      "precio": "$5.000",
+      "tags": ["italiano", "aceite", "hierbas"],
+      "geminiTopic": "Focaccia mediterránea con ingredientes premium"
+    },
+    {
+      "id": "baguette",
+      "nombre": "Baguette",
+      "descripcion": "Baguette francesa crujiente",
+      "imagen": "/assets/placeholders/baguette.svg",
+      "precio": "$3.500",
+      "tags": ["francés", "crujiente", "versátil"],
+      "geminiTopic": "Baguette parisina auténtica con corteza crujiente"
+    },
+    {
+      "id": "marraqueta",
+      "nombre": "Marraqueta",
+      "descripcion": "Pan chileno tradicional",
+      "imagen": "/assets/placeholders/marraqueta.svg",
+      "precio": "$2.800",
+      "tags": ["chileno", "tradicional", "casero"],
+      "geminiTopic": "Marraqueta chilena artesanal hecha en horno"
+    },
+    {
+      "id": "ciabatta",
+      "nombre": "Ciabatta",
+      "descripcion": "Pan italiano de miga abierta",
+      "imagen": "/assets/placeholders/ciabatta.svg",
+      "precio": "$4.200",
+      "tags": ["italiano", "miga abierta", "versátil"],
+      "geminiTopic": "Ciabatta italiana con estructura alveolar perfecta"
+    },
+    {
+      "id": "croissant",
+      "nombre": "Croissant",
+      "descripcion": "Croissant mantequillado francés",
+      "imagen": "/assets/placeholders/croissant.svg",
+      "precio": "$3.800",
+      "tags": ["francés", "mantequilla", "desayuno"],
+      "geminiTopic": "Croissant parisino con capas de mantequilla dorada"
+    }
+  ]
+}
