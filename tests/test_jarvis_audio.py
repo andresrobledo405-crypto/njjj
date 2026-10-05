@@ -57,5 +57,26 @@ class Voz(unittest.TestCase):
         self.assertEqual(mensajes, ["JARVIS: hola"])
 
 
+
+class Auditoria(unittest.TestCase):
+    def test_memoria_usa_ruta_absoluta_y_persiste(self):
+        import os
+        import tempfile
+        self.assertTrue(os.path.isabs(j.DB_NAME))
+        with tempfile.TemporaryDirectory() as d, mock.patch.object(j, "DB_NAME", os.path.join(d, "t.db")):
+            j.inicializar_base_datos()
+            j.recordar_dato("Color", "azul")
+            self.assertIn("azul", j.buscar_en_memoria("color"))
+            self.assertIn("No poseo", j.buscar_en_memoria("nada"))
+
+    def test_limpiar_markdown_para_voz(self):
+        self.assertEqual(j.limpiar_para_voz("**Hola** [web](http://x.com) `ok`"), "Hola web ok")
+        self.assertEqual(j.limpiar_para_voz(None), "")
+
+    def test_volumen_nivel_invalido_no_revienta(self):
+        self.assertIn("número", j.controlar_volumen("establecer", "alto"))
+        self.assertIn("número", j.controlar_volumen("establecer", None))
+
+
 if __name__ == "__main__":
     unittest.main()

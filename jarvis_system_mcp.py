@@ -6,11 +6,11 @@ import platform
 import queue
 import re
 import sqlite3
+import contextlib
 import subprocess
 import threading
 import time
 import sys
-import webbrowser
 import customtkinter as ctk
 import pyttsx3
 import speech_recognition as sr
@@ -28,37 +28,33 @@ if sys.stdout is None or sys.stderr is None:  # pythonw: sin consola
 # =====================================================================
 # 1. BASE DE DATOS Y MEMORIA PERSISTENTE (SQLITE3)
 # =====================================================================
-DB_NAME = "jarvis_system.db"
+DB_NAME = os.path.join(os.path.dirname(os.path.abspath(__file__)), "jarvis_system.db")
+
+@contextlib.contextmanager
+def _bd():
+    conn = sqlite3.connect(DB_NAME)
+    try:
+        with conn:  # commit/rollback automático
+            yield conn.cursor()
+    finally:
+        conn.close()
 
 def inicializar_base_datos():
     """Crea e inicializa la tabla de memoria del asistente si no existe."""
-    conn = sqlite3.connect(DB_NAME)
-    cursor = conn.cursor()
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS memoria (
-            clave TEXT PRIMARY KEY,
-            valor TEXT
-        )
-    """)
-    conn.commit()
-    conn.close()
+    with _bd() as c:
+        c.execute("CREATE TABLE IF NOT EXISTS memoria (clave TEXT PRIMARY KEY, valor TEXT)")
 
 def recordar_dato(clave: str, valor: str) -> str:
     """Guarda información contextual sobre el usuario o el entorno en la base de datos."""
-    conn = sqlite3.connect(DB_NAME)
-    cursor = conn.cursor()
-    cursor.execute("INSERT OR REPLACE INTO memoria (clave, valor) VALUES (?, ?)", (clave.lower(), valor))
-    conn.commit()
-    conn.close()
+    with _bd() as c:
+        c.execute("INSERT OR REPLACE INTO memoria (clave, valor) VALUES (?, ?)", (clave.lower(), valor))
     return f"He almacenado el registro en mi base de datos central: {clave} es {valor}."
 
 def buscar_en_memoria(clave: str) -> str:
     """Recupera datos históricos guardados en la memoria persistente."""
-    conn = sqlite3.connect(DB_NAME)
-    cursor = conn.cursor()
-    cursor.execute("SELECT valor FROM memoria WHERE clave = ?", (clave.lower(),))
-    row = cursor.fetchone()
-    conn.close()
+    with _bd() as c:
+        c.execute("SELECT valor FROM memoria WHERE clave = ?", (clave.lower(),))
+        row = c.fetchone()
     return f"Registros para '{clave}': {row[0]}." if row else f"No poseo registros sobre '{clave}'."
 
 # =====================================================================
@@ -90,21 +86,29 @@ def _ejecutar(cmd: list) -> str:
 
 def _volumen_windows(accion: str, nivel: int):
     # Requiere: pip install pycaw comtypes (solo Windows)
-    from ctypes import POINTER, cast
-    from comtypes import CLSCTX_ALL
-    from pycaw.pycaw import AudioUtilities, IAudioEndpointVolume
-    dispositivo = AudioUtilities.GetSpeakers()
-    interfaz = dispositivo.Activate(IAudioEndpointVolume._iid_, CLSCTX_ALL, None)
-    vol = cast(interfaz, POINTER(IAudioEndpointVolume))
-    if accion == "silenciar":
-        vol.SetMute(1, None)
-    elif accion == "activar_sonido":
-        vol.SetMute(0, None)
-    elif accion in ("establecer", "subir", "bajar"):
-        actual = round(vol.GetMasterVolumeLevelScalar() * 100)
-        destino = {"establecer": nivel, "subir": actual + PASO_VOLUMEN, "bajar": actual - PASO_VOLUMEN}[accion]
-        vol.SetMasterVolumeLevelScalar(max(0, min(100, destino)) / 100, None)
-    return round(vol.GetMasterVolumeLevelScalar() * 100), bool(vol.GetMute())
+    import comtypes
+    from pycaw.pycaw import AudioUtilities
+    comtypes.CoInitialize()  # Gemini llama a las herramientas desde un hilo propio
+    try:
+        dispositivo = AudioUtilities.GetSpeakers()
+        if hasattr(dispositivo, "EndpointVolume"):  # pycaw reciente
+            vol = dispositivo.EndpointVolume
+        else:  # pycaw antiguo
+            from ctypes import POINTER, cast
+            from pycaw.pycaw import IAudioEndpointVolume
+            interfaz = dispositivo.Activate(IAudioEndpointVolume._iid_, comtypes.CLSCTX_ALL, None)
+            vol = cast(interfaz, POINTER(IAudioEndpointVolume))
+        if accion == "silenciar":
+            vol.SetMute(1, None)
+        elif accion == "activar_sonido":
+            vol.SetMute(0, None)
+        elif accion in ("establecer", "subir", "bajar"):
+            actual = round(vol.GetMasterVolumeLevelScalar() * 100)
+            destino = {"establecer": nivel, "subir": actual + PASO_VOLUMEN, "bajar": actual - PASO_VOLUMEN}[accion]
+            vol.SetMasterVolumeLevelScalar(max(0, min(100, destino)) / 100, None)
+        return round(vol.GetMasterVolumeLevelScalar() * 100), bool(vol.GetMute())
+    finally:
+        comtypes.CoUninitialize()
 
 def _volumen_macos(accion: str, nivel: int):
     def leer():
@@ -142,21 +146,25 @@ def controlar_volumen(accion: str, nivel: int = 0) -> str:
     accion = accion.lower().strip()
     if accion not in ("subir", "bajar", "establecer", "silenciar", "activar_sonido", "consultar"):
         return f"Acción '{accion}' no soportada. Use: subir, bajar, establecer, silenciar, activar_sonido o consultar."
-    if accion == "establecer" and not 0 <= int(nivel) <= 100:
+    try:
+        nivel = int(float(nivel))
+    except (TypeError, ValueError):
+        return "El nivel de volumen debe ser un número entre 0 y 100, Señor."
+    if accion == "establecer" and not 0 <= nivel <= 100:
         return "El nivel de volumen debe estar entre 0 y 100, Señor."
     sistema = platform.system()
     try:
         if sistema == "Windows":
-            porcentaje, silenciado = _volumen_windows(accion, int(nivel))
+            porcentaje, silenciado = _volumen_windows(accion, nivel)
         elif sistema == "Darwin":
-            porcentaje, silenciado = _volumen_macos(accion, int(nivel))
+            porcentaje, silenciado = _volumen_macos(accion, nivel)
         elif sistema == "Linux":
-            porcentaje, silenciado = _volumen_linux(accion, int(nivel))
+            porcentaje, silenciado = _volumen_linux(accion, nivel)
         else:
             return f"Sistema operativo '{sistema}' no soportado para el control de volumen."
     except ImportError:
         return "Falta la librería 'pycaw'. Ejecute: pip install pycaw comtypes"
-    except (OSError, subprocess.SubprocessError, AttributeError) as e:
+    except (OSError, subprocess.SubprocessError, AttributeError, ValueError) as e:
         return f"Fallo al acceder al subsistema de audio: {e}"
     estado = "silenciado" if silenciado else "activo"
     return f"Volumen del sistema al {porcentaje}% (audio {estado})."
@@ -176,6 +184,7 @@ def controlar_dispositivo_tuya(estado: str) -> str:
     try:
         d = tinytuya.OutletDevice(TUYA_DEVICE_ID, TUYA_IP_ADDRESS, TUYA_LOCAL_KEY)
         d.set_version(TUYA_VERSION)
+        d.set_socketTimeout(5)
         if estado.lower() == "encender":
             d.turn_on()
             return "Matriz de energía activada para el dispositivo doméstico."
@@ -200,7 +209,7 @@ def inicializar_ia():
     if not os.getenv("GEMINI_API_KEY"):
         raise ValueError("Error crítico: La variable de entorno GEMINI_API_KEY no está configurada.")
 
-    client = genai.Client()
+    client = genai.Client(http_options=types.HttpOptions(timeout=30000))
     instrucciones_sistema = (
         "Eres J.A.R.V.I.S., el asistente de inteligencia artificial definitivo. Tu tono es formal, británico y directo. "
         "Dirígete al usuario como 'Señor'. Tienes acceso a herramientas avanzadas para leer la PC, interactuar con el portapapeles, "
@@ -248,7 +257,13 @@ def _hilo_voz():
 
 threading.Thread(target=_hilo_voz, daemon=True).start()
 
+def limpiar_para_voz(texto) -> str:
+    """Quita markdown (*, #, `, enlaces) que el sintetizador leería en voz alta."""
+    texto = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", texto or "")
+    return re.sub(r"[*_#`>]+", "", texto).strip()
+
 def speak(text, gui_callback=None):
+    text = limpiar_para_voz(text) or "No tengo respuesta para eso, Señor."
     if gui_callback:
         gui_callback(f"JARVIS: {text}")
     print(f"JARVIS: {text}")
@@ -326,6 +341,7 @@ class JarvisMasterOS(ctk.CTk):
         ctk.set_appearance_mode("dark")
 
         self.running = True
+        self.cerrojo = threading.Lock()  # una orden a la vez (voz y texto)
         self.estado = "idle"
         self.fase = 0.0
         self.nivel = 0.0  # suavizado de la amplitud del orbe
@@ -370,7 +386,7 @@ class JarvisMasterOS(ctk.CTk):
     def fijar_estado(self, estado):
         self.estado = estado
         texto, _ = self.ESTADOS[estado]
-        self.after(0, lambda: self.lbl_estado.configure(text=texto))
+        self._en_ui(lambda: self.lbl_estado.configure(text=texto))
 
     @staticmethod
     def _mezclar(c1, c2, t):
@@ -414,6 +430,12 @@ class JarvisMasterOS(ctk.CTk):
         c.create_oval(cx - r2, cy - r2, cx + r2, cy + r2, fill=self._mezclar(color, "#ffffff", 0.55), outline="")
         self.after(33, self.animar)
 
+    def _en_ui(self, fn):
+        try:
+            self.after(0, fn)
+        except RuntimeError:  # ventana ya cerrada
+            pass
+
     # ---- conversación ----
     def log_message(self, message, etiqueta="sistema"):
         def escribir():
@@ -422,7 +444,7 @@ class JarvisMasterOS(ctk.CTk):
             self.console_output.insert("end", f"{hora}  {message}\n\n", etiqueta)
             self.console_output.see("end")
             self.console_output.configure(state="disabled")
-        self.after(0, escribir)
+        self._en_ui(escribir)
 
     def _log_jarvis(self, message):
         self.log_message(message.replace("JARVIS: ", "", 1), "jarvis")
@@ -433,13 +455,14 @@ class JarvisMasterOS(ctk.CTk):
 
     def procesar_orden(self, orden):
         self.log_message(orden, "usuario")
-        if any(x in orden.lower() for x in ["desconectar", "apagar", "salir"]):
+        if re.search(r"\b(desconéctate|desconectate|apágate|apagate|cierra jarvis|adiós jarvis|adios jarvis|salir)\b", orden.lower()):
             speak("Desactivando núcleos lógicos. Hasta pronto, Señor.", self._log_jarvis)
-            self.after(0, self.on_closing)
+            self._en_ui(self.on_closing)
             return False
         self.fijar_estado("thinking")
         try:
-            response = self.chat.send_message(orden)
+            with self.cerrojo:
+                response = self.chat.send_message(orden)
             self.fijar_estado("speaking")
             speak(response.text, self._log_jarvis)
         except Exception as e:
@@ -475,5 +498,15 @@ class JarvisMasterOS(ctk.CTk):
                     break
 
 if __name__ == "__main__":
-    app = JarvisMasterOS()
-    app.mainloop()
+    try:
+        app = JarvisMasterOS()
+        app.mainloop()
+    except Exception as e:  # sin consola (pythonw) el usuario no vería nada
+        import traceback
+        traceback.print_exc()
+        try:
+            from tkinter import messagebox
+            messagebox.showerror("J.A.R.V.I.S.", f"No se pudo iniciar:\n{e}\n\nDetalles en jarvis.log")
+        except Exception:
+            pass
+        sys.exit(1)

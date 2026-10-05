@@ -18,10 +18,11 @@ try {
     # 1. COMPROBACIÓN E INSTALACIÓN DE LIBRERÍAS
     Write-Host "[1/3] Validando entorno de dependencias Python..." -ForegroundColor Yellow
     $Marca = Join-Path $PSScriptRoot ".jarvis_ok"
-    if (-not (Test-Path $Marca)) {
-        & pip install google-genai pyttsx3 speechrecognition customtkinter requests tinytuya pyperclip psutil mcp pycaw comtypes sounddevice --quiet
+    $Deps = "google-genai pyttsx3 speechrecognition customtkinter requests tinytuya pyperclip psutil mcp pycaw comtypes sounddevice"
+    if (-not ((Test-Path $Marca) -and ((Get-Content $Marca -ErrorAction SilentlyContinue) -eq $Deps))) {
+        & python -m pip install $Deps.Split(" ") --quiet
         if ($LASTEXITCODE -ne 0) { throw "Falló la instalación de dependencias (pip). Revise su conexión y que Python esté en el PATH." }
-        New-Item -ItemType File -Path $Marca -Force | Out-Null
+        Set-Content -Path $Marca -Value $Deps
     }
     Write-Host "[OK] Todas las librerías necesarias están instaladas." -ForegroundColor Green
     Write-Host ""
