@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Artesanos Panadería - Promo</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      width: 1920px;
+      height: 1080px;
+      overflow: hidden;
+      font-family: 'Playfair Display', serif;
+      background: #2b2416;
+    }
+
+    .composition {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* ===== INTRO SECTION ===== */
+    .intro {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #8b6f47 0%, #d4a574 50%, #2b2416 100%);
+      position: absolute;
+      opacity: 1;
+    }
+
+    .intro h1 {
+      font-size: 180px;
+      color: #f5e6d3;
+      font-weight: 700;
+      letter-spacing: 8px;
+      text-shadow: 3px 3px 10px rgba(0, 0, 0, 0.5);
+    }
+
+    /* ===== PRODUCTS SECTION ===== */
+    .products {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #1a1410;
+      opacity: 0;
+    }
+
+    .product-card {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, rgba(139, 111, 71, 0.8) 0%, rgba(212, 165, 116, 0.9) 100%);
+      position: absolute;
+      opacity: 0;
+    }
+
+    .product-image {
+      width: 800px;
+      height: 600px;
+      background: linear-gradient(45deg, #8b6f47 0%, #d4a574 100%);
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 40px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    }
+
+    .product-name {
+      font-size: 72px;
+      color: #f5e6d3;
+      font-weight: 700;
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .product-subtitle {
+      font-size: 36px;
+      color: rgba(245, 230, 211, 0.8);
+      font-family: 'Lato', sans-serif;
+      text-align: center;
+    }
+
+    .overlay-text {
+      position: absolute;
+      bottom: 120px;
+      left: 0;
+      right: 0;
+      text-align: center;
+      font-size: 32px;
+      color: rgba(245, 230, 211, 0.7);
+      font-family: 'Lato', sans-serif;
+      letter-spacing: 2px;
+    }
+
+    /* ===== OUTRO SECTION ===== */
+    .outro {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #2b2416 0%, #1a1410 100%);
+      position: absolute;
+      opacity: 0;
+    }
+
+    .outro h1 {
+      font-size: 140px;
+      color: #d4a574;
+      font-weight: 700;
+      margin-bottom: 80px;
+      letter-spacing: 6px;
+    }
+
+    .contact-info {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 40px;
+      font-family: 'Lato', sans-serif;
+    }
+
+    .phone {
+      font-size: 48px;
+      color: #f5e6d3;
+      font-weight: 300;
+      letter-spacing: 2px;
+    }
+
+    .location {
+      font-size: 42px;
+      color: rgba(245, 230, 211, 0.8);
+      font-weight: 300;
+    }
+  </style>
+</head>
+<body>
+  <div class="composition" id="root" data-composition-id="index" data-width="1920" data-height="1080">
+    <!-- INTRO (0-2s) -->
+    <div class="intro clip" id="intro" data-start="0" data-duration="2000">
+      <h1>ARTESANOS</h1>
+    </div>
+
+    <!-- PRODUCTS (2-17s) -->
+    <div class="products clip" id="products" data-start="2000" data-duration="15000">
+      <!-- Masa Madre (2-4.5s) -->
+      <div class="product-card clip" id="product-1" data-start="2000" data-duration="2500">
+        <div class="product-image"></div>
+        <h2 class="product-name">Masa Madre</h2>
+        <p class="product-subtitle">Pan Tradicional Fermentado</p>
+      </div>
+
+      <!-- Focaccia (4.5-7s) -->
+      <div class="product-card clip" id="product-2" data-start="4500" data-duration="2500">
+        <div class="product-image"></div>
+        <h2 class="product-name">Focaccia</h2>
+        <p class="product-subtitle">Pan Italiano con Aceite</p>
+      </div>
+
+      <!-- Baguette (7-9.5s) -->
+      <div class="product-card clip" id="product-3" data-start="7000" data-duration="2500">
+        <div class="product-image"></div>
+        <h2 class="product-name">Baguette</h2>
+        <p class="product-subtitle">Pan Francés Crujiente</p>
+      </div>
+
+      <!-- Marraqueta (9.5-12s) -->
+      <div class="product-card clip" id="product-4" data-start="9500" data-duration="2500">
+        <div class="product-image"></div>
+        <h2 class="product-name">Marraqueta</h2>
+        <p class="product-subtitle">Pan Chileno Artesanal</p>
+      </div>
+
+      <!-- Ciabatta (12-14.5s) -->
+      <div class="product-card clip" id="product-5" data-start="12000" data-duration="2500">
+        <div class="product-image"></div>
+        <h2 class="product-name">Ciabatta</h2>
+        <p class="product-subtitle">Pan Italiano Miga Abierta</p>
+      </div>
+
+      <!-- Croissant (14.5-17s) -->
+      <div class="product-card clip" id="product-6" data-start="14500" data-duration="2500">
+        <div class="product-image"></div>
+        <h2 class="product-name">Croissant</h2>
+        <p class="product-subtitle">Hojaldre Mantequillado Francés</p>
+      </div>
+
+      <div class="overlay-text">
+        Pan artesanal • Fermentado 24-48h • Ingredientes naturales • Hecho a mano
+      </div>
+    </div>
+
+    <!-- OUTRO (17-25s) -->
+    <div class="outro clip" id="outro" data-start="17000" data-duration="8000">
+      <h1>ARTESANOS</h1>
+      <div class="contact-info">
+        <p class="phone">+56 9 7204 4704</p>
+        <p class="location">La Serena, Coquimbo</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // HyperFrames timeline registration
+    window.__timelines = window.__timelines || {};
+    window.__timelines['index'] = {
+      duration: 25000,
+      tracks: [
+        { id: 'intro', start: 0, end: 2000 },
+        { id: 'product-1', start: 2000, end: 4500 },
+        { id: 'product-2', start: 4500, end: 7000 },
+        { id: 'product-3', start: 7000, end: 9500 },
+        { id: 'product-4', start: 9500, end: 12000 },
+        { id: 'product-5', start: 12000, end: 14500 },
+        { id: 'product-6', start: 14500, end: 17000 },
+        { id: 'outro', start: 17000, end: 25000 }
+      ]
+    };
+
+    // Animation on timeline progress
+    const root = document.getElementById('root');
+    const updateFrame = (t) => {
+      const intro = document.getElementById('intro');
+      const products = document.getElementById('products');
+      const outro = document.getElementById('outro');
+
+      // Intro fade (0-2s)
+      if (t < 2000) {
+        intro.style.opacity = Math.max(0, 1 - (t / 2000) * 0.3);
+      } else {
+        intro.style.opacity = 0;
+      }
+
+      // Products fade
+      if (t >= 2000 && t < 17000) {
+        products.style.opacity = 1;
+        const products_list = products.querySelectorAll('.product-card');
+        products_list.forEach((card) => {
+          const start = parseInt(card.getAttribute('data-start'));
+          const duration = parseInt(card.getAttribute('data-duration'));
+          const end = start + duration;
+          if (t >= start && t < end) {
+            card.style.opacity = 1;
+          } else {
+            card.style.opacity = 0;
+          }
+        });
+      } else {
+        products.style.opacity = 0;
+      }
+
+      // Outro fade
+      if (t >= 17000) {
+        outro.style.opacity = Math.min(1, (t - 17000) / 1000);
+      } else {
+        outro.style.opacity = 0;
+      }
+    };
+
+    // Initialize
+    updateFrame(0);
+  </script>
+</body>
+</html>

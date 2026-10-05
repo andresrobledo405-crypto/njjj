@@ -1,0 +1,11 @@
+{
+  "name": "artesanos-promo",
+  "version": "1.0.0",
+  "width": 1920,
+  "height": 1080,
+  "fps": 30,
+  "duration": 25000,
+  "compositions": {
+    "index": "index.html"
+  }
+}

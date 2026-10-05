@@ -1,0 +1,13 @@
+{
+  "name": "artesanos-promo",
+  "version": "1.0.0",
+  "description": "Video promo para Artesanos Panadería",
+  "scripts": {
+    "init": "npx hyperframes init . --non-interactive --example=blank",
+    "check": "npx hyperframes check",
+    "preview": "npx hyperframes preview",
+    "render": "npx hyperframes render --output ../artesanos-promo.mp4",
+    "render-vertical": "npx hyperframes render --output ../artesanos-promo-vertical.mp4 --canvas 1080x1920"
+  },
+  "dependencies": {}
+}
