@@ -1,6 +1,5 @@
 {
-  "buildCommand": "cp -r docs/* . && cp docs/.nojekyll .",
-  "outputDirectory": ".",
+  "outputDirectory": "docs",
   "framework": "static",
   "rewrites": [
     {
