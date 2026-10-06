@@ -8,6 +8,7 @@ import * as Speech from "expo-speech";
 import { askCloud } from "./cloud";
 import { loadLocalModel, askLocal } from "./local";
 import { palette } from "./theme";
+import Deals from "./Deals";
 
 // Strong ease-out for entering elements (Emil Kowalski): fast start, soft landing.
 const EASE_OUT = Easing.bezier(0.23, 1, 0.32, 1);
@@ -86,6 +87,7 @@ export default function App() {
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState("");
   const [speak, setSpeak] = useState(false);
+  const [tab, setTab] = useState("deals"); // "deals" | "chat"
   const list = useRef(null);
   const reduced = useReducedMotion();
   const c = palette[useColorScheme() === "dark" ? "dark" : "light"];
@@ -137,14 +139,22 @@ export default function App() {
   return (
     <SafeAreaView style={s.root}>
       <View style={s.bar}>
-        <Text style={s.title}>Asistente IA</Text>
-        <View style={s.row}>
+        <Text style={s.title}>DealFinder AI</Text>
+        <View style={s.tabs}>
+          {[["deals", "Ofertas"], ["chat", "Asistente"]].map(([k, label]) => (
+            <Pressable key={k} onPress={() => setTab(k)} accessibilityRole="tab" accessibilityState={{ selected: tab === k }} style={[s.tab, tab === k && s.tabOn]}>
+              <Text style={[s.tabText, tab === k && { color: "#fff" }]}>{label}</Text>
+            </Pressable>
+          ))}
+        </View>
+        {tab === "chat" && <View style={s.row}>
           <Text style={s.label}>Local</Text>
           <Switch value={local} onValueChange={toggleLocal} disabled={busy} trackColor={{ true: c.accent }} />
           <Text style={[s.label, { marginLeft: 16 }]}>Voz</Text>
           <Switch value={speak} onValueChange={setSpeak} trackColor={{ true: c.accent }} />
-        </View>
+        </View>}
       </View>
+      {tab === "deals" ? <Deals c={c} /> : <>
       {!!status && <Text style={s.status}>{status}</Text>}
       {messages.length === 0 && (
         <View style={s.empty} pointerEvents="none">
@@ -185,6 +195,7 @@ export default function App() {
           </PressScale>
         </View>
       </KeyboardAvoidingView>
+      </>}
     </SafeAreaView>
   );
 }
@@ -193,6 +204,10 @@ const styles = (c) => StyleSheet.create({
   root: { flex: 1, backgroundColor: c.bg },
   bar: { paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: c.line },
   row: { flexDirection: "row", alignItems: "center", marginTop: 6 },
+  tabs: { flexDirection: "row", gap: 8, marginTop: 8 },
+  tab: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 16, backgroundColor: c.surface },
+  tabOn: { backgroundColor: c.accent },
+  tabText: { fontSize: 14, fontWeight: "600", color: c.text },
   title: { fontSize: 22, fontWeight: "700", letterSpacing: -0.4, color: c.text },
   label: { fontSize: 14, color: c.muted, marginRight: 6 },
   status: { paddingHorizontal: 16, paddingVertical: 8, color: c.muted },

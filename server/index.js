@@ -1,7 +1,7 @@
 import express from "express";
 import cors from "cors";
 import crypto from "node:crypto";
-import { ask, streamAsk } from "./claude.js";
+import { ask, streamAsk, findDeals } from "./claude.js";
 
 const app = express();
 app.use(cors());
@@ -51,6 +51,19 @@ app.post("/chat/stream", requireAppKey, async (req, res) => {
     res.write(`data: ${JSON.stringify({ error: "Error al consultar a Claude" })}\n\n`);
   }
   res.end();
+});
+
+// --- DealFinder: busca y compara ofertas ---
+// Body: { query: string, country?: string }  ->  { deals: [...] }
+app.post("/deals", requireAppKey, async (req, res) => {
+  const query = String(req.body.query ?? "").trim().slice(0, 200);
+  if (!query) return res.status(400).json({ error: "query requerido" });
+  try {
+    res.json({ deals: await findDeals(query, { country: String(req.body.country ?? "").slice(0, 60) }) });
+  } catch (e) {
+    console.error(e);
+    res.status(502).json({ error: "Error al buscar ofertas" });
+  }
 });
 
 // --- Twilio: SMS y llamadas (opción 4) ---
