@@ -25,11 +25,11 @@ export async function askCloud(history, imageBase64) {
 }
 
 // DealFinder: devuelve [{title, store, price, originalPrice, currency, discountPct, url, verdict, score}]
-export async function findDeals(query) {
+export async function findDeals(query, country = "") {
   const res = await fetch(`${SERVER_URL}/deals`, {
     method: "POST",
     headers: { "Content-Type": "application/json", "x-app-key": APP_KEY },
-    body: JSON.stringify({ query }),
+    body: JSON.stringify({ query, country }),
   });
   if (!res.ok) throw new Error(`Servidor: ${res.status}`);
   return (await res.json()).deals;

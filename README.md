@@ -53,3 +53,7 @@ eas build -p android --profile apk    # ~15 min en la nube; al final da un enlac
 Abra el enlace en el teléfono e instale el APK (permita "instalar apps desconocidas").
 `usesCleartextTraffic` está activado para poder usar `http://IP-de-su-PC:3000` en pruebas; en producción use HTTPS.
 El modo local (llama.rn) funciona en esta versión porque el APK incluye código nativo.
+
+## DealFinder AI
+La pestaña **Ofertas** de la app busca y compara precios con la búsqueda web de Claude (`POST /deals` en el servidor).
+Filtro por país y favoritos guardados en el teléfono. Requiere `ANTHROPIC_API_KEY` con la búsqueda web habilitada en su cuenta.

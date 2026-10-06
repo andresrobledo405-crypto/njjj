@@ -1,8 +1,12 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { View, Text, TextInput, Pressable, FlatList, Linking, ActivityIndicator, StyleSheet } from "react-native";
 import { findDeals } from "./cloud";
 
 const SUGGESTIONS = ["iPhone 15", "audífonos Sony WH-1000XM5", "laptop gamer", "freidora de aire"];
+
+const COUNTRIES = ["", "México", "España", "Chile", "Argentina", "Colombia", "EE.UU."];
+const FAV_KEY = "dealfinder:favs";
 
 const money = (n, cur) => (n == null ? "—" : `${cur || "$"} ${n.toLocaleString("es")}`);
 
@@ -10,7 +14,7 @@ function scoreColor(score, c) {
   return score >= 75 ? c.good : score >= 50 ? c.warn : c.muted;
 }
 
-function DealCard({ d, c, s }) {
+function DealCard({ d, c, s, fav, onFav }) {
   return (
     <Pressable
       onPress={() => Linking.openURL(d.url)}
@@ -20,7 +24,12 @@ function DealCard({ d, c, s }) {
     >
       <View style={s.cardTop}>
         <Text style={s.store}>{d.store}</Text>
-        <Text style={[s.score, { color: scoreColor(d.score, c) }]}>{d.score}/100</Text>
+        <View style={{ flexDirection: "row", gap: 12 }}>
+          <Text style={[s.score, { color: scoreColor(d.score, c) }]}>{d.score}/100</Text>
+          <Pressable onPress={onFav} hitSlop={10} accessibilityRole="button" accessibilityLabel={fav ? "Quitar de favoritos" : "Guardar en favoritos"}>
+            <Text style={{ fontSize: 18, color: fav ? c.accent : c.muted }}>{fav ? "★" : "☆"}</Text>
+          </Pressable>
+        </View>
       </View>
       <Text style={s.cardTitle} numberOfLines={2}>{d.title}</Text>
       <View style={s.priceRow}>
@@ -39,6 +48,19 @@ export default function Deals({ c }) {
   const [deals, setDeals] = useState(null); // null = aún no se buscó
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [country, setCountry] = useState("");
+  const [favs, setFavs] = useState([]);
+  const [showFavs, setShowFavs] = useState(false);
+
+  useEffect(() => {
+    AsyncStorage.getItem(FAV_KEY).then((v) => v && setFavs(JSON.parse(v))).catch(() => {});
+  }, []);
+
+  const toggleFav = (d) => {
+    const next = favs.some((f) => f.url === d.url) ? favs.filter((f) => f.url !== d.url) : [d, ...favs];
+    setFavs(next);
+    AsyncStorage.setItem(FAV_KEY, JSON.stringify(next)).catch(() => {});
+  };
 
   const search = async (q = query) => {
     const text = q.trim();
@@ -47,7 +69,7 @@ export default function Deals({ c }) {
     setBusy(true);
     setError("");
     try {
-      setDeals(await findDeals(text));
+      setDeals(await findDeals(text, country));
     } catch (e) {
       setDeals(null);
       setError("No se pudo buscar: " + e.message);
@@ -73,6 +95,26 @@ export default function Deals({ c }) {
         </Pressable>
       </View>
 
+      <View style={s.chips2}>
+        {COUNTRIES.map((x) => (
+          <Pressable key={x} onPress={() => setCountry(x)} style={[s.chip, country === x && s.chipOn]} accessibilityRole="button" accessibilityState={{ selected: country === x }}>
+            <Text style={[s.chipText, country === x && { color: "#fff" }]}>{x || "Todos"}</Text>
+          </Pressable>
+        ))}
+        <Pressable onPress={() => setShowFavs(!showFavs)} style={[s.chip, showFavs && s.chipOn]} accessibilityRole="button">
+          <Text style={[s.chipText, showFavs && { color: "#fff" }]}>★ Favoritos ({favs.length})</Text>
+        </Pressable>
+      </View>
+
+      {showFavs ? (
+        <FlatList
+          data={favs}
+          keyExtractor={(d) => d.url}
+          contentContainerStyle={{ padding: 16 }}
+          renderItem={({ item }) => <DealCard d={item} c={c} s={s} fav onFav={() => toggleFav(item)} />}
+          ListEmptyComponent={<Text style={[s.hint, { textAlign: "center", marginTop: 40 }]}>Aún no guardó ofertas.</Text>}
+        />
+      ) : <>
       {busy && (
         <View style={s.center}>
           <ActivityIndicator color={c.accent} />
@@ -100,10 +142,11 @@ export default function Deals({ c }) {
           data={deals}
           keyExtractor={(d) => d.url}
           contentContainerStyle={{ padding: 16 }}
-          renderItem={({ item }) => <DealCard d={item} c={c} s={s} />}
+          renderItem={({ item }) => <DealCard d={item} c={c} s={s} fav={favs.some((f) => f.url === item.url)} onFav={() => toggleFav(item)} />}
           ListEmptyComponent={<Text style={[s.hint, { textAlign: "center", marginTop: 40 }]}>No encontré ofertas fiables para esa búsqueda.</Text>}
         />
       )}
+      </>}
     </View>
   );
 }
@@ -119,6 +162,8 @@ const styles = (c) => StyleSheet.create({
   hint: { fontSize: 15, color: c.muted, textAlign: "center" },
   error: { color: c.bad, padding: 16, textAlign: "center" },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: 8, justifyContent: "center", marginTop: 16 },
+  chips2: { flexDirection: "row", flexWrap: "wrap", gap: 6, paddingHorizontal: 12 },
+  chipOn: { backgroundColor: c.accent },
   chip: { backgroundColor: c.surface, borderRadius: 16, paddingHorizontal: 12, paddingVertical: 8 },
   chipText: { color: c.text, fontSize: 14 },
   card: { backgroundColor: c.surface, borderRadius: 16, padding: 14, marginBottom: 10 },
