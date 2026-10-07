@@ -6,7 +6,6 @@ Cuatro formas de integrar IA, en un solo proyecto:
 |---|--------|-------|
 | 1 | App móvil con Claude (chat + fotos) | `mobile/` + `server/` |
 | 2 | IA local sin internet (llama.cpp) | `mobile/local.js` |
-| 3 | Asistentes ya hechos | `docs/ASISTENTES.md` |
 | 4 | Asistente por SMS y llamadas (Twilio) | `server/index.js` (`/sms`, `/voice`) |
 
 ## 1. Servidor
@@ -33,9 +32,6 @@ El **modo local** (interruptor "Local") usa `llama.rn`, que necesita código nat
 1. Exponga el servidor con HTTPS (Render, Fly.io, o `ngrok http 3000` para pruebas).
 2. En Twilio, en su número: *Messaging → A message comes in* → `https://SU_URL/sms` (POST); *Voice → A call comes in* → `https://SU_URL/voice` (POST).
 3. Envíe un SMS o llame a ese número.
-
-## 4. Asistentes existentes
-Ver [docs/ASISTENTES.md](docs/ASISTENTES.md).
 
 ## Notas
 - El historial de SMS/llamadas está en memoria; use una base de datos en producción.
