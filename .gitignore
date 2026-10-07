@@ -42,3 +42,9 @@ venv/
 !exports/.gitkeep
 !renders/.gitkeep
 !queue/.gitkeep
+
+# JARVIS
+jarvis_system.db
+__pycache__/
+.jarvis_ok
+jarvis.log
