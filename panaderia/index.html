@@ -4,13 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Artesanos Panadería — Experiencia Premium</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <meta name="description" content="Panadería artesanal de masa madre: fermentación lenta, bollería fina y panes hechos a mano. Las Compañías, Chile.">
+    <meta name="theme-color" content="#16110D">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Artesanos Panadería">
+    <meta property="og:description" content="Masa madre, fermentación lenta y bollería fina hecha a mano.">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2316110D'/%3E%3Cpath d='M12 40c0-12 9-20 20-20s20 8 20 20z' fill='%23C59B6D'/%3E%3C/svg%3E">
+    <link rel="stylesheet" href="styles.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300&family=Plus+Jakarta+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
     <style>
         * { font-family: 'Plus Jakarta Sans', sans-serif; }
-        h1, h2, h3, h4, h5, h6 { font-family: 'Cormorant Garamond', serif; }
+        h1, h2, h3, h4, h5, h6, h1 *, h2 *, h3 * { font-family: 'Cormorant Garamond', Georgia, serif; }
         .premium-blur { backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
         @keyframes fadeInUp { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes marquee { 0% { transform: translateX(0%); } 100% { transform: translateX(-50%); } }
@@ -22,7 +28,7 @@
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
-<body class="bg-gradient-to-b from-[#FBF9F4] via-[#FAF8F2] to-[#F8F5ED] text-[#16110D] antialiased">
+<body class="overflow-x-hidden bg-gradient-to-b from-[#FBF9F4] via-[#FAF8F2] to-[#F8F5ED] text-[#16110D] antialiased">
 
     <!-- HEADER / NAVIGATION -->
     <header class="fixed top-0 left-0 w-full z-50 px-6 lg:px-16 py-6 transition-all duration-500">
@@ -121,13 +127,13 @@
             <div class="lg:col-span-8">
                 <!-- TAB: MASA MADRE -->
                 <div id="masamadre" class="tab-content active">
-                    <div class="bg-gradient-to-br from-[#C59B6D]/20 to-[#C59B6D]/5 rounded-3xl p-12 border border-[#C59B6D]/20">
+                    <div class="bg-gradient-to-br from-[#C59B6D]/20 to-[#C59B6D]/5 rounded-3xl p-6 sm:p-12 border border-[#C59B6D]/20">
                         <div class="aspect-video rounded-2xl mb-8 shadow-lg overflow-hidden relative"><img src="img/foto-2.jpg" alt="Masa madre burbujeando junto a una hogaza abierta" loading="lazy" class="absolute top-0 left-0 w-full h-[114%] object-cover object-top "></div>
                         <h3 class="font-serif text-3xl font-light mb-4">La Magia de la Masa Madre</h3>
                         <p class="text-[#7C7267] mb-6 leading-relaxed">
                             Cultivo vivo que ha estado activo durante 30 años. Cada fermentación lenta desata bacterias naturales que transforman granos simples en complejidad profunda de sabor. La malla de gluten se desarrolla perfectamente, creando esa miga abierta y esponjosa.
                         </p>
-                        <div class="grid grid-cols-2 gap-4">
+                        <div class="grid grid-cols-2 gap-3 sm:gap-4">
                             <div class="bg-white p-4 rounded-xl border border-[#C59B6D]/20">
                                 <div class="font-serif text-2xl text-[#C59B6D] font-light">48h</div>
                                 <div class="text-xs text-[#7C7267] uppercase tracking-wide">Fermentación</div>
@@ -150,13 +156,13 @@
 
                 <!-- TAB: CROISSANT -->
                 <div id="croissant" class="tab-content">
-                    <div class="bg-gradient-to-br from-[#C59B6D]/20 to-[#C59B6D]/5 rounded-3xl p-12 border border-[#C59B6D]/20">
+                    <div class="bg-gradient-to-br from-[#C59B6D]/20 to-[#C59B6D]/5 rounded-3xl p-6 sm:p-12 border border-[#C59B6D]/20">
                         <div class="aspect-video rounded-2xl mb-8 shadow-lg overflow-hidden relative"><img src="img/foto-3.jpg" alt="Croissants dorados cortados con capas de hojaldre" loading="lazy" class="absolute top-0 left-0 w-full h-[114%] object-cover object-top "></div>
                         <h3 class="font-serif text-3xl font-light mb-4">La Laminación del Croissant</h3>
                         <p class="text-[#7C7267] mb-6 leading-relaxed">
                             Mantequilla francesa laminada 72 veces. Cada pliegue crea capas de aire que explotan delicadamente en tu boca. Una danza de precisión y paciencia que solo el tiempo y las manos expertas pueden crear.
                         </p>
-                        <div class="grid grid-cols-2 gap-4">
+                        <div class="grid grid-cols-2 gap-3 sm:gap-4">
                             <div class="bg-white p-4 rounded-xl border border-[#C59B6D]/20">
                                 <div class="font-serif text-2xl text-[#C59B6D] font-light">72</div>
                                 <div class="text-xs text-[#7C7267] uppercase tracking-wide">Capas</div>
@@ -179,13 +185,13 @@
 
                 <!-- TAB: BAGUETTE -->
                 <div id="baguette" class="tab-content">
-                    <div class="bg-gradient-to-br from-[#C59B6D]/20 to-[#C59B6D]/5 rounded-3xl p-12 border border-[#C59B6D]/20">
+                    <div class="bg-gradient-to-br from-[#C59B6D]/20 to-[#C59B6D]/5 rounded-3xl p-6 sm:p-12 border border-[#C59B6D]/20">
                         <div class="aspect-video rounded-2xl mb-8 shadow-lg overflow-hidden relative"><img src="img/foto-4.jpg" alt="Baguettes con greñas recién salidas del horno" loading="lazy" class="absolute top-0 left-0 w-full h-[114%] object-cover object-top "></div>
                         <h3 class="font-serif text-3xl font-light mb-4">El Crujido de la Baguette</h3>
                         <p class="text-[#7C7267] mb-6 leading-relaxed">
                             La forma clásica francesa que exige precisión geométrica absoluta. Vapor en el horno genera esa corteza impenetrable que resuena al morder, revelando una miga ligera, abierta y esponjosa. Puro arte en carbohidratos.
                         </p>
-                        <div class="grid grid-cols-2 gap-4">
+                        <div class="grid grid-cols-2 gap-3 sm:gap-4">
                             <div class="bg-white p-4 rounded-xl border border-[#C59B6D]/20">
                                 <div class="font-serif text-2xl text-[#C59B6D] font-light">36h</div>
                                 <div class="text-xs text-[#7C7267] uppercase tracking-wide">Fermentación</div>
@@ -297,7 +303,7 @@
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div>
                 <span class="text-xs uppercase tracking-[0.3em] text-[#C59B6D] font-semibold block mb-3">Síguenos en Vivo</span>
-                <h2 class="font-serif text-5xl md:text-5xl font-light tracking-tight mb-6">@artesanospanaderials</h2>
+                <h2 class="font-serif text-3xl sm:text-5xl break-words font-light tracking-tight mb-6">@artesanospanaderials</h2>
                 <p class="text-[#7C7267] mb-6 leading-relaxed">
                     Únete a nuestra comunidad. Descubre cada día las novedades, procesos en tiempo real y momentos detrás de cámaras de nuestro taller.
                 </p>
