@@ -26,6 +26,14 @@ Descarga o actualiza JARVIS en `%USERPROFILE%\jarvis` y lo abre. Tras el merge, 
 
 Volumen: Windows usa `pycaw`; macOS `osascript`; Linux `pactl`.
 
+## Siempre activo (24/7 mientras el PC esté encendido)
+Ejecute una vez `activar_24x7.cmd` (después de abrir JARVIS la primera vez). Crea dos tareas programadas:
+`JARVIS-Inicio` (al iniciar sesión) y `JARVIS-Vigilante` (cada 5 min; si JARVIS se cayó, lo relanza). Quitar: `desactivar_24x7.cmd`.
+- Necesita **sesión de Windows iniciada** (usa micrófono y ventana). Antes de iniciar sesión no puede funcionar.
+- Si el PC se **suspende**, JARVIS también. Para evitarlo: Configuración > Sistema > Energía > "Suspender" = Nunca.
+- **Privacidad:** escuchando siempre, cada frase que detecta se envía a Google para transcribirla, no solo las que dicen "Jarvis".
+  Si no lo desea, no active el 24/7 o silencie el micrófono cuando haya conversaciones privadas.
+
 ## Convivencia con Manus
 JARVIS y Manus (https://manus.im/desktop) pueden estar abiertos a la vez.
 - **Delegar:** diga "Jarvis, pídele a Manus que investigue X". JARVIS copia la tarea al portapapeles y abre Manus; usted pega (Ctrl+V) y aprueba.
