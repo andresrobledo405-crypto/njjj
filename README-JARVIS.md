@@ -26,5 +26,12 @@ Descarga o actualiza JARVIS en `%USERPROFILE%\jarvis` y lo abre. Tras el merge, 
 
 Volumen: Windows usa `pycaw`; macOS `osascript`; Linux `pactl`.
 
+## Convivencia con Manus
+JARVIS y Manus (https://manus.im/desktop) pueden estar abiertos a la vez.
+- **Delegar:** diga "Jarvis, pídele a Manus que investigue X". JARVIS copia la tarea al portapapeles y abre Manus; usted pega (Ctrl+V) y aprueba.
+- **Micrófono:** JARVIS solo lo usa mientras escucha. Si Manus usa voz, no active ambos a la vez.
+- **Carpetas:** en Manus > My Computer > Add Folder, **no autorice** la carpeta de JARVIS (`%USERPROFILE%\jarvis`): ahí quedan su memoria (`jarvis_system.db`) y `jarvis.log`.
+- **Una sola copia:** JARVIS rechaza abrirse dos veces.
+
 ## Pruebas
 `python3 -m unittest discover -s tests`  (simulan el audio; no necesitan hardware)

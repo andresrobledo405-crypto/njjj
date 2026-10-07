@@ -78,5 +78,37 @@ class Auditoria(unittest.TestCase):
         self.assertIn("número", j.controlar_volumen("establecer", None))
 
 
+
+class Manus(unittest.TestCase):
+    def test_delegar_copia_tarea_y_abre_manus(self):
+        with mock.patch.object(j, "_abrir_app_manus", return_value=True), \
+             mock.patch.object(j.pyperclip, "copy") as copiar:
+            r = j.delegar_a_manus("investiga el mercado de drones")
+        copiar.assert_called_once_with("investiga el mercado de drones")
+        self.assertIn("portapapeles", r)
+
+    def test_sin_app_abre_web(self):
+        with mock.patch.object(j, "_abrir_app_manus", return_value=False), \
+             mock.patch.object(j.webbrowser, "open") as abrir:
+            self.assertIn("sitio web", j.abrir_manus())
+        abrir.assert_called_once_with("https://manus.im")
+
+    def test_tarea_vacia(self):
+        self.assertIn("descripción", j.delegar_a_manus("  "))
+
+    def test_instancia_unica(self):
+        primera = j.instancia_unica()
+        try:
+            if primera is not None:
+                self.assertIsNone(j.instancia_unica())
+        finally:
+            if primera:
+                primera.close()
+
+    def test_herramientas_registradas(self):
+        self.assertIn(j.delegar_a_manus, j.herramientas_jarvis)
+        self.assertIn(j.abrir_manus, j.herramientas_jarvis)
+
+
 if __name__ == "__main__":
     unittest.main()

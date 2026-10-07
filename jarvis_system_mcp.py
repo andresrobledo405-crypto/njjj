@@ -10,7 +10,9 @@ import contextlib
 import subprocess
 import threading
 import time
+import socket
 import sys
+import webbrowser
 import customtkinter as ctk
 import pyttsx3
 import speech_recognition as sr
@@ -169,6 +171,42 @@ def controlar_volumen(accion: str, nivel: int = 0) -> str:
     estado = "silenciado" if silenciado else "activo"
     return f"Volumen del sistema al {porcentaje}% (audio {estado})."
 
+# ---- Convivencia con Manus (agente de IA de escritorio) -------------
+MANUS_URL = "https://manus.im"
+
+def _abrir_app_manus() -> bool:
+    """Abre la app de escritorio de Manus si está instalada (Windows). Devuelve True si lo logró."""
+    if platform.system() != "Windows":
+        return False
+    try:
+        # Busca "Manus" entre las apps instaladas sin depender de un identificador fijo
+        salida = subprocess.run(
+            ["powershell", "-NoProfile", "-Command",
+             "Get-StartApps | Where-Object { $_.Name -like '*Manus*' } | Select-Object -First 1 -ExpandProperty AppID"],
+            capture_output=True, text=True, timeout=10).stdout.strip()
+        if not salida:
+            return False
+        subprocess.Popen(["explorer.exe", f"shell:AppsFolder\\{salida}"])
+        return True
+    except (OSError, subprocess.SubprocessError):
+        return False
+
+def abrir_manus() -> str:
+    """Abre Manus (app de escritorio si está instalada; si no, su sitio web)."""
+    if _abrir_app_manus():
+        return "He abierto Manus, Señor."
+    webbrowser.open(MANUS_URL)
+    return "No encontré la app de escritorio de Manus; he abierto su sitio web, Señor."
+
+def delegar_a_manus(tarea: str) -> str:
+    """Delega una tarea larga o compleja (investigar, crear documentos, automatizar archivos) a Manus.
+    Copia la tarea al portapapeles y abre Manus para que el usuario la pegue y la apruebe."""
+    tarea = (tarea or "").strip()
+    if not tarea:
+        return "Necesito la descripción de la tarea para delegarla en Manus, Señor."
+    pyperclip.copy(tarea)
+    return abrir_manus() + " La tarea está en el portapapeles: péguela con Ctrl+V para que Manus comience."
+
 # =====================================================================
 # 3. INTERFAZ DE HARDWARE IOT (DOMÓTICA TUYA)
 # =====================================================================
@@ -199,7 +237,7 @@ def controlar_dispositivo_tuya(estado: str) -> str:
 herramientas_jarvis = [
     recordar_dato, buscar_en_memoria, diagnostico_sistema,
     leer_portapapeles, escribir_portapapeles, controlar_volumen,
-    controlar_dispositivo_tuya
+    abrir_manus, delegar_a_manus, controlar_dispositivo_tuya
 ]
 
 # =====================================================================
@@ -213,7 +251,7 @@ def inicializar_ia():
     instrucciones_sistema = (
         "Eres J.A.R.V.I.S., el asistente de inteligencia artificial definitivo. Tu tono es formal, británico y directo. "
         "Dirígete al usuario como 'Señor'. Tienes acceso a herramientas avanzadas para leer la PC, interactuar con el portapapeles, "
-        "controlar el volumen del sistema, monitorear el hardware de la máquina, consultar la base de datos local y accionar la "
+        "controlar el volumen del sistema, delegar tareas largas o complejas en Manus (otro agente de IA instalado en la PC), monitorear el hardware de la máquina, consultar la base de datos local y accionar la "
         "domótica real. Usa las funciones adecuadas según las necesidades de cada instrucción."
     )
     return client.chats.create(
@@ -497,7 +535,22 @@ class JarvisMasterOS(ctk.CTk):
                 if orden and not self.procesar_orden(orden):
                     break
 
+_PUERTO_INSTANCIA = 47653
+
+def instancia_unica():
+    """Reserva un puerto local; si ya está ocupado, otro JARVIS está corriendo."""
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        sock.bind(("127.0.0.1", _PUERTO_INSTANCIA))
+    except OSError:
+        return None
+    return sock
+
 if __name__ == "__main__":
+    _cerrojo_instancia = instancia_unica()
+    if _cerrojo_instancia is None:
+        print("JARVIS ya está en ejecución.")
+        sys.exit(0)
     try:
         app = JarvisMasterOS()
         app.mainloop()
