@@ -1,0 +1,49 @@
+{
+  "_nota": "Todos los proveedores hablan el protocolo OpenAI (/chat/completions). Verifique los nombres de modelo en la consola de cada proveedor: cambian a menudo.",
+  "orden_auto": ["deepseek", "kimi", "qwen", "glm", "minimax", "local"],
+  "providers": {
+    "deepseek": {
+      "base_url": "https://api.deepseek.com/v1",
+      "key_env": "DEEPSEEK_API_KEY",
+      "default": "deepseek-chat",
+      "razonamiento": "deepseek-reasoner",
+      "fuerte_en": "razonamiento, matematicas, codigo, muy barato"
+    },
+    "kimi": {
+      "base_url": "https://api.moonshot.ai/v1",
+      "key_env": "MOONSHOT_API_KEY",
+      "default": "kimi-k2-0905-preview",
+      "fuerte_en": "agentes, herramientas, codigo largo"
+    },
+    "qwen": {
+      "base_url": "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
+      "key_env": "DASHSCOPE_API_KEY",
+      "default": "qwen-plus",
+      "codigo": "qwen3-coder-plus",
+      "vision": "qwen-vl-max",
+      "fuerte_en": "el mas completo: texto, codigo, vision, multilingue"
+    },
+    "glm": {
+      "base_url": "https://api.z.ai/api/paas/v4",
+      "key_env": "ZAI_API_KEY",
+      "default": "glm-4.6",
+      "fuerte_en": "codigo y agentes (Zhipu / Z.ai)"
+    },
+    "minimax": {
+      "base_url": "https://api.minimax.io/v1",
+      "key_env": "MINIMAX_API_KEY",
+      "default": "MiniMax-M2",
+      "fuerte_en": "agentes y contexto largo"
+    },
+    "local": {
+      "base_url": "http://localhost:11434/v1",
+      "key_env": null,
+      "default": "qwen3:4b",
+      "razonamiento": "deepseek-r1:1.5b",
+      "codigo": "qwen2.5-coder:3b",
+      "vision": "qwen2.5vl:3b",
+      "fuerte_en": "sin internet ni clave; CPU lenta, solo modelos pequenos"
+    }
+  },
+  "local_pull": ["qwen3:4b", "deepseek-r1:1.5b", "qwen2.5-coder:3b"]
+}

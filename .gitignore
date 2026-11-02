@@ -42,3 +42,6 @@ venv/
 !exports/.gitkeep
 !renders/.gitkeep
 !queue/.gitkeep
+
+# Claves IA china
+china-ai/.env

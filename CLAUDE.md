@@ -15,6 +15,7 @@ Skills instaladas en `.claude/skills/` (actualizar: `npx skills update`; buscar 
 | GSAP (animación web, timelines, ScrollTrigger) | `gsap-core`, `gsap-timeline`, `gsap-scrolltrigger`, `gsap-plugins`, `gsap-react` (oficiales de GreenSock) |
 | Voz, música y efectos con IA | ElevenLabs: `text-to-speech`, `music`, `sound-effects`, `speech-to-text`, `dubbing` (requiere `ELEVENLABS_API_KEY`) |
 | Video/imagen generativos por API | Runway: `rw-generate-video`, `rw-generate-image`, `use-runway-api` (requiere `RUNWAYML_API_SECRET`); fal.ai: `genmedia`, `cinematography`, `storytelling`, `character-design`, `model-routing` (requiere `FAL_KEY`) |
+| IA china unificada (DeepSeek, Kimi, Qwen, GLM, MiniMax, local Ollama) | `china-ai/` — `python3 china-ai/cn_ai.py list/ask/chat`; claves en `china-ai/.env`; modelo local con `china-ai/install.sh` |
 | Todo-en-uno (agentes, hooks, 290+ skills) | plugin Everything Claude Code: `/plugin marketplace add https://github.com/affaan-m/ECC` y `/plugin install ecc@ecc` |
 
 Requisitos de render: Node 22+, FFmpeg, Chromium (`PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers`).
