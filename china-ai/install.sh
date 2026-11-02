@@ -6,6 +6,8 @@ cd "$(dirname "$0")"
 
 [ -f .env ] || { cp .env.example .env; echo ">> creado china-ai/.env (ponga sus claves)"; }
 
+command -v zstd >/dev/null || { echo ">> instalando zstd"; (sudo apt-get install -y zstd || apt-get install -y zstd); }
+
 if ! command -v ollama >/dev/null; then
   echo ">> instalando Ollama (script oficial)"
   curl -fsSL https://ollama.com/install.sh | sh

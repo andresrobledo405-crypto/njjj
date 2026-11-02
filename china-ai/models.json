@@ -38,12 +38,12 @@
     "local": {
       "base_url": "http://localhost:11434/v1",
       "key_env": null,
-      "default": "qwen3:4b",
-      "razonamiento": "deepseek-r1:1.5b",
-      "codigo": "qwen2.5-coder:3b",
+      "default": "qwen3:8b",
+      "razonamiento": "deepseek-r1:8b",
+      "codigo": "qwen2.5-coder:7b",
       "vision": "qwen2.5vl:3b",
       "fuerte_en": "sin internet ni clave; CPU lenta, solo modelos pequenos"
     }
   },
-  "local_pull": ["qwen3:4b", "deepseek-r1:1.5b", "qwen2.5-coder:3b"]
+  "local_pull": ["qwen3:8b", "deepseek-r1:8b", "qwen2.5-coder:7b"]
 }
