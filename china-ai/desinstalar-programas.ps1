@@ -23,7 +23,7 @@ foreach($p in $todo){
 $r=$p.Ref
 $u=$r.QuietUninstallString
 if(-not $u){ $u=$r.UninstallString; if($u -match '(?i)msiexec'){ $u=($u -replace '(?i)/I','/X')+' /qn /norestart' } }
-cmd /c $u
+Start-Process cmd -ArgumentList '/c',('"'+$u+'"') -Wait -NoNewWindow
 }
 $f1=(Get-PSDrive C).Free
 'Libre antes: {0:N1} GB | despues: {1:N1} GB' -f ($f0/1GB),($f1/1GB)
