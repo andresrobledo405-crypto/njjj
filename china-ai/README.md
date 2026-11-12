@@ -22,3 +22,13 @@ python3 china-ai/cn_ai.py ask "explica la fotosintesis"
 python3 china-ai/cn_ai.py ask -p deepseek -r "resuelve este problema..."
 python3 china-ai/cn_ai.py chat -p local
 ```
+
+## Windows: guía paso a paso (instalar IA local + limpiar + desinstalar)
+Abra **PowerShell como administrador** (clic derecho en Inicio → "Terminal (administrador)").
+
+1. Permitir scripts solo en esta ventana: `Set-ExecutionPolicy -Scope Process Bypass -Force`
+2. Instalar Ollama, descargar el modelo (qwen3:8b si hay 12 GB de RAM o más; si no, qwen3:4b), limpiar y recibir consejos de la IA: `.\china-ai\limpiar-pc.ps1`
+3. Desinstalar programas innecesarios (usted marca cuáles; la IA solo aconseja): `.\china-ai\desinstalar-programas.ps1`
+
+Notas: necesita `winget` (Windows 10/11 recientes). El modelo ocupa ~5 GB (8B) o ~2,5 GB (4B). Ningún script borra
+documentos ni programas sin su confirmación. Las versiones legibles son los `.ps1` de esta carpeta.
