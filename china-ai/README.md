@@ -32,3 +32,6 @@ Abra **PowerShell como administrador** (clic derecho en Inicio → "Terminal (ad
 
 Notas: necesita `winget` (Windows 10/11 recientes). El modelo ocupa ~5 GB (8B) o ~2,5 GB (4B). Ningún script borra
 documentos ni programas sin su confirmación. Las versiones legibles son los `.ps1` de esta carpeta.
+
+### Atajo: todo en uno
+Descargue la carpeta `china-ai/` y haga **doble clic en `EJECUTAR-TODO.bat`**: pide administrador, instala Ollama y el modelo, limpia, analiza con IA y le deja elegir qué desinstalar (siempre con su confirmación).
