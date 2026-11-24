@@ -336,7 +336,8 @@ def crud_router(table: str, model: type[BaseModel], columns: tuple[str, ...], be
         return row_dict(db.execute(f"SELECT * FROM {table} WHERE id = ?", (item_id,)).fetchone())
 
     @app.delete(f"{prefix}/{{item_id}}", status_code=204)
-    def delete_item(item_id: int, db: sqlite3.Connection = Depends(get_db)) -> None:
+    def delete_item(item_id: int, request: Request, db: sqlite3.Connection = Depends(get_db)) -> None:
+        admin_only(request)
         try:
             cursor = db.execute(f"DELETE FROM {table} WHERE id = ?", (item_id,))
             db.commit()

@@ -52,3 +52,16 @@ def test_nuevos_endpoints_exigen_sesion(client):
     with TestClient(app) as c:
         for url in ("/api/reminders", "/api/reports/cash", "/api/documents", "/api/patients/1/history", "/api/export/payments.csv"):
             assert c.get(url).status_code == 401, url
+
+
+def test_solo_admin_borra_registros(client, base):
+    from fastapi.testclient import TestClient
+    from app.main import app
+    patient, _, _ = base
+    u = client.post("/api/users", json={"username": "pro2", "name": "Pro Dos", "password": "clave-larga-123", "role": "profesional"}).json()
+    with TestClient(app) as c:
+        c.post("/api/auth/login", json={"username": "pro2", "password": "clave-larga-123"})
+        assert c.delete(f"/api/patients/{patient['id']}").status_code == 403
+        assert c.get(f"/api/patients/{patient['id']}").status_code == 200
+    client.delete(f"/api/users/{u['id']}")
+    assert client.delete(f"/api/patients/{patient['id']}").status_code == 204
