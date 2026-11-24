@@ -247,3 +247,48 @@ def test_interfaz_y_recursos_estaticos(client):
                  "/static/fonts/fraunces-latin-wght-normal.woff2", "/static/fonts/figtree-latin-wght-normal.woff2"):
         assert client.get(path).status_code == 200, path
     assert "http://" not in page.text.replace("http://www.w3.org", "") and "cdn" not in page.text.lower()  # sin recursos externos
+
+
+def test_adjunto_con_extension_falsa_se_rechaza(client, base):
+    patient, _, doctor = base
+    data = {"patient_id": patient["id"], "professional_id": doctor["id"]}
+    assert client.post("/api/consultations", data=data, files={"attachment": ("x.pdf", b"MZ\x90\x00", "application/pdf")}).status_code == 415
+    assert client.post("/api/consultations", data=data, files={"attachment": ("x.png", b"\x89PNG\r\n\x1a\n....", "image/png")}).status_code == 201
+    assert client.post("/api/consultations", data=data, files={"attachment": ("x.webp", b"RIFF\x00\x00\x00\x00WEBPVP8 ", "image/webp")}).status_code == 201
+
+
+def test_cookie_segura_y_hsts_bajo_https(client):
+    from fastapi.testclient import TestClient
+    from app.main import app
+    with TestClient(app, base_url="https://testserver") as https:
+        r = https.post("/api/auth/login", json={"username": "admin", "password": "clave-de-prueba-123"})
+        assert "secure" in r.headers["set-cookie"].lower() and "strict-transport-security" in r.headers
+
+
+def test_informe_de_evolucion(client, base):
+    patient, _, doctor = base
+    plan = make_plan(client, patient, doctor, total=4)
+    for eva, flex in ((8, 70), (5, 90)):
+        consult(client, patient, doctor, plan, eva=eva, diagnosis="<i>x</i>", measurements=json.dumps([{"name": "Flexión de rodilla", "value": flex}]))
+    r = client.get(f"/api/plans/{plan['id']}/report")
+    assert r.status_code == 200 and "Ana Soto" in r.text and "Flexión de rodilla" in r.text and "-3" in r.text and "+20" in r.text
+    assert "<i>x</i>" not in r.text and "&lt;i&gt;x" in r.text
+    assert client.get("/api/plans/9999/report").status_code == 404
+
+
+def test_antecedentes_del_paciente(client):
+    p = client.post("/api/patients", json={"name": "Eva Mora", "occupation": "Profesora", "history": "Cirugía de rodilla 2019"}).json()
+    assert client.get(f"/api/patients/{p['id']}").json()["history"] == "Cirugía de rodilla 2019"
+
+
+def test_respaldo_solo_admin_y_es_zip(client):
+    import io, zipfile
+    r = client.post("/api/users", json={"username": "kine2", "name": "K", "password": "clave-larga-123", "role": "profesional"}).json()
+    z = client.get("/api/admin/backup")
+    assert z.status_code == 200 and "kinepro.db" in zipfile.ZipFile(io.BytesIO(z.content)).namelist()
+    from fastapi.testclient import TestClient
+    from app.main import app
+    with TestClient(app) as other:
+        other.post("/api/auth/login", json={"username": "kine2", "password": "clave-larga-123"})
+        assert other.get("/api/admin/backup").status_code == 403
+    client.delete(f"/api/users/{r['id']}")

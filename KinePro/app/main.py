@@ -70,8 +70,10 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "SAMEORIGIN"
         response.headers["Referrer-Policy"] = "same-origin"
-        response.headers["Content-Security-Policy"] = ("default-src 'self'; script-src 'self' 'unsafe-inline'; "
-                                                       "style-src 'self' 'unsafe-inline'; img-src 'self' data:; frame-ancestors 'self'")
+        if request.url.scheme == "https":
+            response.headers["Strict-Transport-Security"] = "max-age=15552000; includeSubDomains"
+        response.headers["Content-Security-Policy"] = ("default-src 'self'; script-src 'self'; "
+                                                       "style-src 'self' 'unsafe-inline'; img-src 'self' data:; frame-ancestors 'self'; object-src 'none'; base-uri 'none'; form-action 'self'")
         return response
 
 
@@ -137,7 +139,7 @@ def login(payload: LoginIn, request: Request, db: sqlite3.Connection = Depends(g
     user = {"id": row["id"], "username": row["username"], "role": row["role"], "name": row["name"]}
     response = JSONResponse(user)
     response.set_cookie(SESSION_COOKIE, make_token(user), max_age=SESSION_SECONDS, httponly=True, samesite="strict",
-                        secure=os.getenv("KINEPRO_COOKIE_SECURE") == "1")
+                        secure=os.getenv("KINEPRO_COOKIE_SECURE") == "1" or request.url.scheme == "https")
     return response
 
 
@@ -395,6 +397,8 @@ class PatientIn(BaseModel):
     email: str | None = Field(default=None, max_length=160)
     insurance: str | None = Field(default=None, max_length=80)
     allergies: str | None = Field(default=None, max_length=300)
+    occupation: str | None = Field(default=None, max_length=120)
+    history: str | None = Field(default=None, max_length=1500)  # antecedentes mórbidos, quirúrgicos, deportivos
     active: bool = True
 
 
@@ -423,6 +427,16 @@ class AppointmentIn(BaseModel):
     reason: str | None = Field(default=None, max_length=200)
     plan_id: int | None = None
     status: str = "scheduled"
+
+
+MAGIC = {".pdf": (b"%PDF",), ".png": (b"\x89PNG\r\n\x1a\n",), ".jpg": (b"\xff\xd8\xff",), ".jpeg": (b"\xff\xd8\xff",)}
+
+
+def looks_like(extension: str, content: bytes) -> bool:
+    """Comprueba los primeros bytes (firma) para no aceptar otro tipo de archivo con extensión cambiada."""
+    if extension == ".webp":
+        return content[:4] == b"RIFF" and content[8:12] == b"WEBP"
+    return content.startswith(MAGIC.get(extension, (b"",)))
 
 
 def row_dict(row: sqlite3.Row) -> dict[str, Any]:
@@ -556,7 +570,7 @@ def appointment_rules(values: dict, db: sqlite3.Connection, item_id: int | None)
             raise HTTPException(409, "La sala ya está ocupada en ese horario")
 
 
-crud_router("patients", PatientIn, ("name", "rut", "birth_date", "phone", "email", "insurance", "allergies", "active"), patient_rules)
+crud_router("patients", PatientIn, ("name", "rut", "birth_date", "phone", "email", "insurance", "allergies", "occupation", "history", "active"), patient_rules)
 crud_router("professionals", ProfessionalIn, ("name", "specialty", "phone", "email", "active"))
 crud_router("appointments", AppointmentIn, ("patient_id", "professional_id", "starts_at", "duration_min", "room", "reason", "plan_id", "status"), appointment_rules)
 register_kine(app, appointment_rules)
@@ -661,6 +675,8 @@ async def create_consultation(
         content = await attachment.read(MAX_UPLOAD_BYTES + 1)
         if len(content) > MAX_UPLOAD_BYTES:
             raise HTTPException(413, "El archivo excede el tamaño máximo permitido")
+        if not looks_like(extension, content):
+            raise HTTPException(415, "El contenido del archivo no corresponde a su extensión")
         stored = f"{datetime.now(timezone.utc):%Y%m%d%H%M%S}_{secrets.token_hex(8)}{extension}"
         (UPLOAD_DIR / stored).write_bytes(content)
     try:
@@ -743,6 +759,31 @@ def export_payments(db: sqlite3.Connection = Depends(get_db)) -> StreamingRespon
            FROM payments y JOIN patients p ON p.id = y.patient_id ORDER BY y.paid_at DESC""",
         "pagos.csv",
     )
+
+
+@app.get("/api/admin/backup")
+def backup(request: Request) -> StreamingResponse:
+    """Respaldo descargable (base + adjuntos) en .zip. Solo administrador."""
+    admin_only(request)
+    import io
+    import zipfile
+    import tempfile
+    buffer = io.BytesIO()
+    with tempfile.TemporaryDirectory() as tmp, zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as archive:
+        copy = Path(tmp) / "kinepro.db"
+        source, target = get_connection(), sqlite3.connect(copy)
+        try:
+            source.backup(target)  # copia consistente aunque haya escrituras
+        finally:
+            target.close()
+            source.close()
+        archive.write(copy, "kinepro.db")
+        for path in UPLOAD_DIR.iterdir():
+            if path.is_file() and path.name != ".gitkeep":
+                archive.write(path, f"uploads/{path.name}")
+    buffer.seek(0)
+    name = f"respaldo-kinepro-{datetime.now():%Y%m%d-%H%M}.zip"
+    return StreamingResponse(buffer, media_type="application/zip", headers={"Content-Disposition": f"attachment; filename={name}", "Cache-Control": "no-store"})
 
 
 @app.get("/sw.js", include_in_schema=False)

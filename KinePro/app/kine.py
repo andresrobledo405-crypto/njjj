@@ -231,6 +231,13 @@ def register(app, appointment_rules) -> None:
         db.commit()
         return {"created": created, "skipped": skipped, "capped": payload.count > remaining}
 
+    @router.get("/api/plans/{plan_id}/report", response_class=HTMLResponse)
+    def plan_report(plan_id: int, db: sqlite3.Connection = Depends(get_db)) -> HTMLResponse:
+        """Informe de evolución del plan, imprimible o 'Guardar como PDF'."""
+        plan = get_plan(plan_id, db)
+        pat = db.execute("SELECT name, rut, birth_date FROM patients WHERE id = ?", (plan["patient_id"],)).fetchone()
+        return HTMLResponse(render_report(plan, dict(pat)), headers={"Cache-Control": "no-store"})
+
     # ---------- plantillas de ejercicios para el hogar ----------
 
     class TemplateItemIn(BaseModel):
@@ -362,3 +369,32 @@ Revise y adapte cada ejercicio antes de entregar esta hoja. <br><br><button oncl
 {body}
 <div class="foot">Realice solo los ejercicios indicados por su kinesiólogo. Si el dolor aumenta de forma importante o aparecen síntomas nuevos, deténgase y consulte a su kinesiólogo.</div>
 </body></html>"""
+
+
+def render_report(plan: dict[str, Any], pat: dict[str, Any]) -> str:
+    e = escape
+    ev = plan["evolution"]
+
+    def summary(label: str, pts: list[dict], unit: str) -> str:
+        if not pts:
+            return ""
+        first, last = pts[0]["value"], pts[-1]["value"]
+        change = f" ({last - first:+g})" if len(pts) > 1 else ""
+        return f"<tr><td>{e(label)}</td><td>{first:g}{e(unit)}</td><td>{last:g}{e(unit)}</td><td>{change[1:-1] if change else '—'}</td></tr>"
+
+    rows = summary("EVA (dolor 0–10)", ev["eva"], "") + "".join(summary(n, pts, pts[0]["unit"]) for n, pts in ev["measures"].items())
+    sessions = "".join(
+        f'<tr><td>{e(c["occurred_at"][:10])}</td><td>{"" if c["eva"] is None else c["eva"]}</td>'
+        f'<td>{e("; ".join(f"{m["name"]} {m["value"]:g}{m["unit"]}" for m in c["measurements"]))}</td>'
+        f'<td>{e(c["diagnosis"] or "")}</td><td>{e(c["treatment"] or "")}</td></tr>' for c in plan["consultations"])
+    return f"""<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Informe de evolución</title><style>{SHEET_CSS}table{{width:100%;border-collapse:collapse;margin:.6rem 0;font-size:.9rem}}
+th,td{{border-bottom:1px solid #cfdad8;padding:.4rem .5rem;text-align:left;vertical-align:top}}th{{color:#5d7471;font-weight:600}}</style></head><body>
+<div class="banner no-print"><button onclick="window.print()">Imprimir o guardar como PDF</button></div>
+<div class="mute">{e(APP_NAME)} · {datetime.now():%d-%m-%Y}</div><h1>Informe de evolución</h1>
+<p><b>Paciente:</b> {e(pat["name"])}{f' · RUT {e(pat["rut"])}' if pat["rut"] else ""}<br><b>Plan:</b> {e(plan["title"])} · {plan["sessions_done"]} de {plan["total_sessions"]} sesiones realizadas</p>
+{f'<p><b>Motivo de consulta:</b> {e(plan["reason"])}</p>' if plan["reason"] else ""}{f'<p><b>Diagnóstico kinésico:</b> {e(plan["kine_diagnosis"])}</p>' if plan["kine_diagnosis"] else ""}
+<h2>Cambio entre la primera y la última sesión</h2>
+{f'<table><tr><th>Medida</th><th>Inicial</th><th>Último</th><th>Cambio</th></tr>{rows}</table>' if rows else '<p class="mute">Sin EVA ni mediciones registradas.</p>'}
+<h2>Sesiones</h2>{f'<table><tr><th>Fecha</th><th>EVA</th><th>Mediciones</th><th>Hallazgos</th><th>Tratamiento</th></tr>{sessions}</table>' if sessions else '<p class="mute">Sin sesiones registradas.</p>'}
+<div class="foot">Documento generado por el profesional tratante a partir de los registros de KinePro.</div></body></html>"""

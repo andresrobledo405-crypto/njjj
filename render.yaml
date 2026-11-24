@@ -1,0 +1,22 @@
+# Blueprint de KinePro (servicio web de Render). La carpeta de la app es KinePro/.
+services:
+  - type: web
+    name: kinepro
+    runtime: python
+    plan: free
+    region: virginia
+    branch: claude/modest-volta-kgrtr2
+    rootDir: KinePro
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips='*'
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: KINEPRO_ADMIN_PASSWORD
+        sync: false          # se define en Render, nunca en el repo
+      - key: KINEPRO_SECRET
+        generateValue: true  # firma de sesiones: la genera Render
+      - key: KINEPRO_COOKIE_SECURE
+        value: "1"
+      - key: TZ
+        value: America/Santiago

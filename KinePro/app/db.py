@@ -13,6 +13,8 @@ CREATE TABLE IF NOT EXISTS patients (
     email TEXT,
     insurance TEXT,
     allergies TEXT,
+    occupation TEXT,
+    history TEXT,
     active INTEGER NOT NULL DEFAULT 1,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -144,6 +146,8 @@ def get_connection() -> sqlite3.Connection:
 
 
 MIGRATIONS = (
+    ("patients", "occupation", "TEXT"),
+    ("patients", "history", "TEXT"),
     ("appointments", "plan_id", "INTEGER REFERENCES treatment_plans(id)"),
     ("consultations", "plan_id", "INTEGER REFERENCES treatment_plans(id)"),
     ("consultations", "eva", "INTEGER CHECK (eva IS NULL OR (eva >= 0 AND eva <= 10))"),

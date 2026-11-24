@@ -40,7 +40,7 @@ const activePlans = pid => plansAll.filter(p => p.patient_id === +pid && p.statu
 
 /* ---------- navegación y hoja lateral ---------- */
 function go(t) {
-  document.querySelectorAll("nav.tabs button").forEach(x => { const on = x.dataset.t === t; x.setAttribute("aria-selected", on); on ? x.setAttribute("aria-current", "page") : x.removeAttribute("aria-current"); });
+  document.querySelectorAll("nav.tabs button").forEach(x => { const on = x.dataset.t === t; on ? x.setAttribute("aria-current", "page") : x.removeAttribute("aria-current"); });
   document.querySelectorAll("main section").forEach(s => s.hidden = s.id !== t);
   $("fab").hidden = t !== "agenda";
   if (t === "caja") pays().catch(fail);
@@ -94,11 +94,12 @@ const slotHTML = (a, next) => {
   <div class="meta">${esc(a.professional_name)}${a.room ? " · " + esc(a.room) : ""}${a.reason && !a.plan_id ? " · " + esc(a.reason) : ""}</div></div>${tag}</div>
   ${plan ? `<div class="plan">${pips(plan.sessions_done, plan.sessions_scheduled, plan.total_sessions)}<span>${a.session_no ? `Sesión ${a.session_no} de ${a.plan_total} · ` : ""}${esc(a.plan_title)}</span></div>` : ""}
   ${a.allergies ? `<div class="alert">${ic("alert")}<span>${esc(a.allergies)}</span></div>` : ""}
-  <div class="acts">${live ? `<button class="btn sm" data-act="attendAppt" data-id="${a.id}">${ic("note")}Atender</button>${waLink(p, a)}` : ""}
+  <div class="acts">${live ? `<button class="btn sm" data-act="attendAppt" data-id="${a.id}">${ic("note")}Atender</button>${waLink(p, a)}<button class="btn ghost sm" data-act="resched" data-id="${a.id}">${ic("edit")}Reprogramar</button>` : ""}
   <select data-status="${a.id}" aria-label="Estado de la cita de ${esc(a.patient_name)}">${Object.entries(ST).map(([k, v]) => `<option value="${k}" ${k === a.status ? "selected" : ""}>${v}</option>`).join("")}</select></div></div></article>`;
 };
+let agendaCache = [];
 async function agenda() {
-  const day = $("day").value, l = await api("/api/agenda?day=" + day);
+  const day = $("day").value, l = agendaCache = await api("/api/agenda?day=" + day);
   $("agTitle").textContent = longDate(parseDay(day));
   const live = l.filter(a => ["scheduled", "arrived"].includes(a.status)), done = l.filter(a => a.status === "done").length;
   $("agSub").textContent = l.length ? `${l.length} ${l.length === 1 ? "sesión" : "sesiones"} · ${live.length} por atender · ${done} ${done === 1 ? "realizada" : "realizadas"}` : "Sin sesiones agendadas";
@@ -133,10 +134,12 @@ const patientForm = p => `${sheetTop(p ? { act: "patient", id: p.id, label: "Fic
 <form class="stack" data-form="patient" data-id="${p?.id ?? ""}" style="margin-top:1rem"><label class="field"><span>Nombre completo</span><input name="name" value="${esc(p?.name)}" required maxlength="120"></label>
 <div class="cols"><label class="field"><span>RUT</span><input name="rut" value="${esc(p?.rut)}" maxlength="20"></label><label class="field"><span>Fecha de nacimiento</span><input type="date" name="birth_date" value="${esc(p?.birth_date)}"></label></div>
 <div class="cols"><label class="field"><span>Teléfono (WhatsApp)</span><input name="phone" value="${esc(p?.phone)}" inputmode="tel" maxlength="40"></label><label class="field"><span>Correo</span><input name="email" type="email" value="${esc(p?.email)}" maxlength="160"></label></div>
+<label class="field"><span>Ocupación / deporte</span><input name="occupation" value="${esc(p?.occupation)}" maxlength="120"></label>
 <label class="field"><span>Previsión</span><input name="insurance" value="${esc(p?.insurance)}" maxlength="80" placeholder="Fonasa, Isapre, particular"></label>
-<label class="field"><span>Alergias / precauciones</span><input name="allergies" value="${esc(p?.allergies)}" maxlength="300"></label><button class="btn block">Guardar</button></form>`;
+<label class="field"><span>Alergias / precauciones</span><input name="allergies" value="${esc(p?.allergies)}" maxlength="300"></label>
+<label class="field"><span>Antecedentes (mórbidos, quirúrgicos, lesiones previas)</span><textarea name="history" rows="3" maxlength="1500">${esc(p?.history)}</textarea></label><button class="btn block">Guardar</button></form>`;
 
-const consRow = c => `<div class="rowl"><div class="d">${dm(c.occurred_at)}</div><div class="grow"><div>${c.eva != null ? `<span class="tag">EVA ${c.eva}/10</span> ` : ""}${(c.measurements || []).map(m => `<span class="tag">${esc(m.name)} ${m.value}${esc(m.unit)}</span>`).join(" ")}</div>
+const consRow = c => `<div class="rowl"><div class="d">${dm(c.occurred_at)}</div><div class="grow"><div>${c.eva != null ? `<span class="tag">EVA ${c.eva}/10</span> ` : ""}${(c.measurements || []).map(m => `<span class="tag">${esc(m.name)} ${+m.value}${esc(m.unit)}</span>`).join(" ")}</div>
 ${c.diagnosis ? `<div style="margin-top:.3rem">${esc(c.diagnosis)}</div>` : ""}${c.treatment ? `<div class="muted">${esc(c.treatment)}</div>` : ""}
 ${(c.library || []).length ? `<div class="pick">${c.library.map(l => `<button class="btn ghost sm" data-act="lib" data-id="${l.id}">${ic("book")}${esc(l.title)}</button>`).join("")}</div>` : ""}
 ${c.attachment_path ? `<a class="btn ghost sm" href="/api/consultations/${c.id}/attachment" target="_blank" rel="noopener">Ver adjunto</a>` : ""}</div></div>`;
@@ -153,7 +156,8 @@ async function openPatient(id, tab = "resumen") {
     const tabs = `<div class="seg" style="margin:1rem 0">${[["resumen", "Resumen"], ["planes", "Planes"], ["historial", "Historial"]].map(([k, v]) => `<button data-act="ptab" data-id="${id}" data-tab="${k}" aria-pressed="${k === tab}">${v}</button>`).join("")}</div>`;
     let body = "";
     if (tab === "resumen") {
-      body = `<dl class="info"><dt>RUT</dt><dd>${esc(p.rut || "—")}</dd>${p.birth_date ? `<dt>Edad</dt><dd>${age(p.birth_date)}</dd>` : ""}<dt>Teléfono</dt><dd>${esc(p.phone || "—")}</dd>${p.email ? `<dt>Correo</dt><dd>${esc(p.email)}</dd>` : ""}<dt>Previsión</dt><dd>${esc(p.insurance || "—")}</dd></dl>
+      body = `<dl class="info"><dt>RUT</dt><dd>${esc(p.rut || "—")}</dd>${p.birth_date ? `<dt>Edad</dt><dd>${age(p.birth_date)}</dd>` : ""}<dt>Teléfono</dt><dd>${esc(p.phone || "—")}</dd>${p.email ? `<dt>Correo</dt><dd>${esc(p.email)}</dd>` : ""}<dt>Previsión</dt><dd>${esc(p.insurance || "—")}</dd>${p.occupation ? `<dt>Ocupación</dt><dd>${esc(p.occupation)}</dd>` : ""}</dl>
+      ${p.history ? `<h3>Antecedentes</h3><p style="white-space:pre-wrap;margin:0">${esc(p.history)}</p>` : ""}
       ${p.allergies ? `<div class="alert">${ic("alert")}<span>${esc(p.allergies)}</span></div>` : ""}
       <div class="pick" style="margin-top:1rem"><button class="btn sm" data-act="attendPat" data-id="${id}">${ic("note")}Atención rápida</button><button class="btn ghost sm" data-act="editPatient" data-id="${id}">${ic("edit")}Editar datos</button></div>
       <h3>Plan en curso</h3>${plans.filter(x => x.status === "active").map(planCard).join("") || `<p class="muted">Sin plan en curso. Cree uno en la pestaña Planes.</p>`}
@@ -198,11 +202,19 @@ async function openPlan(id) {
     <h3>Próximas sesiones</h3>${next.map(a => `<div class="muted" style="padding:.2rem 0">${esc(longDate(parseDay(a.starts_at.slice(0, 10))))} · ${a.starts_at.slice(11)}${a.room ? " · " + esc(a.room) : ""}</div>`).join("") || `<p class="muted">Sin sesiones agendadas.</p>`}
     <h3>Ejercicios para el hogar</h3><div class="cols"><select id="homeTpl" aria-label="Plantilla">${opts(tpls, t => `${t.name} (${t.item_count})`) || '<option value="">No hay plantillas aún</option>'}</select><button class="btn sm" data-act="homePrint" data-pt="${p.patient_id}">${ic("print")}Imprimir / PDF</button></div>
     <p class="muted">Se abre una hoja con el nombre del paciente; use Imprimir o Guardar como PDF del navegador.</p>
-    <div class="pick" style="margin-top:1.4rem">${p.status === "active" ? `<button class="btn ghost sm" data-act="planStatus" data-id="${p.id}" data-s="completed">Marcar como completado</button><button class="btn ghost sm" data-act="planStatus" data-id="${p.id}" data-s="cancelled">Cancelar plan</button>` : `<button class="btn ghost sm" data-act="planStatus" data-id="${p.id}" data-s="active">Reabrir plan</button>`}</div>`);
+    <div class="pick" style="margin-top:1.4rem"><button class="btn soft sm" data-act="planReport" data-id="${p.id}">${ic("print")}Informe de evolución</button><button class="btn ghost sm" data-act="planEdit" data-id="${p.id}">${ic("edit")}Editar plan</button>${p.status === "active" ? `<button class="btn ghost sm" data-act="planStatus" data-id="${p.id}" data-s="completed">Marcar como completado</button><button class="btn ghost sm" data-act="planStatus" data-id="${p.id}" data-s="cancelled">Cancelar plan</button>` : `<button class="btn ghost sm" data-act="planStatus" data-id="${p.id}" data-s="active">Reabrir plan</button>`}</div>`);
   } catch (x) { fail(x); }
 }
 async function planStatus(id, status) {
   try { const p = await api("/api/plans/" + id); await send("PUT", "/api/plans/" + id, { patient_id: p.patient_id, professional_id: p.professional_id, title: p.title, reason: p.reason, kine_diagnosis: p.kine_diagnosis, total_sessions: p.total_sessions, status }); say("Plan actualizado"); await load(); openPlan(id); } catch (x) { fail(x); }
+}
+async function planEditForm(id) {
+  try {
+    const p = await api("/api/plans/" + id);
+    sheet(`${sheetTop({ act: "plan", id, label: "Plan" })}<h2>Editar plan</h2><form class="stack" data-form="planedit" data-id="${id}" style="margin-top:1rem"><label class="field"><span>Nombre del plan</span><input name="title" value="${esc(p.title)}" required maxlength="120"></label>
+    <label class="field"><span>Motivo de consulta</span><textarea name="reason" rows="2" maxlength="500">${esc(p.reason)}</textarea></label>
+    <div class="cols"><label class="field"><span>Diagnóstico kinésico</span><input name="dx" value="${esc(p.kine_diagnosis)}" maxlength="300"></label><label class="field"><span>Cantidad de sesiones</span><input name="n" type="number" min="1" max="100" value="${p.total_sessions}" inputmode="numeric" required></label></div><button class="btn block">Guardar cambios</button></form>`);
+  } catch (x) { fail(x); }
 }
 function schedForm(id) {
   const box = document.querySelector(`[data-schedbox="${id}"]`), d = new Date(); d.setDate(d.getDate() + 1); d.setHours(9, 0, 0, 0);
@@ -214,15 +226,15 @@ function schedForm(id) {
 
 /* ---------- citas, pagos (hojas) ---------- */
 function apptForm(pre = {}) {
-  const day = pre.day || $("day").value, pid = pre.patient || pats[0]?.id;
+  const ed = pre.edit, day = pre.day || $("day").value, pid = ed ? ed.patient_id : pre.patient || pats[0]?.id;
   if (!pats.length) { sheet(`${sheetTop()}<h2>Agendar sesión</h2>${empty("Primero registre un paciente", "Necesita al menos un paciente para agendar.", `<br><button class="btn" data-act="newPatient">${ic("plus")}Nuevo paciente</button>`)}`); return; }
-  sheet(`${sheetTop()}<h2>Agendar sesión</h2><form class="stack" data-form="appt" style="margin-top:1rem">
+  sheet(`${sheetTop()}<h2>${ed ? "Reprogramar sesión" : "Agendar sesión"}</h2><form class="stack" data-form="appt" data-id="${ed ? ed.id : ""}" style="margin-top:1rem">
   <label class="field"><span>Paciente</span><select name="patient" id="apPat" required>${opts(pats, p => p.name)}</select></label>
   <label class="field"><span>Plan de tratamiento</span><select name="plan" id="apPlan"></select></label>
   <label class="field"><span>Profesional</span><select name="pro" required>${opts(pros, p => p.name + " · " + p.specialty)}</select></label>
-  <div class="cols"><label class="field"><span>Fecha y hora</span><input type="datetime-local" name="start" value="${day}T09:00" required></label><label class="field"><span>Duración (min)</span><input type="number" name="dur" value="45" min="5" max="480" inputmode="numeric"></label></div>
-  <div class="cols"><label class="field"><span>Sala / box</span><input name="room" maxlength="40"></label><label class="field"><span>Motivo</span><input name="reason" maxlength="200"></label></div><button class="btn block">Agendar</button></form>`);
-  $("apPat").value = pid; fillApPlans();
+  <div class="cols"><label class="field"><span>Fecha y hora</span><input type="datetime-local" name="start" value="${ed ? ed.starts_at : day + "T09:00"}" required></label><label class="field"><span>Duración (min)</span><input type="number" name="dur" value="${ed ? ed.duration_min : 45}" min="5" max="480" inputmode="numeric"></label></div>
+  <div class="cols"><label class="field"><span>Sala / box</span><input name="room" maxlength="40" value="${esc(ed?.room)}"></label><label class="field"><span>Motivo</span><input name="reason" maxlength="200" value="${esc(ed?.reason)}"></label></div><button class="btn block">${ed ? "Guardar cambios" : "Agendar"}</button></form>`);
+  $("apPat").value = pid; fillApPlans(); if (ed) { $("apPlan").value = ed.plan_id || ""; document.querySelector("[data-form=appt] [name=pro]").value = ed.professional_id; }
 }
 function fillApPlans() { $("apPlan").innerHTML = '<option value="">Cita suelta (sin plan)</option>' + opts(activePlans($("apPat").value), p => `${p.title} · ${p.sessions_done}/${p.total_sessions}`); }
 function payForm() {
@@ -295,10 +307,10 @@ async function cons() { const l = await api("/api/consultations?limit=15"); $("c
 /* ---------- biblioteca y plantillas ---------- */
 const CATS = {};
 async function libMeta() { const m = await api("/api/library/meta"); m.categories.forEach(c => CATS[c.id] = c.label); $("libCount").textContent = m.total + " entradas";
-  $("cats").innerHTML = `<button class="chip" aria-pressed="${cat === ""}" data-c="">Todo</button>` + m.categories.map(c => `<button class="chip" aria-pressed="${cat === c.id}" data-c="${c.id}">${c.label} · ${c.count}</button>`).join("");
-  $("regSel").innerHTML = '<option value="">Todas las regiones</option>' + m.regions.map(r => `<option>${esc(r)}</option>`).join(""); $("lCat").innerHTML = m.categories.map(c => `<option value="${c.id}">${c.label}</option>`).join(""); }
+  $("cats").innerHTML = `<button class="chip" aria-pressed="${cat === ""}" data-c="">Todo</button>` + m.categories.map(c => `<button class="chip" aria-pressed="${cat === c.id}" data-c="${esc(c.id)}">${esc(c.label)} · ${+c.count}</button>`).join("");
+  $("regSel").innerHTML = '<option value="">Todas las regiones</option>' + m.regions.map(r => `<option>${esc(r)}</option>`).join(""); $("lCat").innerHTML = m.categories.map(c => `<option value="${esc(c.id)}">${esc(c.label)}</option>`).join(""); }
 let t; async function libSearch() { const l = await api("/api/library?" + new URLSearchParams({ q: $("q").value, category: cat, region: $("regSel").value }));
-  $("libList").innerHTML = l.map(i => `<div class="lrow" data-act="lib" data-id="${i.id}" tabindex="0" role="button"><div class="ti">${esc(i.title)}<span>${CATS[i.category] || i.category}${i.region ? " · " + esc(i.region) : ""}</span></div>${i.summary ? `<p>${esc(i.summary)}</p>` : ""}</div>`).join("") || empty("Sin resultados", "Pruebe con otras palabras o quite los filtros."); }
+  $("libList").innerHTML = l.map(i => `<div class="lrow" data-act="lib" data-id="${i.id}" tabindex="0" role="button"><div class="ti">${esc(i.title)}<span>${esc(CATS[i.category] || i.category)}${i.region ? " · " + esc(i.region) : ""}</span></div>${i.summary ? `<p>${esc(i.summary)}</p>` : ""}</div>`).join("") || empty("Sin resultados", "Pruebe con otras palabras o quite los filtros."); }
 $("q").addEventListener("input", () => { clearTimeout(t); t = setTimeout(() => libSearch().catch(fail), 200); }); $("regSel").addEventListener("change", () => libSearch().catch(fail));
 $("cats").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; cat = b.dataset.c; document.querySelectorAll("#cats .chip").forEach(x => x.setAttribute("aria-pressed", x === b)); libSearch().catch(fail); });
 async function libDetail(id) {
@@ -311,7 +323,7 @@ async function libDetail(id) {
 }
 let tplItems = [], tplId = null;
 async function tplList() { const l = await api("/api/templates"); $("tplList").innerHTML = l.map(t => `<div class="lrow" data-act="tplOpen" data-id="${t.id}" tabindex="0" role="button"><div class="ti">${esc(t.name)}<span>${t.item_count} ejercicios</span></div>${t.notes ? `<p>${esc(t.notes)}</p>` : ""}</div>`).join("") || empty("Aún no hay plantillas", "Reúna ejercicios de la biblioteca en un programa para entregar al paciente."); }
-function drawTplItems() { $("tplItems").innerHTML = tplItems.map((it, i) => `<div class="item"><div style="display:flex;justify-content:space-between;gap:.5rem;align-items:center"><b>${i + 1}. ${esc(it.title)}</b><button type="button" class="iconbtn" data-act="tplRm" data-i="${i}" aria-label="Quitar ${esc(it.title)}">${ic("x", "sm")}</button></div><input placeholder="Series / repeticiones (lo define usted)" aria-label="Dosificación" value="${esc(it.dosage || "")}" data-k="dosage" data-i="${i}" maxlength="80"><input placeholder="Indicación para el paciente (opcional)" aria-label="Indicación" value="${esc(it.notes || "")}" data-k="notes" data-i="${i}" maxlength="300"></div>`).join("") || '<p class="muted">Agregue ejercicios con el buscador.</p>'; }
+function drawTplItems() { $("tplItems").innerHTML = tplItems.map((it, i) => `<div class="item"><div style="display:flex;justify-content:space-between;gap:.5rem;align-items:center"><b>${i + 1}. ${esc(it.title)}</b><span style="display:flex;gap:.3rem"><button type="button" class="iconbtn" data-act="tplUp" data-i="${i}" aria-label="Subir ${esc(it.title)}" ${i ? "" : "disabled"}>${ic("up", "sm")}</button><button type="button" class="iconbtn" data-act="tplRm" data-i="${i}" aria-label="Quitar ${esc(it.title)}">${ic("x", "sm")}</button></span></div><input placeholder="Series / repeticiones (lo define usted)" aria-label="Dosificación" value="${esc(it.dosage || "")}" data-k="dosage" data-i="${i}" maxlength="80"><input placeholder="Indicación para el paciente (opcional)" aria-label="Indicación" value="${esc(it.notes || "")}" data-k="notes" data-i="${i}" maxlength="300"></div>`).join("") || '<p class="muted">Agregue ejercicios con el buscador.</p>'; }
 async function openTemplate(id) {
   tplId = id; let t = { name: "", notes: "", items: [] }; if (id) t = await api("/api/templates/" + id);
   tplItems = t.items.map(i => ({ library_item_id: i.library_item_id, title: i.title, dosage: i.dosage, notes: i.notes }));
@@ -360,6 +372,10 @@ const A = {
   tplDel: async b => { if (confirm("¿Eliminar esta plantilla?")) try { await api("/api/templates/" + b.dataset.id, { method: "DELETE" }); closeSheet(); tplList(); } catch (x) { fail(x); } },
   tplPrint: b => window.open(`/api/templates/${b.dataset.id}/print${$("tplPatient").value ? "?patient_id=" + $("tplPatient").value : ""}`, "_blank", "noopener"),
   tplAdd: b => { tplItems.push({ library_item_id: +b.dataset.id, title: b.dataset.t, dosage: "", notes: "" }); drawTplItems(); $("tplQ").value = ""; $("tplRes").innerHTML = ""; },
+  tplUp: b => { const i = +b.dataset.i; if (i > 0) { [tplItems[i - 1], tplItems[i]] = [tplItems[i], tplItems[i - 1]]; drawTplItems(); } },
+  planReport: b => window.open(`/api/plans/${b.dataset.id}/report`, "_blank", "noopener"),
+  planEdit: b => planEditForm(+b.dataset.id),
+  resched: b => apptForm({ edit: agendaCache.find(a => a.id === +b.dataset.id) }),
   tplRm: b => { tplItems.splice(+b.dataset.i, 1); drawTplItems(); },
 };
 function setDay(d) { $("day").value = d; agenda().catch(fail); }
@@ -376,20 +392,25 @@ document.addEventListener("submit", async e => {
   const f = e.target, kind = f.dataset.form; if (!kind) return; e.preventDefault(); const q = f.elements;
   try {
     if (kind === "patient") {
-      const body = { name: q.name.value.trim(), rut: nul(q.rut.value), birth_date: nul(q.birth_date.value), phone: nul(q.phone.value), email: nul(q.email.value), insurance: nul(q.insurance.value), allergies: nul(q.allergies.value), active: true };
+      const body = { name: q.name.value.trim(), rut: nul(q.rut.value), birth_date: nul(q.birth_date.value), phone: nul(q.phone.value), email: nul(q.email.value), insurance: nul(q.insurance.value), allergies: nul(q.allergies.value), occupation: nul(q.occupation.value), history: nul(q.history.value), active: true };
       const id = f.dataset.id, saved = id ? await send("PUT", "/api/patients/" + id, body) : await post("/api/patients", body);
       say(id ? "Paciente actualizado" : "Paciente registrado"); await load(); id ? openPatient(saved.id) : openPatient(saved.id, "planes");
     } else if (kind === "plan") {
       const pt = +f.dataset.id; await post("/api/plans", { patient_id: pt, title: q.title.value, reason: nul(q.reason.value), kine_diagnosis: nul(q.dx.value), total_sessions: +q.n.value });
       say("Plan creado"); await load(); openPatient(pt, "planes");
+    } else if (kind === "planedit") {
+      const id = +f.dataset.id, p = await api("/api/plans/" + id);
+      await send("PUT", "/api/plans/" + id, { patient_id: p.patient_id, professional_id: p.professional_id, title: q.title.value, reason: nul(q.reason.value), kine_diagnosis: nul(q.dx.value), total_sessions: +q.n.value, status: p.status });
+      say("Plan actualizado"); await load(); openPlan(id);
     } else if (kind === "series") {
       const r = await post(`/api/plans/${f.dataset.id}/schedule`, { professional_id: +q.p.value, starts_at: q.s.value, count: +q.n.value, interval_days: +q.i.value, duration_min: +q.d.value, room: nul(q.r.value) });
       say(`${r.created.length} sesiones agendadas` + (r.skipped.length ? ` · ${r.skipped.length} omitidas por choque` : "") + (r.capped ? " · tope del plan" : ""));
       const card = f.closest(".plancard"); if (r.skipped.length) card.insertAdjacentHTML("beforeend", `<div class="notice">${ic("alert")}<span>Omitidas: ${r.skipped.map(s => esc(s.starts_at.replace("T", " ")) + " (" + esc(s.reason) + ")").join("; ")}</span></div>`);
       f.remove(); await load(); agenda();
     } else if (kind === "appt") {
-      const s = q.start.value; await post("/api/appointments", { patient_id: +q.patient.value, professional_id: +q.pro.value, starts_at: s, duration_min: +q.dur.value || 45, room: nul(q.room.value), reason: nul(q.reason.value), plan_id: q.plan.value ? +q.plan.value : null });
-      closeSheet(); say("Sesión agendada"); $("day").value = s.slice(0, 10); await load(); agenda();
+      const s = q.start.value, id = f.dataset.id, body = { patient_id: +q.patient.value, professional_id: +q.pro.value, starts_at: s, duration_min: +q.dur.value || 45, room: nul(q.room.value), reason: nul(q.reason.value), plan_id: q.plan.value ? +q.plan.value : null };
+      id ? await send("PUT", "/api/appointments/" + id, { ...body, status: agendaCache.find(a => a.id === +id)?.status || "scheduled" }) : await post("/api/appointments", body);
+      closeSheet(); say(id ? "Sesión reprogramada" : "Sesión agendada"); $("day").value = s.slice(0, 10); await load(); agenda();
     } else if (kind === "pay") {
       await post("/api/payments", { patient_id: +q.patient.value, concept: q.concept.value, amount: +q.amount.value, method: q.method.value }); closeSheet(); say("Pago registrado"); pays();
     }
@@ -398,9 +419,9 @@ document.addEventListener("submit", async e => {
 $("detail").addEventListener("input", () => { });
 
 /* ---------- sesión ---------- */
-function showLogin() { $("login").style.display = "grid"; }
+function showLogin() { $("login").style.display = "grid"; document.querySelectorAll("header,main,nav,.fab").forEach(x => x.inert = true); }
 async function start() {
-  try { me = await api("/api/auth/me"); $("login").style.display = "none"; $("tabAdmin").hidden = me.role !== "admin"; $("day").value = localDay();
+  try { me = await api("/api/auth/me"); $("login").style.display = "none"; document.querySelectorAll("header,main,nav,.fab").forEach(x => x.inert = false); $("tabAdmin").hidden = me.role !== "admin"; $("day").value = localDay();
     await Promise.all([load(), libMeta()]); await Promise.all([agenda(), cons(), libSearch()]); go("agenda"); } catch { showLogin(); }
 }
 $("fLogin").addEventListener("submit", async e => { e.preventDefault(); $("lgErr").textContent = ""; try { await post("/api/auth/login", { username: $("lgUser").value, password: $("lgPass").value }); $("lgPass").value = ""; start(); } catch (x) { $("lgErr").textContent = x.message; } });

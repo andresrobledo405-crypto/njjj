@@ -33,6 +33,7 @@
 <symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16z"/><path d="m13.5 6.5 4 4"/></symbol>
 <symbol id="i-out" viewBox="0 0 24 24"><path d="M10 4H6.5A2.5 2.5 0 0 0 4 6.5v11A2.5 2.5 0 0 0 6.5 20H10"/><path d="m15 8 4 4-4 4M19 12H9"/></symbol>
 <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 4v11M7.5 11 12 15.5 16.5 11M5 20h14"/></symbol>
+<symbol id="i-up" viewBox="0 0 24 24"><path d="m5 15 7-7 7 7"/></symbol>
 <symbol id="i-spark" viewBox="0 0 24 24"><path d="m12 3 1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/></symbol>
 </defs></svg>
 
@@ -99,6 +100,7 @@
   <div class="panel"><h3>Usuarios</h3><div id="userList"></div>
     <form id="fUser" class="stack"><div class="cols"><label class="field"><span>Nombre</span><input id="uName" required></label><label class="field"><span>Usuario</span><input id="uUser" required autocomplete="off"></label></div>
     <div class="cols"><label class="field"><span>Clave (mín. 10 caracteres)</span><input id="uPass" type="password" minlength="10" required autocomplete="new-password"></label><label class="field"><span>Rol</span><select id="uRole"><option value="profesional">Profesional</option><option value="admin">Administrador</option></select></label></div><button class="btn">Crear usuario</button></form></div>
+  <div class="panel"><h3>Respaldo</h3><p class="muted">Descarga la base de datos y los adjuntos en un .zip. Guárdelo fuera del servidor: en el plan gratuito de Render los datos se pierden al reiniciar.</p><a class="btn soft" href="/api/admin/backup" download>Descargar respaldo</a></div>
   <div class="panel"><h3>Mi clave</h3><form id="fPass" class="stack"><div class="cols"><label class="field"><span>Clave actual</span><input id="pwOld" type="password" required autocomplete="current-password"></label><label class="field"><span>Nueva clave (mín. 10)</span><input id="pwNew" type="password" minlength="10" required autocomplete="new-password"></label></div><button class="btn">Cambiar clave</button></form></div>
   <div class="panel"><h3>Agregar a la biblioteca</h3><form id="fLib" class="stack"><div class="cols"><label class="field"><span>Categoría</span><select id="lCat"></select></label><label class="field"><span>Región</span><input id="lRegion" placeholder="Ej.: Hombro"></label></div>
     <label class="field"><span>Título</span><input id="lTitle" required></label><label class="field"><span>Resumen</span><input id="lSum"></label><label class="field"><span>Contenido</span><textarea id="lBody" rows="5"></textarea></label>
@@ -119,7 +121,7 @@
 
 <div id="detail" role="dialog" aria-modal="true"><div id="detailBody"></div></div>
 
-<div id="login"><div class="hero"><div class="brand"><img src="/static/icon.svg" alt="" width="42" height="42">KinePro</div><p>Cada sesión, con su evolución a la vista.</p></div>
+<div id="login" role="dialog" aria-modal="true" aria-label="Ingresar a KinePro"><div class="hero"><div class="brand"><img src="/static/icon.svg" alt="" width="42" height="42">KinePro</div><p>Cada sesión, con su evolución a la vista.</p></div>
 <form id="fLogin" class="card stack"><h2 style="font-size:1.4rem">Ingresar</h2><label class="field"><span>Usuario</span><input id="lgUser" autocomplete="username" required></label><label class="field"><span>Clave</span><input id="lgPass" type="password" autocomplete="current-password" required></label><p id="lgErr" role="alert"></p><button class="btn block">Entrar</button></form></div>
 <div id="msg" role="status"></div>
 <script src="/static/app.js"></script>
