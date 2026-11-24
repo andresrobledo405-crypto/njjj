@@ -17,15 +17,12 @@ import os
 import time
 import unicodedata
 
-import httpx
-
 from fastapi.responses import JSONResponse, Response
 
 from .auth import SESSION_COOKIE, SESSION_SECONDS, hash_password, make_token, read_token, throttle, verify_password
 from .config import APP_NAME, DATA_DIR, MAX_UPLOAD_BYTES, UPLOAD_DIR
 from .db import get_connection, get_db, init_db
 from .exporters import CsvExporter
-from .library import CATEGORIES, seed_library
 
 STATIC_DIR = Path(__file__).parent / "static"
 STATUSES = {"scheduled", "arrived", "done", "cancelled", "no_show"}
@@ -38,7 +35,6 @@ async def lifespan(_: FastAPI):
     init_db()
     connection = get_connection()
     try:
-        seed_library(connection)
         bootstrap_admin(connection)
     finally:
         connection.close()
@@ -59,7 +55,7 @@ def bootstrap_admin(db: sqlite3.Connection) -> None:
     db.commit()
 
 
-app = FastAPI(title=f"{APP_NAME} - Gestión clínica", version="1.1.0", lifespan=lifespan)
+app = FastAPI(title=f"{APP_NAME} - Gestión clínica", version="2.0.0", lifespan=lifespan)
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 
@@ -105,7 +101,7 @@ def health() -> dict[str, str]:
 
 @app.get("/api/meta")
 def meta() -> dict[str, Any]:
-    return {"name": APP_NAME, "ask_enabled": bool(os.getenv("OPENAI_API_KEY"))}
+    return {"name": APP_NAME}
 
 
 class LoginIn(BaseModel):
@@ -224,153 +220,6 @@ def delete_user(user_id: int, request: Request, db: sqlite3.Connection = Depends
 
 def fold(text: str | None) -> str:
     return "".join(c for c in unicodedata.normalize("NFD", (text or "").lower()) if unicodedata.category(c) != "Mn")
-
-
-class LibraryIn(BaseModel):
-    category: str
-    region: str | None = Field(default=None, max_length=60)
-    title: str = Field(min_length=1, max_length=160)
-    summary: str | None = Field(default=None, max_length=400)
-    content: str | None = Field(default=None, max_length=12000)
-    precautions: str | None = Field(default=None, max_length=2000)
-    tags: str | None = Field(default=None, max_length=300)
-
-
-LIB_COLUMNS = ("category", "region", "title", "summary", "content", "precautions", "tags")
-
-
-@app.get("/api/library/meta")
-def library_meta(db: sqlite3.Connection = Depends(get_db)) -> dict[str, Any]:
-    counts = {r["category"]: r["n"] for r in db.execute("SELECT category, COUNT(*) AS n FROM library_items GROUP BY category")}
-    regions = [r["region"] for r in db.execute("SELECT DISTINCT region FROM library_items WHERE region IS NOT NULL ORDER BY region")]
-    return {"categories": [{"id": k, "label": v, "count": counts.get(k, 0)} for k, v in CATEGORIES.items()], "regions": regions,
-            "total": sum(counts.values())}
-
-
-@app.get("/api/library")
-def library_search(q: str | None = None, category: str | None = None, region: str | None = None,
-                   db: sqlite3.Connection = Depends(get_db)) -> list[dict[str, Any]]:
-    sql, params = "SELECT * FROM library_items WHERE 1=1", []
-    if category:
-        sql, params = sql + " AND category = ?", [*params, category]
-    if region:
-        sql, params = sql + " AND region = ?", [*params, region]
-    rows = [dict(r) for r in db.execute(sql + " ORDER BY category, title", params)]
-    if q:
-        terms = fold(q).split()
-        def haystack(r): return fold(" ".join(str(r[c] or "") for c in ("title", "summary", "content", "tags", "region", "precautions")))
-        def rank(r):
-            title = fold(r["title"])
-            return -sum(3 if t in title else 1 for t in terms)
-        rows = sorted((r for r in rows if all(t in haystack(r) for t in terms)), key=rank)
-    return rows
-
-
-class AskIn(BaseModel):
-    question: str = Field(min_length=5, max_length=500)
-
-
-ASK_PROMPT = (
-    "Eres un asistente de apoyo educativo para kinesiólogos. Responde en español, de forma breve y clara, "
-    "usando EXCLUSIVAMENTE las entradas de la biblioteca entregadas como contexto. Si el contexto no alcanza "
-    "para responder, dilo y sugiere consultar guías clínicas o a un especialista. No des diagnósticos ni "
-    "indicaciones para un paciente concreto. Menciona siempre las precauciones y banderas rojas pertinentes. "
-    "Cita las entradas usadas por su título entre corchetes."
-)
-ask_log: dict[int, list[float]] = {}
-ASK_LIMIT_PER_HOUR = int(os.getenv("KINEPRO_ASK_LIMIT", "20"))
-
-
-@app.post("/api/library/ask")
-def library_ask(payload: AskIn, request: Request, db: sqlite3.Connection = Depends(get_db)) -> dict[str, Any]:
-    """Pregunta a un modelo de OpenAI. Solo se envían la pregunta y entradas de la biblioteca; nunca datos de pacientes."""
-    api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key:
-        raise HTTPException(503, "El asistente no está activado (falta OPENAI_API_KEY)")
-    uid, now = request.state.user["id"], time.time()
-    recent = [t for t in ask_log.get(uid, []) if now - t < 3600]
-    if len(recent) >= ASK_LIMIT_PER_HOUR:
-        raise HTTPException(429, "Límite de preguntas por hora alcanzado")
-    ask_log[uid] = recent + [now]
-    # recuperación: entradas que coinciden con más palabras de la pregunta
-    words = [w for w in fold(payload.question).replace("?", " ").replace(",", " ").split() if len(w) > 3]
-    scored = []
-    for row in db.execute("SELECT * FROM library_items"):
-        text = fold(" ".join(str(row[c] or "") for c in ("title", "summary", "content", "tags", "region")))
-        title = fold(row["title"])
-        score = sum((3 if w in title else 1) for w in words if w in text)
-        if score:
-            scored.append((score, dict(row)))
-    top = [r for _, r in sorted(scored, key=lambda x: -x[0])[:6]]
-    if not top:
-        return {"answer": "No encontré información sobre eso en la biblioteca. Intente con otras palabras o consulte guías clínicas.", "sources": []}
-    context = "\n\n".join(f"[{r['title']}]\n{r['summary'] or ''}\n{r['content'] or ''}\nPrecauciones: {r['precautions'] or '-'}" for r in top)
-    try:
-        response = httpx.post(
-            "https://api.openai.com/v1/chat/completions",
-            headers={"Authorization": f"Bearer {api_key}"},
-            json={"model": os.getenv("OPENAI_MODEL", "gpt-4o-mini"), "temperature": 0.2,
-                  "messages": [{"role": "system", "content": ASK_PROMPT},
-                               {"role": "user", "content": f"Contexto:\n{context}\n\nPregunta: {payload.question}"}]},
-            timeout=40,
-        )
-        response.raise_for_status()
-        answer = response.json()["choices"][0]["message"]["content"]
-    except (httpx.HTTPError, KeyError, IndexError, ValueError) as error:
-        raise HTTPException(502, "El servicio de IA no respondió; intente más tarde") from error
-    return {"answer": answer, "sources": [{"id": r["id"], "title": r["title"]} for r in top]}
-
-
-@app.get("/api/library/{item_id}")
-def library_get(item_id: int, db: sqlite3.Connection = Depends(get_db)) -> dict[str, Any]:
-    row = db.execute("SELECT * FROM library_items WHERE id = ?", (item_id,)).fetchone()
-    if row is None:
-        raise HTTPException(404, "Entrada no encontrada")
-    return dict(row)
-
-
-def _check_category(payload: LibraryIn) -> None:
-    if payload.category not in CATEGORIES:
-        raise HTTPException(422, "Categoría no válida")
-
-
-@app.post("/api/library", status_code=201)
-def library_create(payload: LibraryIn, request: Request, db: sqlite3.Connection = Depends(get_db)) -> dict[str, Any]:
-    admin_only(request)
-    _check_category(payload)
-    values = payload.model_dump()
-    try:
-        cursor = db.execute(f"INSERT INTO library_items ({', '.join(LIB_COLUMNS)}) VALUES ({', '.join('?' for _ in LIB_COLUMNS)})",
-                            tuple(values[c] for c in LIB_COLUMNS))
-        db.commit()
-    except sqlite3.IntegrityError as error:
-        raise HTTPException(409, "Ya existe una entrada con ese título en la categoría") from error
-    return dict(db.execute("SELECT * FROM library_items WHERE id = ?", (cursor.lastrowid,)).fetchone())
-
-
-@app.put("/api/library/{item_id}")
-def library_update(item_id: int, payload: LibraryIn, request: Request, db: sqlite3.Connection = Depends(get_db)) -> dict[str, Any]:
-    admin_only(request)
-    _check_category(payload)
-    values = payload.model_dump()
-    try:
-        cursor = db.execute(f"UPDATE library_items SET {', '.join(f'{c}=?' for c in LIB_COLUMNS)} WHERE id=?",
-                            (*(values[c] for c in LIB_COLUMNS), item_id))
-        db.commit()
-    except sqlite3.IntegrityError as error:
-        raise HTTPException(409, "Ya existe una entrada con ese título en la categoría") from error
-    if cursor.rowcount == 0:
-        raise HTTPException(404, "Entrada no encontrada")
-    return dict(db.execute("SELECT * FROM library_items WHERE id = ?", (item_id,)).fetchone())
-
-
-@app.delete("/api/library/{item_id}", status_code=204)
-def library_delete(item_id: int, request: Request, db: sqlite3.Connection = Depends(get_db)) -> None:
-    admin_only(request)
-    cursor = db.execute("DELETE FROM library_items WHERE id = ?", (item_id,))
-    db.commit()
-    if cursor.rowcount == 0:
-        raise HTTPException(404, "Entrada no encontrada")
 
 
 class PatientIn(BaseModel):
@@ -681,6 +530,149 @@ def export_payments(db: sqlite3.Connection = Depends(get_db)) -> StreamingRespon
            FROM payments y JOIN patients p ON p.id = y.patient_id ORDER BY y.paid_at DESC""",
         "pagos.csv",
     )
+
+
+
+# ---------- Documentos y protocolos de la clínica (módulo opcional, sin contenido precargado) ----------
+DOC_CATEGORIES = {"protocolo": "Protocolo", "consentimiento": "Consentimiento", "tarifas": "Tarifas", "otro": "Otro"}
+
+
+class DocumentIn(BaseModel):
+    category: str = "protocolo"
+    title: str = Field(min_length=1, max_length=160)
+    content: str | None = Field(default=None, max_length=20000)
+
+
+def _check_doc(payload: DocumentIn) -> None:
+    if payload.category not in DOC_CATEGORIES:
+        raise HTTPException(422, "Categoría no válida")
+
+
+@app.get("/api/documents")
+def documents_list(q: str | None = None, category: str | None = None, db: sqlite3.Connection = Depends(get_db)) -> list[dict[str, Any]]:
+    sql, params = "SELECT * FROM documents WHERE 1=1", []
+    if category:
+        sql, params = sql + " AND category = ?", [category]
+    rows = [dict(r) for r in db.execute(sql + " ORDER BY category, title", params)]
+    if q:
+        terms = fold(q).split()
+        rows = [r for r in rows if all(t in fold(f"{r['title']} {r['content'] or ''}") for t in terms)]
+    return rows
+
+
+@app.get("/api/documents/{doc_id}")
+def documents_get(doc_id: int, db: sqlite3.Connection = Depends(get_db)) -> dict[str, Any]:
+    row = db.execute("SELECT * FROM documents WHERE id = ?", (doc_id,)).fetchone()
+    if row is None:
+        raise HTTPException(404, "Documento no encontrado")
+    return dict(row)
+
+
+@app.post("/api/documents", status_code=201)
+def documents_create(payload: DocumentIn, request: Request, db: sqlite3.Connection = Depends(get_db)) -> dict[str, Any]:
+    admin_only(request)
+    _check_doc(payload)
+    try:
+        cursor = db.execute("INSERT INTO documents (category, title, content) VALUES (?,?,?)", (payload.category, payload.title, payload.content))
+        db.commit()
+    except sqlite3.IntegrityError as error:
+        raise HTTPException(409, "Ya existe un documento con ese título") from error
+    return dict(db.execute("SELECT * FROM documents WHERE id = ?", (cursor.lastrowid,)).fetchone())
+
+
+@app.put("/api/documents/{doc_id}")
+def documents_update(doc_id: int, payload: DocumentIn, request: Request, db: sqlite3.Connection = Depends(get_db)) -> dict[str, Any]:
+    admin_only(request)
+    _check_doc(payload)
+    try:
+        cursor = db.execute("UPDATE documents SET category=?, title=?, content=?, updated_at=CURRENT_TIMESTAMP WHERE id=?",
+                            (payload.category, payload.title, payload.content, doc_id))
+        db.commit()
+    except sqlite3.IntegrityError as error:
+        raise HTTPException(409, "Ya existe un documento con ese título") from error
+    if cursor.rowcount == 0:
+        raise HTTPException(404, "Documento no encontrado")
+    return dict(db.execute("SELECT * FROM documents WHERE id = ?", (doc_id,)).fetchone())
+
+
+@app.delete("/api/documents/{doc_id}", status_code=204)
+def documents_delete(doc_id: int, request: Request, db: sqlite3.Connection = Depends(get_db)) -> None:
+    admin_only(request)
+    if db.execute("DELETE FROM documents WHERE id = ?", (doc_id,)).rowcount == 0:
+        raise HTTPException(404, "Documento no encontrado")
+    db.commit()
+
+
+# ---------- Recordatorios de citas (solo genera el texto; la clínica lo envía a mano) ----------
+def reminder_text(clinic: str, name: str, starts_at: str, professional: str) -> str:
+    start = datetime.fromisoformat(starts_at)
+    return (f"Hola {name.split()[0]}, le recordamos su cita en {clinic} el {start:%d-%m-%Y} a las {start:%H:%M} "
+            f"con {professional}. Si no puede asistir, avísenos con anticipación. ¡Gracias!")
+
+
+@app.get("/api/reminders")
+def reminders(day: str | None = Query(default=None, description="AAAA-MM-DD; por defecto mañana"),
+              db: sqlite3.Connection = Depends(get_db)) -> list[dict[str, Any]]:
+    day = day or (datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d")
+    rows = db.execute(
+        """SELECT a.id, a.starts_at, a.room, p.name AS patient_name, p.phone, pr.name AS professional_name
+           FROM appointments a JOIN patients p ON p.id = a.patient_id JOIN professionals pr ON pr.id = a.professional_id
+           WHERE date(a.starts_at) = date(?) AND a.status IN ('scheduled','arrived') ORDER BY a.starts_at""", (day,))
+    out = []
+    for r in rows:
+        item = dict(r)
+        item["message"] = reminder_text(APP_NAME, r["patient_name"], r["starts_at"], r["professional_name"])
+        digits = "".join(ch for ch in (r["phone"] or "") if ch.isdigit())
+        if digits.startswith("0"):
+            digits = digits.lstrip("0")
+        if digits and len(digits) <= 9:  # número local chileno sin código de país
+            digits = "56" + digits
+        item["whatsapp_url"] = f"https://wa.me/{digits}" if digits else None
+        out.append(item)
+    return out
+
+
+# ---------- Ficha de paciente con historial ----------
+@app.get("/api/patients/{patient_id}/history")
+def patient_history(patient_id: int, db: sqlite3.Connection = Depends(get_db)) -> dict[str, Any]:
+    patient = db.execute("SELECT * FROM patients WHERE id = ?", (patient_id,)).fetchone()
+    if patient is None:
+        raise HTTPException(404, "Paciente no encontrado")
+    appts = db.execute(
+        """SELECT a.id, a.starts_at, a.status, a.reason, a.room, pr.name AS professional_name, pr.specialty
+           FROM appointments a JOIN professionals pr ON pr.id = a.professional_id
+           WHERE a.patient_id = ? ORDER BY a.starts_at DESC""", (patient_id,))
+    cons = db.execute(CONSULTATION_SELECT + " WHERE c.patient_id = ? ORDER BY c.occurred_at DESC, c.id DESC", (patient_id,))
+    pays = db.execute("SELECT id, concept, amount, method, paid_at FROM payments WHERE patient_id = ? ORDER BY paid_at DESC, id DESC", (patient_id,))
+    payments = [dict(r) for r in pays]
+    return {"patient": row_dict(patient), "appointments": [dict(r) for r in appts],
+            "consultations": [row_dict(r) for r in cons], "payments": payments,
+            "total_paid": sum(p["amount"] for p in payments)}
+
+
+# ---------- Reporte de caja ----------
+@app.get("/api/reports/cash")
+def cash_report(period: str = Query(default="day", pattern="^(day|month)$"),
+                date: str | None = Query(default=None, description="AAAA-MM-DD (día) o AAAA-MM (mes); por defecto hoy/este mes"),
+                db: sqlite3.Connection = Depends(get_db)) -> dict[str, Any]:
+    now = datetime.now()
+    if period == "day":
+        date = date or now.strftime("%Y-%m-%d")
+        fmt, value = "%Y-%m-%d", date
+    else:
+        date = (date or now.strftime("%Y-%m"))[:7]
+        fmt, value = "%Y-%m", date
+    try:
+        datetime.strptime(value, fmt)
+    except ValueError as error:
+        raise HTTPException(422, "Fecha inválida") from error
+    rows = db.execute(f"SELECT method, COUNT(*) AS n, SUM(amount) AS total FROM payments WHERE strftime('{fmt}', paid_at) = ? GROUP BY method", (value,))
+    by_method = {r["method"]: {"count": r["n"], "total": r["total"]} for r in rows}
+    items = db.execute(
+        f"""SELECT y.id, y.paid_at, y.concept, y.amount, y.method, p.name AS patient_name FROM payments y
+            JOIN patients p ON p.id = y.patient_id WHERE strftime('{fmt}', y.paid_at) = ? ORDER BY y.paid_at""", (value,))
+    return {"period": period, "date": value, "total": sum(m["total"] for m in by_method.values()),
+            "count": sum(m["count"] for m in by_method.values()), "by_method": by_method, "payments": [dict(r) for r in items]}
 
 
 @app.get("/sw.js", include_in_schema=False)

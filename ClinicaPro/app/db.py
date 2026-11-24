@@ -74,17 +74,13 @@ CREATE TABLE IF NOT EXISTS users (
     active INTEGER NOT NULL DEFAULT 1,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
-CREATE TABLE IF NOT EXISTS library_items (
+CREATE TABLE IF NOT EXISTS documents (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    category TEXT NOT NULL,
-    region TEXT,
-    title TEXT NOT NULL,
-    summary TEXT,
+    category TEXT NOT NULL DEFAULT 'protocolo',
+    title TEXT NOT NULL UNIQUE,
     content TEXT,
-    precautions TEXT,
-    tags TEXT,
-    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE (category, title)
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 CREATE INDEX IF NOT EXISTS idx_appointments_starts_at ON appointments(starts_at);
 CREATE INDEX IF NOT EXISTS idx_consultations_patient ON consultations(patient_id);
@@ -102,6 +98,7 @@ def init_db() -> None:
     connection = get_connection()
     try:
         connection.executescript(SCHEMA)
+        connection.execute("DROP TABLE IF EXISTS library_items")  # migración: módulo anterior ya no existe
         connection.commit()
     finally:
         connection.close()

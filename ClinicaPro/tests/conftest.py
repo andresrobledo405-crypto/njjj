@@ -18,7 +18,7 @@ def client():
         assert c.post("/api/auth/login", json={"username": "admin", "password": "clave-de-prueba-123"}).status_code == 200
         yield c
         conn = get_connection()
-        for table in ("payments", "consultations", "appointments", "professionals", "patients"):
+        for table in ("payments", "consultations", "appointments", "professionals", "patients", "documents"):
             conn.execute(f"DELETE FROM {table}")
         conn.commit()
         conn.close()

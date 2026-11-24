@@ -1,5 +1,5 @@
 // Service worker mínimo: permite instalar la app. No guarda en caché datos de la API (información clínica).
-const SHELL = "kinepro-shell-v1";
+const SHELL = "clinicapro-shell-v1";
 self.addEventListener("install", e => e.waitUntil(caches.open(SHELL).then(c => c.addAll(["/static/icon.svg"]))));
 self.addEventListener("activate", e => e.waitUntil(self.clients.claim()));
 self.addEventListener("fetch", e => {
