@@ -1,0 +1,66 @@
+CATEGORÍA: Patologías
+
+### Lumbalgia inespecífica (Columna lumbar)
+Resumen: Dolor lumbar sin causa estructural específica; la más frecuente en consulta.
+Clasifique según tiempo (aguda <6 semanas, subaguda, crónica >12 semanas) y descarte banderas rojas.
+Abordaje: educación (el pronóstico suele ser favorable), mantenerse activo, ejercicio terapéutico graduado, terapia manual como complemento, y abordaje de factores psicosociales (banderas amarillas).
+Evite el reposo prolongado y mensajes que refuercen el miedo al movimiento.
+Precauciones: Banderas rojas: trauma importante, fiebre, pérdida de peso inexplicada, antecedente de cáncer, déficit neurológico progresivo, alteración de esfínteres o anestesia en silla de montar.
+
+### Hernia discal y radiculopatía lumbar (Columna lumbar)
+Resumen: Compresión o irritación de una raíz nerviosa con dolor irradiado a la pierna.
+Evaluación: SLR, slump, reflejos, fuerza y sensibilidad por dermatomas. La mayoría mejora de forma conservadora en semanas a meses.
+Intervención: educación, analgesia coordinada con el médico, posiciones de alivio, movilización neural suave, ejercicios de control motor y progresión a carga.
+Precauciones: Síndrome de cauda equina (retención urinaria, anestesia en silla de montar, debilidad bilateral) es una urgencia: derive de inmediato.
+
+### Cervicalgia mecánica (Columna cervical)
+Resumen: Dolor cervical sin signos neurológicos ni causa grave.
+Valore postura laboral, estrés, control motor de flexores profundos y movilidad cervicotorácica.
+Intervención: educación, ejercicio (flexores profundos, escapulares), movilización y pausas activas.
+Precauciones: Antes de técnicas cervicales de alta velocidad, descarte síntomas de insuficiencia vertebrobasilar (mareo, disartria, diplopía, nistagmo, náuseas) y fractura/inestabilidad.
+
+### Síndrome subacromial y tendinopatía del manguito (Hombro)
+Resumen: Dolor lateral de hombro con arco doloroso entre ~60° y 120° de elevación.
+Intervención: modificación temporal de actividades de carga repetida sobre la cabeza, ejercicio progresivo del manguito y escapulares, movilidad torácica y educación.
+La evidencia respalda el ejercicio supervisado como tratamiento de primera línea; la cirugía se reserva para casos seleccionados.
+
+### Capsulitis adhesiva (hombro congelado) (Hombro)
+Resumen: Rigidez capsular progresiva con pérdida marcada de rotación externa.
+Fases: dolorosa, de rigidez y de resolución (puede durar 1–2 años). Más frecuente en 40–60 años y en diabetes.
+Intervención según irritabilidad: en fase dolorosa, educación y movilizaciones suaves sin provocar dolor; en rigidez, movilización y estiramientos sostenidos graduados.
+
+### Epicondilalgia lateral (codo de tenista) (Codo y muñeca)
+Resumen: Tendinopatía de los extensores en el epicóndilo lateral.
+Autolimitada en la mayoría; la carga progresiva (isométricos, luego excéntricos y concéntricos pesados) es la base del tratamiento.
+Ajuste la carga laboral/deportiva, considere ortesis de corto plazo y evalúe cervical y nervio radial como fuentes asociadas.
+
+### Síndrome del túnel carpiano (Codo y muñeca)
+Resumen: Compresión del nervio mediano en la muñeca: parestesias nocturnas en los tres primeros dedos.
+Manejo conservador en casos leves-moderados: férula nocturna en posición neutra, modificación ergonómica, deslizamientos neurales y tendinosos.
+Precauciones: Debilidad tenar marcada o atrofia indican derivación para evaluación quirúrgica.
+
+### Artrosis de cadera y de rodilla (Cadera)
+Resumen: Enfermedad degenerativa articular con dolor mecánico y rigidez corta matinal.
+Las guías recomiendan ejercicio terapéutico, educación y control de peso como base. El entrenamiento de fuerza de cuádriceps y glúteos reduce el dolor y mejora la función.
+Complemente con ayudas técnicas (bastón contralateral), calzado adecuado y analgesia coordinada con el médico.
+
+### Dolor patelofemoral (Rodilla)
+Resumen: Dolor anterior de rodilla con sentadillas, escaleras y sedestación prolongada.
+Combine fortalecimiento de cuádriceps y cadera (abductores y rotadores externos), control de carga y educación. Puede asociarse ortesis plantar o vendaje rotuliano para alivio inicial.
+Valore alineamiento dinámico (valgo dinámico) durante sentadilla monopodal.
+
+### Lesión del ligamento cruzado anterior (LCA) (Rodilla)
+Resumen: Rehabilitación conservadora o posoperatoria basada en criterios, no solo en tiempo.
+Fases: control de derrame y extensión completa; fuerza y control neuromuscular; carrera progresiva; deportes específicos con pruebas funcionales (saltos, simetría de fuerza ≥90 %) antes de volver al deporte.
+La prevención de nuevas lesiones exige trabajo de aterrizaje, desaceleración y control de tronco.
+Precauciones: Respete protocolos del cirujano ante injertos o reparaciones meniscales asociadas.
+
+### Tendinopatía rotuliana (Rodilla)
+Resumen: Dolor localizado en el polo inferior de la rótula en deportes con saltos.
+Sin reposo prolongado: isométricos para analgesia inicial, luego fuerza lenta y pesada, y finalmente carga elástica (saltos, pliometría) de forma progresiva.
+Controle la carga semanal de saltos y aterrizajes.
+
+### Esguince lateral de tobillo (Tobillo y pie)
+Resumen: Lesión frecuente del complejo ligamentario lateral.
+Aplique las reglas de Ottawa. Fase aguda: protección, carga temprana tolerada, movilidad, y compresión/elevación para el derrame (principio PEACE & LOVE).
+Luego trabajo de propiocepción, fuerza de peroneos y entrenamiento de equilibrio unipodal. El entrenamiento neuromuscular reduce las recidivas.

@@ -1,0 +1,64 @@
+CATEGORÍA: Patologías
+
+### Fascitis plantar (Tobillo y pie)
+Resumen: Dolor en la inserción de la fascia plantar en el calcáneo, peor con los primeros pasos de la mañana.
+Educación, carga progresiva (elevación de talón con rollo bajo el antepié, "high-load"), estiramiento de la pantorrilla, calzado y ortesis plantares de ayuda.
+Es autolimitada, pero puede durar meses; evite el reposo total.
+
+### Tendinopatía aquílea (Tobillo y pie)
+Resumen: Dolor en el tendón de Aquiles (porción media o inserción).
+Carga progresiva: isométricos, luego ejercicios excéntricos/lentos pesados (protocolo de Alfredson o Silbernagel). Para la inserción, evite dorsiflexión profunda bajo carga al inicio.
+Precauciones: Una rotura completa requiere evaluación médica urgente (prueba de Thompson).
+
+### Síndrome de la banda iliotibial (Cadera)
+Resumen: Dolor lateral de rodilla en corredores y ciclistas.
+Corrija carga de entrenamiento y fortalezca abductores de cadera y rotadores externos. El "estiramiento" de la banda tiene poco efecto sobre la estructura; priorice el control y la carga.
+
+### Desgarro de isquiotibiales (Cadera)
+Resumen: Lesión muscular frecuente en deportes de velocidad.
+Fase inicial: control del dolor y movilización temprana sin dolor; luego fuerza excéntrica (nórdicos, peso muerto rumano), trabajo de velocidad progresiva y carrera.
+Retorno cuando haya fuerza simétrica, ausencia de dolor y capacidad de sprint sin molestias.
+
+### Escoliosis idiopática del adolescente (Columna)
+Resumen: Desviación tridimensional de la columna (ángulo de Cobb ≥10°).
+Observación en curvas leves; ortesis en curvas moderadas durante el crecimiento según indicación médica; ejercicios específicos (p. ej., enfoque Schroth) como complemento.
+Precauciones: La derivación al traumatólogo/ortopedista es obligatoria si la curva progresa o hay dolor atípico o alteraciones neurológicas.
+
+### Rehabilitación del ACV (Neurológica)
+Resumen: Reeducación motora tras un accidente cerebrovascular.
+Principios: inicio temprano y práctica intensiva, repetitiva y específica de la tarea; entrenamiento de marcha y equilibrio; fortalecimiento; control de espasticidad; prevención de subluxación del hombro hemipléjico.
+Involucre a la familia y planifique el entorno del hogar. Controle presión arterial y signos de nuevo evento.
+Precauciones: Evite tracción del miembro superior hemipléjico y sobrecargas durante transferencias.
+
+### Parálisis facial periférica (Neurológica)
+Resumen: Debilidad facial unilateral; la más común es la parálisis de Bell.
+Educación, protección ocular (lubricantes, oclusión nocturna), ejercicios faciales suaves y simétricos frente a espejo; evite sobreesfuerzo y masajes agresivos para reducir sincinesias.
+Precauciones: Si hay debilidad de la frente conservada, déficit en extremidades o inicio en contexto de trauma, derive a urgencias: puede ser central.
+
+### Bronquiolitis y síndrome bronquial obstructivo del lactante (Respiratoria)
+Resumen: Cuadro respiratorio viral frecuente en lactantes en invierno.
+La kinesiología respiratoria se centra en higiene bronquial (desobstrucción nasal, posiciones, técnicas pasivas y espiratorias lentas en casos seleccionados) y educación a cuidadores: fraccionar la alimentación, lavado nasal, signos de alarma.
+Aplique el score de Tal modificado y la saturación antes y después.
+Precauciones: Las técnicas forzadas deben evitarse en menores de 2 años por riesgo de efectos adversos; siga el protocolo local y las indicaciones del médico.
+
+### EPOC y rehabilitación pulmonar (Respiratoria)
+Resumen: Entrenamiento y educación para mejorar tolerancia al esfuerzo y calidad de vida.
+Programa de 8–12 semanas: entrenamiento aeróbico, fuerza de extremidades, entrenamiento muscular inspiratorio en casos seleccionados, educación en autocuidado, respiración con labios fruncidos y técnicas de ahorro de energía.
+Monitorice saturación y disnea (Borg).
+Precauciones: Suspenda si hay dolor torácico, desaturación significativa o síntomas de descompensación.
+
+### Rehabilitación cardíaca (Cardíaca)
+Resumen: Programa multidisciplinario tras infarto, cirugía cardíaca o insuficiencia cardíaca.
+Fases: hospitalaria, ambulatoria supervisada y de mantenimiento. Prescripción de ejercicio aeróbico y de fuerza según prueba de esfuerzo y estratificación del riesgo; control de signos vitales y percepción del esfuerzo.
+Precauciones: Requiere evaluación y autorización médica; suspenda ante dolor torácico, arritmias, síncope o disnea desproporcionada.
+
+### Prevención de caídas y sarcopenia (Geriatría)
+Resumen: Intervención multicomponente en adultos mayores.
+Ejercicio de fuerza de extremidades inferiores, equilibrio, marcha y funcionalidad (levantarse de la silla). Revise calzado, medicación (con el médico), visión y riesgos del hogar.
+Dosis orientativa: 2–3 sesiones semanales de fuerza y equilibrio, con progresión gradual.
+
+### Disfunción del piso pélvico (Pelvis)
+Resumen: Incontinencia urinaria de esfuerzo, urgencia y prolapso leve.
+Valoración de la función muscular del piso pélvico y de hábitos. Entrenamiento muscular del piso pélvico (ejercicios de Kegel con conciencia y progresión), manejo de la presión intraabdominal, hábitos vesicales y educación.
+Puede complementarse con biofeedback o electroestimulación según indicación y formación del profesional.
+Precauciones: Sangrado inusual, dolor pélvico intenso o retención urinaria requieren evaluación médica.
