@@ -46,4 +46,9 @@ Versión lista para demostración y piloto local. Ya incluye login con roles. An
 ```powershell
 py -3 -m pytest -q
 ```
-Pruebas (41): RUT, choques de agenda, planes y series de sesiones, EVA/mediciones/evolución, plantillas e impresión, enlaces a biblioteca, autenticación, adjuntos, pagos, dashboard, exportación y protección de borrado con historial.
+Pruebas (44): RUT, choques de agenda, planes y series de sesiones, EVA/mediciones/evolución, plantillas e impresión, enlaces a biblioteca, autenticación, adjuntos, pagos, dashboard, exportación y protección de borrado con historial.
+
+## Interfaz
+Diseño propio (sin CDN): tipografías Fraunces y Figtree autoalojadas en `app/static/fonts/` (licencia OFL incluida), iconos SVG dibujados, modo claro/oscuro, barra inferior en móvil y menú lateral con ficha en panel lateral en escritorio. Agenda en línea de tiempo con selector de semana; los puntos bajo cada plan son las sesiones (llenos = realizadas, anillo = agendadas).
+
+**Recordatorio por WhatsApp:** el botón *Recordar* abre `wa.me` en el dispositivo del profesional con un mensaje prellenado (nombre de pila, día y hora). Solo ocurre al tocarlo; el servidor de KinePro no envía datos a terceros.

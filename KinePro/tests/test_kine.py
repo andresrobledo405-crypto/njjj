@@ -237,3 +237,13 @@ def test_usuario_desactivado_pierde_la_sesion(client):
         client.put(f"/api/users/{u['id']}", json={"username": "kine1", "name": "Kine", "role": "profesional", "active": False})
         assert other.get("/api/plans").status_code == 401
     client.delete(f"/api/users/{u['id']}")
+
+
+def test_interfaz_y_recursos_estaticos(client):
+    page = client.get("/")
+    assert page.status_code == 200 and "/static/app.js" in page.text and "/static/app.css" in page.text
+    assert "default-src 'self'" in page.headers["content-security-policy"]
+    for path in ("/static/app.js", "/static/app.css", "/static/icon.svg",
+                 "/static/fonts/fraunces-latin-wght-normal.woff2", "/static/fonts/figtree-latin-wght-normal.woff2"):
+        assert client.get(path).status_code == 200, path
+    assert "http://" not in page.text.replace("http://www.w3.org", "") and "cdn" not in page.text.lower()  # sin recursos externos
