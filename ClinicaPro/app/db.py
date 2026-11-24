@@ -65,6 +65,27 @@ CREATE TABLE IF NOT EXISTS payments (
     FOREIGN KEY (patient_id) REFERENCES patients(id),
     FOREIGN KEY (appointment_id) REFERENCES appointments(id)
 );
+CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT NOT NULL UNIQUE,
+    name TEXT NOT NULL,
+    password_hash TEXT NOT NULL,
+    role TEXT NOT NULL DEFAULT 'profesional' CHECK (role IN ('admin', 'profesional')),
+    active INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS library_items (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    category TEXT NOT NULL,
+    region TEXT,
+    title TEXT NOT NULL,
+    summary TEXT,
+    content TEXT,
+    precautions TEXT,
+    tags TEXT,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (category, title)
+);
 CREATE INDEX IF NOT EXISTS idx_appointments_starts_at ON appointments(starts_at);
 CREATE INDEX IF NOT EXISTS idx_consultations_patient ON consultations(patient_id);
 """

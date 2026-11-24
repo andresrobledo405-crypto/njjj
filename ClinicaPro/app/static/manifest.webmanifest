@@ -1,1 +1,1 @@
-{"name":"Clínica Pro","short_name":"Clínica Pro","start_url":"/","display":"standalone","background_color":"#f4f7f6","theme_color":"#0f766e","icons":[]}
+{"name":"KinePro","short_name":"KinePro","description":"Gestión clínica y biblioteca de kinesiología","start_url":"/","scope":"/","display":"standalone","background_color":"#f4f7f6","theme_color":"#0f766e","lang":"es","icons":[{"src":"/static/icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]}

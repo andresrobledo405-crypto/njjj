@@ -13,9 +13,16 @@ from pydantic import BaseModel, Field
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 
-from .config import APP_NAME, MAX_UPLOAD_BYTES, UPLOAD_DIR
-from .db import get_db, init_db
+import os
+import unicodedata
+
+from fastapi.responses import JSONResponse, Response
+
+from .auth import SESSION_COOKIE, SESSION_SECONDS, hash_password, make_token, read_token, throttle, verify_password
+from .config import APP_NAME, DATA_DIR, MAX_UPLOAD_BYTES, UPLOAD_DIR
+from .db import get_connection, get_db, init_db
 from .exporters import CsvExporter
+from .library import CATEGORIES, seed_library
 
 STATIC_DIR = Path(__file__).parent / "static"
 STATUSES = {"scheduled", "arrived", "done", "cancelled", "no_show"}
@@ -26,10 +33,30 @@ ACTIVE_STATUSES = ("scheduled", "arrived")
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     init_db()
+    connection = get_connection()
+    try:
+        seed_library(connection)
+        bootstrap_admin(connection)
+    finally:
+        connection.close()
     yield
 
 
-app = FastAPI(title=f"{APP_NAME} - Gestión clínica", version="1.0.0", lifespan=lifespan)
+def bootstrap_admin(db: sqlite3.Connection) -> None:
+    """Crea el administrador inicial si no hay usuarios. La clave sale del entorno o se genera."""
+    if db.execute("SELECT COUNT(*) FROM users").fetchone()[0]:
+        return
+    username = os.getenv("CLINICAPRO_ADMIN_USER", "admin")
+    password = os.getenv("CLINICAPRO_ADMIN_PASSWORD")
+    if not password:
+        password = secrets.token_urlsafe(12)
+        (DATA_DIR / "admin_inicial.txt").write_text(f"usuario: {username}\nclave: {password}\n(cámbiela al ingresar y borre este archivo)\n")
+    db.execute("INSERT INTO users (username, name, password_hash, role) VALUES (?, ?, ?, 'admin')",
+               (username, "Administrador", hash_password(password)))
+    db.commit()
+
+
+app = FastAPI(title=f"{APP_NAME} - Gestión clínica", version="1.1.0", lifespan=lifespan)
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 
@@ -42,7 +69,250 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         return response
 
 
+PUBLIC_PATHS = {"/api/auth/login", "/api/health", "/api/meta"}
+
+
+class AuthMiddleware(BaseHTTPMiddleware):
+    """Todo lo que cuelga de /api y la documentación exige sesión válida."""
+
+    async def dispatch(self, request: Request, call_next):
+        path = request.url.path
+        protected = path.startswith(("/api", "/docs", "/redoc", "/openapi"))
+        request.state.user = read_token(request.cookies.get(SESSION_COOKIE))
+        if protected and path not in PUBLIC_PATHS and request.state.user is None:
+            return JSONResponse({"detail": "Sesión requerida"}, status_code=401)
+        return await call_next(request)
+
+
+app.add_middleware(AuthMiddleware)
 app.add_middleware(SecurityHeadersMiddleware)
+
+
+def admin_only(request: Request) -> dict:
+    user = request.state.user
+    if not user or user["r"] != "admin":
+        raise HTTPException(403, "Solo el administrador puede hacer esto")
+    return user
+
+
+@app.get("/api/health")
+def health() -> dict[str, str]:
+    return {"status": "ok"}
+
+
+@app.get("/api/meta")
+def meta() -> dict[str, str]:
+    return {"name": APP_NAME}
+
+
+class LoginIn(BaseModel):
+    username: str = Field(min_length=1, max_length=60)
+    password: str = Field(min_length=1, max_length=200)
+
+
+@app.post("/api/auth/login")
+def login(payload: LoginIn, request: Request, db: sqlite3.Connection = Depends(get_db)) -> Response:
+    key = (payload.username.lower(), request.client.host if request.client else "-")
+    if throttle.blocked(key):
+        raise HTTPException(429, "Demasiados intentos; espere 5 minutos")
+    row = db.execute("SELECT * FROM users WHERE username = ? AND active = 1", (payload.username,)).fetchone()
+    if row is None or not verify_password(payload.password, row["password_hash"]):
+        throttle.fail(key)
+        raise HTTPException(401, "Usuario o clave incorrectos")
+    throttle.reset(key)
+    user = {"id": row["id"], "username": row["username"], "role": row["role"], "name": row["name"]}
+    response = JSONResponse(user)
+    response.set_cookie(SESSION_COOKIE, make_token(user), max_age=SESSION_SECONDS, httponly=True, samesite="strict",
+                        secure=os.getenv("CLINICAPRO_COOKIE_SECURE") == "1")
+    return response
+
+
+@app.post("/api/auth/logout")
+def logout() -> Response:
+    response = JSONResponse({"ok": True})
+    response.delete_cookie(SESSION_COOKIE)
+    return response
+
+
+@app.get("/api/auth/me")
+def me(request: Request, db: sqlite3.Connection = Depends(get_db)) -> dict[str, Any]:
+    row = db.execute("SELECT id, username, name, role FROM users WHERE id = ? AND active = 1", (request.state.user["id"],)).fetchone()
+    if row is None:
+        raise HTTPException(401, "Sesión requerida")
+    return dict(row)
+
+
+class PasswordIn(BaseModel):
+    current: str
+    new: str = Field(min_length=10, max_length=200)
+
+
+@app.post("/api/auth/password")
+def change_password(payload: PasswordIn, request: Request, db: sqlite3.Connection = Depends(get_db)) -> dict[str, bool]:
+    row = db.execute("SELECT * FROM users WHERE id = ?", (request.state.user["id"],)).fetchone()
+    if row is None or not verify_password(payload.current, row["password_hash"]):
+        raise HTTPException(403, "La clave actual no coincide")
+    db.execute("UPDATE users SET password_hash = ? WHERE id = ?", (hash_password(payload.new), row["id"]))
+    db.commit()
+    return {"ok": True}
+
+
+class UserIn(BaseModel):
+    username: str = Field(min_length=3, max_length=60, pattern=r"^[A-Za-z0-9_.@-]+$")
+    name: str = Field(min_length=1, max_length=120)
+    password: str | None = Field(default=None, min_length=10, max_length=200)
+    role: str = "profesional"
+    active: bool = True
+
+
+def _admins_left(db: sqlite3.Connection, excluding: int) -> int:
+    return db.execute("SELECT COUNT(*) FROM users WHERE role='admin' AND active=1 AND id != ?", (excluding,)).fetchone()[0]
+
+
+@app.get("/api/users")
+def list_users(request: Request, db: sqlite3.Connection = Depends(get_db)) -> list[dict[str, Any]]:
+    admin_only(request)
+    return [row_dict(r) for r in db.execute("SELECT id, username, name, role, active, created_at FROM users ORDER BY id")]
+
+
+@app.post("/api/users", status_code=201)
+def create_user(payload: UserIn, request: Request, db: sqlite3.Connection = Depends(get_db)) -> dict[str, Any]:
+    admin_only(request)
+    if payload.role not in ("admin", "profesional") or not payload.password:
+        raise HTTPException(422, "Rol no válido o clave faltante (mínimo 10 caracteres)")
+    try:
+        cursor = db.execute("INSERT INTO users (username, name, password_hash, role, active) VALUES (?,?,?,?,?)",
+                            (payload.username, payload.name, hash_password(payload.password), payload.role, int(payload.active)))
+        db.commit()
+    except sqlite3.IntegrityError as error:
+        raise HTTPException(409, "Ese usuario ya existe") from error
+    return row_dict(db.execute("SELECT id, username, name, role, active FROM users WHERE id = ?", (cursor.lastrowid,)).fetchone())
+
+
+@app.put("/api/users/{user_id}")
+def update_user(user_id: int, payload: UserIn, request: Request, db: sqlite3.Connection = Depends(get_db)) -> dict[str, Any]:
+    admin_only(request)
+    if payload.role not in ("admin", "profesional"):
+        raise HTTPException(422, "Rol no válido")
+    if (payload.role != "admin" or not payload.active) and _admins_left(db, user_id) == 0:
+        raise HTTPException(409, "Debe quedar al menos un administrador activo")
+    sets, params = ["username=?", "name=?", "role=?", "active=?"], [payload.username, payload.name, payload.role, int(payload.active)]
+    if payload.password:
+        sets.append("password_hash=?")
+        params.append(hash_password(payload.password))
+    try:
+        cursor = db.execute(f"UPDATE users SET {', '.join(sets)} WHERE id=?", (*params, user_id))
+        db.commit()
+    except sqlite3.IntegrityError as error:
+        raise HTTPException(409, "Ese usuario ya existe") from error
+    if cursor.rowcount == 0:
+        raise HTTPException(404, "Usuario no encontrado")
+    return row_dict(db.execute("SELECT id, username, name, role, active FROM users WHERE id = ?", (user_id,)).fetchone())
+
+
+@app.delete("/api/users/{user_id}", status_code=204)
+def delete_user(user_id: int, request: Request, db: sqlite3.Connection = Depends(get_db)) -> None:
+    admin_only(request)
+    if _admins_left(db, user_id) == 0:
+        raise HTTPException(409, "Debe quedar al menos un administrador activo")
+    db.execute("DELETE FROM users WHERE id = ?", (user_id,))
+    db.commit()
+
+
+def fold(text: str | None) -> str:
+    return "".join(c for c in unicodedata.normalize("NFD", (text or "").lower()) if unicodedata.category(c) != "Mn")
+
+
+class LibraryIn(BaseModel):
+    category: str
+    region: str | None = Field(default=None, max_length=60)
+    title: str = Field(min_length=1, max_length=160)
+    summary: str | None = Field(default=None, max_length=400)
+    content: str | None = Field(default=None, max_length=12000)
+    precautions: str | None = Field(default=None, max_length=2000)
+    tags: str | None = Field(default=None, max_length=300)
+
+
+LIB_COLUMNS = ("category", "region", "title", "summary", "content", "precautions", "tags")
+
+
+@app.get("/api/library/meta")
+def library_meta(db: sqlite3.Connection = Depends(get_db)) -> dict[str, Any]:
+    counts = {r["category"]: r["n"] for r in db.execute("SELECT category, COUNT(*) AS n FROM library_items GROUP BY category")}
+    regions = [r["region"] for r in db.execute("SELECT DISTINCT region FROM library_items WHERE region IS NOT NULL ORDER BY region")]
+    return {"categories": [{"id": k, "label": v, "count": counts.get(k, 0)} for k, v in CATEGORIES.items()], "regions": regions,
+            "total": sum(counts.values())}
+
+
+@app.get("/api/library")
+def library_search(q: str | None = None, category: str | None = None, region: str | None = None,
+                   db: sqlite3.Connection = Depends(get_db)) -> list[dict[str, Any]]:
+    sql, params = "SELECT * FROM library_items WHERE 1=1", []
+    if category:
+        sql, params = sql + " AND category = ?", [*params, category]
+    if region:
+        sql, params = sql + " AND region = ?", [*params, region]
+    rows = [dict(r) for r in db.execute(sql + " ORDER BY category, title", params)]
+    if q:
+        terms = fold(q).split()
+        def haystack(r): return fold(" ".join(str(r[c] or "") for c in ("title", "summary", "content", "tags", "region", "precautions")))
+        def rank(r):
+            title = fold(r["title"])
+            return -sum(3 if t in title else 1 for t in terms)
+        rows = sorted((r for r in rows if all(t in haystack(r) for t in terms)), key=rank)
+    return rows
+
+
+@app.get("/api/library/{item_id}")
+def library_get(item_id: int, db: sqlite3.Connection = Depends(get_db)) -> dict[str, Any]:
+    row = db.execute("SELECT * FROM library_items WHERE id = ?", (item_id,)).fetchone()
+    if row is None:
+        raise HTTPException(404, "Entrada no encontrada")
+    return dict(row)
+
+
+def _check_category(payload: LibraryIn) -> None:
+    if payload.category not in CATEGORIES:
+        raise HTTPException(422, "Categoría no válida")
+
+
+@app.post("/api/library", status_code=201)
+def library_create(payload: LibraryIn, request: Request, db: sqlite3.Connection = Depends(get_db)) -> dict[str, Any]:
+    admin_only(request)
+    _check_category(payload)
+    values = payload.model_dump()
+    try:
+        cursor = db.execute(f"INSERT INTO library_items ({', '.join(LIB_COLUMNS)}) VALUES ({', '.join('?' for _ in LIB_COLUMNS)})",
+                            tuple(values[c] for c in LIB_COLUMNS))
+        db.commit()
+    except sqlite3.IntegrityError as error:
+        raise HTTPException(409, "Ya existe una entrada con ese título en la categoría") from error
+    return dict(db.execute("SELECT * FROM library_items WHERE id = ?", (cursor.lastrowid,)).fetchone())
+
+
+@app.put("/api/library/{item_id}")
+def library_update(item_id: int, payload: LibraryIn, request: Request, db: sqlite3.Connection = Depends(get_db)) -> dict[str, Any]:
+    admin_only(request)
+    _check_category(payload)
+    values = payload.model_dump()
+    try:
+        cursor = db.execute(f"UPDATE library_items SET {', '.join(f'{c}=?' for c in LIB_COLUMNS)} WHERE id=?",
+                            (*(values[c] for c in LIB_COLUMNS), item_id))
+        db.commit()
+    except sqlite3.IntegrityError as error:
+        raise HTTPException(409, "Ya existe una entrada con ese título en la categoría") from error
+    if cursor.rowcount == 0:
+        raise HTTPException(404, "Entrada no encontrada")
+    return dict(db.execute("SELECT * FROM library_items WHERE id = ?", (item_id,)).fetchone())
+
+
+@app.delete("/api/library/{item_id}", status_code=204)
+def library_delete(item_id: int, request: Request, db: sqlite3.Connection = Depends(get_db)) -> None:
+    admin_only(request)
+    cursor = db.execute("DELETE FROM library_items WHERE id = ?", (item_id,))
+    db.commit()
+    if cursor.rowcount == 0:
+        raise HTTPException(404, "Entrada no encontrada")
 
 
 class PatientIn(BaseModel):
@@ -353,6 +623,11 @@ def export_payments(db: sqlite3.Connection = Depends(get_db)) -> StreamingRespon
            FROM payments y JOIN patients p ON p.id = y.patient_id ORDER BY y.paid_at DESC""",
         "pagos.csv",
     )
+
+
+@app.get("/sw.js", include_in_schema=False)
+def service_worker() -> FileResponse:
+    return FileResponse(STATIC_DIR / "sw.js", media_type="application/javascript", headers={"Service-Worker-Allowed": "/"})
 
 
 @app.get("/", response_class=HTMLResponse)

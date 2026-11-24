@@ -3,6 +3,7 @@ import tempfile
 
 _TMP = tempfile.mkdtemp(prefix="clinicapro-test-")
 os.environ["CLINICAPRO_DATA_DIR"] = _TMP
+os.environ["CLINICAPRO_ADMIN_PASSWORD"] = "clave-de-prueba-123"
 
 import pytest  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
@@ -14,6 +15,7 @@ from app.main import app  # noqa: E402
 @pytest.fixture()
 def client():
     with TestClient(app) as c:
+        assert c.post("/api/auth/login", json={"username": "admin", "password": "clave-de-prueba-123"}).status_code == 200
         yield c
         conn = get_connection()
         for table in ("payments", "consultations", "appointments", "professionals", "patients"):

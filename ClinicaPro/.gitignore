@@ -6,3 +6,5 @@ data/uploads/*
 !data/uploads/.gitkeep
 backups/
 .pytest_cache/
+data/.secret
+data/admin_inicial.txt
