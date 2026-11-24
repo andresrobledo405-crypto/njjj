@@ -1,6 +1,14 @@
-# KinePro — Gestión clínica
+# KinePro — Gestión y biblioteca para kinesiólogos
 
-Sistema web móvil para clínicas y consultas médicas: agenda con detección de choques (profesional, paciente, sala), fichas de pacientes con alergias visibles, atenciones con adjuntos (foto/PDF de exámenes), caja con medios de pago y exportación a CSV compatible con Excel.
+App web móvil (español, Chile) para consultas de kinesiología: pacientes, agenda por **plan de tratamiento** (ej. “10 sesiones”), atenciones con **EVA y rangos medidos por sesión** con gráfico de evolución, **hojas de ejercicios para el hogar** imprimibles/PDF armadas desde la biblioteca, caja, login con roles (admin/profesional) y una **biblioteca de kinesiología de 115 entradas** con asistente opcional “Preguntar con IA”.
+
+> ⚠ **Aviso:** el contenido clínico de la biblioteca fue redactado con apoyo de IA y **no está validado por un kinesiólogo**. El aviso es visible en la app y en las hojas para el profesional. `revision_gpt/` contiene el paquete para revisarlo; las correcciones se incorporan editando `app/library_data.txt` (no se inventan citas ni cifras).
+
+## Novedades kinesiológicas
+- **Planes**: pestaña Pacientes → ficha → *Nuevo plan* (motivo de consulta, diagnóstico kinésico, N sesiones). Progreso “4 de 10”; *Agendar sesiones* crea la serie (cada N días) omitiendo choques; el plan se cierra solo al completar las sesiones.
+- **Atención**: desde la agenda (*Registrar atención*) o la pestaña Atención: plan, EVA 0–10 (toque), mediciones (movimiento, valor, ° o cm), enlaces a entradas de la biblioteca, adjunto.
+- **Evolución**: ficha → plan → *Evolución*: gráficos de EVA y de cada medición por sesión.
+- **Ejercicios para el hogar**: Biblioteca → *Ejercicios para el hogar*: plantillas con ejercicios de la biblioteca y dosis que define el profesional; *Imprimir / PDF* (con nombre del paciente) abre una hoja lista para imprimir o “Guardar como PDF”.
 
 ## Abrir sin complicaciones
 
@@ -25,17 +33,17 @@ Computador y celulares en la misma red Wi-Fi. Buscar la IP con `ipconfig` y abri
 5. Descargar citas y pagos en CSV (separador `;`, UTF-8 con BOM, abre directo en Excel).
 
 ## API
-Documentación interactiva en `/docs`: `/api/patients`, `/api/professionals`, `/api/appointments`, `/api/agenda`, `/api/consultations`, `/api/payments`, `/api/dashboard`.
+Documentación interactiva en `/docs`: `/api/patients`, `/api/professionals`, `/api/appointments`, `/api/agenda`, `/api/consultations`, `/api/payments`, `/api/dashboard`, `/api/plans`, `/api/templates`, `/api/library`.
 
 ## Datos y respaldos
 - Base: `data/kinepro.db` · Adjuntos: `data/uploads`.
 - Para respaldar: `backup_kinepro.bat` o copiar la carpeta `data`. No publicar el puerto en Internet.
 
 ## Entrega comercial
-Versión lista para demostración y piloto local. Antes de operar con datos clínicos reales en Internet hay que agregar: autenticación por usuario y rol, HTTPS, auditoría de accesos a fichas, copias automáticas cifradas, política de retención y cumplimiento de la Ley 19.628/20.584 (datos sensibles de salud) y una base PostgreSQL administrada. Ver `GUIA_VENTA.md`.
+Versión lista para demostración y piloto local. Ya incluye login con roles. Antes de operar con datos clínicos reales en Internet hay que agregar: HTTPS (lo da Render), auditoría de accesos a fichas, copias automáticas cifradas, política de retención y cumplimiento de la Ley 19.628/20.584 (datos sensibles de salud) y una base PostgreSQL administrada. Ver `GUIA_VENTA.md`.
 
 ## Validación técnica
 ```powershell
 py -3 -m pytest -q
 ```
-Pruebas: RUT, choques de agenda, adjuntos, pagos, dashboard, exportación y protección de borrado con historial.
+Pruebas (41): RUT, choques de agenda, planes y series de sesiones, EVA/mediciones/evolución, plantillas e impresión, enlaces a biblioteca, autenticación, adjuntos, pagos, dashboard, exportación y protección de borrado con historial.

@@ -181,6 +181,7 @@ def register(app, appointment_rules) -> None:
         db.execute(
             """UPDATE treatment_plans SET professional_id=?, title=?, reason=?, kine_diagnosis=?, total_sessions=?, status=? WHERE id=?""",
             (payload.professional_id, payload.title, payload.reason, payload.kine_diagnosis, payload.total_sessions, payload.status, plan_id))
+        refresh_plan_status(db, plan_id)
         db.commit()
         return _plan_or_404(db, plan_id)
 

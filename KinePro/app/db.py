@@ -109,7 +109,7 @@ CREATE TABLE IF NOT EXISTS measurements (
 );
 CREATE TABLE IF NOT EXISTS consultation_library (
     consultation_id INTEGER NOT NULL REFERENCES consultations(id) ON DELETE CASCADE,
-    library_item_id INTEGER NOT NULL REFERENCES library_items(id) ON DELETE CASCADE,
+    library_item_id INTEGER NOT NULL REFERENCES library_items(id) ON DELETE RESTRICT,
     PRIMARY KEY (consultation_id, library_item_id)
 );
 CREATE TABLE IF NOT EXISTS exercise_templates (
@@ -121,11 +121,16 @@ CREATE TABLE IF NOT EXISTS exercise_templates (
 CREATE TABLE IF NOT EXISTS exercise_template_items (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     template_id INTEGER NOT NULL REFERENCES exercise_templates(id) ON DELETE CASCADE,
-    library_item_id INTEGER NOT NULL REFERENCES library_items(id) ON DELETE CASCADE,
+    library_item_id INTEGER NOT NULL REFERENCES library_items(id) ON DELETE RESTRICT,
     dosage TEXT,
     notes TEXT,
     position INTEGER NOT NULL DEFAULT 0
 );
+CREATE INDEX IF NOT EXISTS idx_appointments_plan ON appointments(plan_id);
+CREATE INDEX IF NOT EXISTS idx_consultations_plan ON consultations(plan_id);
+CREATE INDEX IF NOT EXISTS idx_measurements_consultation ON measurements(consultation_id);
+CREATE INDEX IF NOT EXISTS idx_conslib_item ON consultation_library(library_item_id);
+CREATE INDEX IF NOT EXISTS idx_tplitems_template ON exercise_template_items(template_id);
 CREATE INDEX IF NOT EXISTS idx_appointments_starts_at ON appointments(starts_at);
 CREATE INDEX IF NOT EXISTS idx_consultations_patient ON consultations(patient_id);
 """

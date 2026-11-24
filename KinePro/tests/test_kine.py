@@ -171,3 +171,48 @@ def test_numero_de_sesion_cuenta_las_atenciones_ya_hechas(client, base):
     assert day[0]["session_no"] == 3 and day[0]["plan_total"] == 5
     client.post(f"/api/appointments/{a['id']}/status", data={"status": "cancelled"})
     assert client.get("/api/agenda", params={"day": "2030-06-03"}).json()[0]["session_no"] is None
+
+
+def test_no_se_registra_dos_veces_la_misma_cita(client, base):
+    patient, _, doctor = base
+    plan = make_plan(client, patient, doctor, total=5)
+    a = client.post("/api/appointments", json=appt(patient, doctor, plan_id=plan["id"])).json()
+    form = {"patient_id": patient["id"], "professional_id": doctor["id"], "appointment_id": a["id"]}
+    assert client.post("/api/consultations", data=form).status_code == 201
+    assert client.post("/api/consultations", data=form).status_code == 409
+    assert client.get(f"/api/plans/{plan['id']}").json()["sessions_done"] == 1
+
+
+def test_plan_cerrado_no_acepta_sesiones_nuevas(client, base):
+    patient, _, doctor = base
+    plan = make_plan(client, patient, doctor, total=1)
+    consult(client, patient, doctor, plan)  # lo completa
+    assert consult(client, patient, doctor, plan).status_code == 409
+    assert client.post("/api/appointments", json=appt(patient, doctor, plan_id=plan["id"])).status_code == 409
+
+
+def test_bajar_el_total_cierra_el_plan(client, base):
+    patient, _, doctor = base
+    plan = make_plan(client, patient, doctor, total=5)
+    consult(client, patient, doctor, plan)
+    consult(client, patient, doctor, plan)
+    body = {"patient_id": patient["id"], "professional_id": doctor["id"], "title": plan["title"], "total_sessions": 2}
+    assert client.put(f"/api/plans/{plan['id']}", json=body).json()["status"] == "completed"
+
+
+def test_put_de_cita_sin_plan_no_la_desvincula(client, base):
+    patient, _, doctor = base
+    plan = make_plan(client, patient, doctor)
+    a = client.post("/api/appointments", json=appt(patient, doctor, plan_id=plan["id"])).json()
+    r = client.put(f"/api/appointments/{a['id']}", json=appt(patient, doctor, "2030-05-10T11:00")).json()
+    assert r["plan_id"] == plan["id"]
+
+
+def test_no_se_borra_una_entrada_enlazada(client, base):
+    patient, _, doctor = base
+    ids = exercise_ids(client, 1)
+    client.post("/api/templates", json={"name": "T", "items": [{"library_item_id": ids[0]}]})
+    consult(client, patient, doctor, library_ids=str(ids[0]))
+    assert client.delete(f"/api/library/{ids[0]}").status_code == 409
+    assert client.get(f"/api/library/{ids[0]}").status_code == 200
+    assert client.get("/api/consultations").json()[0]["library"][0]["id"] == ids[0]

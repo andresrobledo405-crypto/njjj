@@ -368,8 +368,11 @@ def library_update(item_id: int, payload: LibraryIn, request: Request, db: sqlit
 @app.delete("/api/library/{item_id}", status_code=204)
 def library_delete(item_id: int, request: Request, db: sqlite3.Connection = Depends(get_db)) -> None:
     admin_only(request)
-    cursor = db.execute("DELETE FROM library_items WHERE id = ?", (item_id,))
-    db.commit()
+    try:
+        cursor = db.execute("DELETE FROM library_items WHERE id = ?", (item_id,))
+        db.commit()
+    except sqlite3.IntegrityError as error:
+        raise HTTPException(409, "La entrada está enlazada a atenciones o plantillas; edítela en vez de borrarla") from error
     if cursor.rowcount == 0:
         raise HTTPException(404, "Entrada no encontrada")
 
@@ -512,9 +515,14 @@ def appointment_rules(values: dict, db: sqlite3.Connection, item_id: int | None)
     if values["status"] not in STATUSES:
         raise HTTPException(422, "Estado no válido")
     if values.get("plan_id") is not None:
-        plan = db.execute("SELECT patient_id FROM treatment_plans WHERE id = ?", (values["plan_id"],)).fetchone()
+        plan = db.execute("SELECT patient_id, status FROM treatment_plans WHERE id = ?", (values["plan_id"],)).fetchone()
         if plan is None or plan["patient_id"] != values["patient_id"]:
             raise HTTPException(422, "El plan no existe o pertenece a otro paciente")
+        if plan["status"] != "active" and values["status"] in ("scheduled", "arrived"):
+            raise HTTPException(409, "El plan no está activo")
+    elif item_id is not None:  # PUT sin plan_id no debe desvincular la cita de su plan
+        current = db.execute("SELECT plan_id FROM appointments WHERE id = ?", (item_id,)).fetchone()
+        values["plan_id"] = current["plan_id"] if current else None
     start = parse_start(values["starts_at"])
     values["starts_at"] = start.strftime("%Y-%m-%dT%H:%M")
     if values["status"] in ("cancelled", "no_show"):
@@ -622,13 +630,19 @@ async def create_consultation(
     db: sqlite3.Connection = Depends(get_db),
 ) -> dict[str, Any]:
     marks, links = parse_measurements(measurements), parse_ids(library_ids)
-    if appointment_id is not None and plan_id is None:
-        appt = db.execute("SELECT plan_id FROM appointments WHERE id = ?", (appointment_id,)).fetchone()
-        plan_id = appt["plan_id"] if appt else None
+    if appointment_id is not None:
+        appt = db.execute("SELECT plan_id, status FROM appointments WHERE id = ?", (appointment_id,)).fetchone()
+        if appt is not None:
+            if appt["status"] == "done" or db.execute("SELECT 1 FROM consultations WHERE appointment_id = ?", (appointment_id,)).fetchone():
+                raise HTTPException(409, "Esa cita ya tiene su atención registrada")
+            if plan_id is None:
+                plan_id = appt["plan_id"]
     if plan_id is not None:
-        plan = db.execute("SELECT patient_id FROM treatment_plans WHERE id = ?", (plan_id,)).fetchone()
+        plan = db.execute("SELECT patient_id, status FROM treatment_plans WHERE id = ?", (plan_id,)).fetchone()
         if plan is None or plan["patient_id"] != patient_id:
             raise HTTPException(422, "El plan no existe o pertenece a otro paciente")
+        if plan["status"] != "active":
+            raise HTTPException(409, "El plan no está activo")
     stored: str | None = None
     if attachment and attachment.filename:
         extension = Path(attachment.filename).suffix.lower()
@@ -641,9 +655,10 @@ async def create_consultation(
         (UPLOAD_DIR / stored).write_bytes(content)
     try:
         cursor = db.execute(
-            """INSERT INTO consultations (patient_id, professional_id, appointment_id, diagnosis, treatment, notes, attachment_path, plan_id, eva)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-            (patient_id, professional_id, appointment_id, diagnosis, treatment, notes, stored, plan_id, eva),
+            """INSERT INTO consultations (patient_id, professional_id, appointment_id, diagnosis, treatment, notes, attachment_path, plan_id, eva, occurred_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (patient_id, professional_id, appointment_id, diagnosis, treatment, notes, stored, plan_id, eva,
+             datetime.now().strftime("%Y-%m-%d %H:%M:%S")),  # hora local del servidor (fijar KINEPRO/TZ), no UTC
         )
         save_consultation_extras(db, cursor.lastrowid, marks, links)
         if appointment_id is not None:
