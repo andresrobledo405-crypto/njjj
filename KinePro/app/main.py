@@ -70,6 +70,8 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "SAMEORIGIN"
         response.headers["Referrer-Policy"] = "same-origin"
+        response.headers["Content-Security-Policy"] = ("default-src 'self'; script-src 'self' 'unsafe-inline'; "
+                                                       "style-src 'self' 'unsafe-inline'; img-src 'self' data:; frame-ancestors 'self'")
         return response
 
 
@@ -82,7 +84,15 @@ class AuthMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         path = request.url.path
         protected = path.startswith(("/api", "/docs", "/redoc", "/openapi"))
-        request.state.user = read_token(request.cookies.get(SESSION_COOKIE))
+        user = read_token(request.cookies.get(SESSION_COOKIE))
+        if user is not None:  # revalida contra la base: usuario desactivado o con otro rol pierde la sesión
+            db = get_connection()
+            try:
+                row = db.execute("SELECT role FROM users WHERE id = ? AND active = 1", (user["id"],)).fetchone()
+            finally:
+                db.close()
+            user = {**user, "r": row["role"]} if row else None
+        request.state.user = user
         if protected and path not in PUBLIC_PATHS and request.state.user is None:
             return JSONResponse({"detail": "Sesión requerida"}, status_code=401)
         return await call_next(request)

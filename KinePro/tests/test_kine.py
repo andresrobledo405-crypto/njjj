@@ -216,3 +216,24 @@ def test_no_se_borra_una_entrada_enlazada(client, base):
     assert client.delete(f"/api/library/{ids[0]}").status_code == 409
     assert client.get(f"/api/library/{ids[0]}").status_code == 200
     assert client.get("/api/consultations").json()[0]["library"][0]["id"] == ids[0]
+
+
+def test_csv_neutraliza_formulas(client, base):
+    client.post("/api/patients", json={"name": "=HYPERLINK(\"x\")"})
+    csv = client.get("/api/export/payments.csv")
+    patient = client.post("/api/patients", json={"name": "@cmd"}).json()
+    client.post("/api/payments", json={"patient_id": patient["id"], "concept": "+1+1", "amount": 1000})
+    body = client.get("/api/export/payments.csv").text
+    assert "'@cmd" in body and "'+1+1" in body and csv.status_code == 200
+
+
+def test_usuario_desactivado_pierde_la_sesion(client):
+    u = client.post("/api/users", json={"username": "kine1", "name": "Kine", "password": "clave-larga-123", "role": "profesional"}).json()
+    from fastapi.testclient import TestClient
+    from app.main import app
+    with TestClient(app) as other:
+        assert other.post("/api/auth/login", json={"username": "kine1", "password": "clave-larga-123"}).status_code == 200
+        assert other.get("/api/plans").status_code == 200
+        client.put(f"/api/users/{u['id']}", json={"username": "kine1", "name": "Kine", "role": "profesional", "active": False})
+        assert other.get("/api/plans").status_code == 401
+    client.delete(f"/api/users/{u['id']}")

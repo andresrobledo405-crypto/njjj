@@ -8,7 +8,7 @@
 <title>KinePro</title>
 <link rel="icon" href="/static/icon.svg" type="image/svg+xml">
 <style>
-:root{--bg:#f4f7f6;--card:#fff;--ink:#12302d;--mute:#5d7471;--line:#dbe5e3;--brand:#0f766e;--brand-ink:#fff;--warn:#b45309;--bad:#b91c1c;--ok:#15803d;--soft:#e6f2f0}
+:root{--bg:#f4f7f6;--card:#fff;--ink:#12302d;--mute:#4d6562;--line:#dbe5e3;--brand:#0f766e;--brand-ink:#fff;--warn:#b45309;--bad:#b91c1c;--ok:#15803d;--soft:#e6f2f0}
 @media (prefers-color-scheme:dark){:root{--bg:#0d1b1a;--card:#142927;--ink:#e6f2f0;--mute:#93b0ac;--line:#24403d;--brand:#2dd4bf;--brand-ink:#04211e;--soft:#1b3a36;--warn:#f59e0b}}
 *{box-sizing:border-box}body{margin:0;font:16px/1.45 system-ui,sans-serif;background:var(--bg);color:var(--ink);padding-bottom:5rem}
 header{padding:1rem;display:flex;justify-content:space-between;align-items:center}h1{font-size:1.25rem;margin:0}h2{font-size:1.15rem;margin:.6rem 0}h3{font-size:1rem;margin:1rem 0 .4rem}
@@ -24,17 +24,18 @@ button.p{background:var(--brand);color:var(--brand-ink);border:0;font-weight:700
 button.p.sec{background:var(--soft);color:var(--ink)}
 label.f{display:grid;gap:.2rem;font-size:.8rem;color:var(--mute)}
 .tag{font-size:.75rem;padding:.1rem .5rem;border-radius:99px;border:1px solid var(--line);white-space:nowrap}.warn{color:var(--warn)}
-.mini{border:1px solid var(--line);background:none;color:var(--ink);border-radius:8px;padding:.45rem .65rem;font:inherit;font-size:.82rem;min-height:36px;text-decoration:none;display:inline-block}
+:focus-visible{outline:3px solid var(--brand);outline-offset:2px}
+.mini{border:1px solid var(--line);background:none;color:var(--ink);border-radius:8px;padding:.45rem .65rem;font:inherit;font-size:.82rem;min-height:44px;text-decoration:none;display:inline-block}
 .mini.on{background:var(--brand);color:var(--brand-ink);border-color:var(--brand)}
 #login{position:fixed;inset:0;background:var(--bg);display:grid;place-items:center;padding:1rem;z-index:20}#login form{width:100%;max-width:340px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:1.2rem}
-.chips{display:flex;gap:.4rem;overflow-x:auto;padding-bottom:.4rem}.chip{white-space:nowrap;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:99px;padding:.45rem .9rem;font:inherit;font-size:.85rem;min-height:38px}.chip[aria-pressed=true]{background:var(--brand);color:var(--brand-ink);border-color:var(--brand)}
+.chips{display:flex;gap:.4rem;overflow-x:auto;padding-bottom:.4rem}.chip{white-space:nowrap;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:99px;padding:.45rem .9rem;font:inherit;font-size:.85rem;min-height:44px}.chip[aria-pressed=true]{background:var(--brand);color:var(--brand-ink);border-color:var(--brand)}
 .body{white-space:pre-wrap}.prec{border-left:3px solid var(--warn);padding:.4rem .6rem;margin:.5rem 0;background:#b4530912}
 .notice{border:1px solid var(--warn);border-radius:10px;padding:.5rem .7rem;font-size:.82rem;margin:.5rem 0;background:#b4530910}
 #detail{position:fixed;inset:0;background:#0009;display:none;align-items:flex-end;z-index:15}#detail.on{display:flex}#detail>div{background:var(--bg);width:100%;max-width:760px;margin:auto;max-height:92vh;overflow:auto;border-radius:16px 16px 0 0;padding:1rem;padding-bottom:calc(1rem + env(safe-area-inset-bottom))}
 .note{font-size:.78rem;color:var(--mute);margin:.6rem 0}
-.bar{height:8px;border-radius:99px;background:var(--line);overflow:hidden;margin:.4rem 0}.bar>i{display:block;height:100%;background:var(--brand)}.bar>i.s{background:var(--brand);opacity:.35}
+.bar{height:8px;border-radius:99px;background:var(--line);overflow:hidden;margin:.4rem 0}.bar>i{display:block;height:100%;background:var(--brand)}.bar>i.s{background:var(--warn)}
 .eva{display:grid;grid-template-columns:repeat(11,1fr);gap:.25rem}.eva button{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;min-height:44px;font:inherit;font-weight:700}.eva button[aria-pressed=true]{background:var(--brand);color:var(--brand-ink);border-color:var(--brand)}
-.meas{display:grid;grid-template-columns:1fr 84px 64px 40px;gap:.3rem}.meas>*{min-width:0}
+.meas{display:grid;grid-template-columns:1fr 84px 64px 44px;gap:.3rem}.meas>*{min-width:0}
 .charts svg{width:100%;height:auto;background:var(--card);border:1px solid var(--line);border-radius:12px;margin-bottom:.5rem}
 .pick{display:flex;gap:.4rem;flex-wrap:wrap;margin:.3rem 0}.pick .chip{font-size:.8rem}
 .item{display:grid;gap:.3rem;border:1px solid var(--line);border-radius:10px;padding:.5rem;margin-bottom:.5rem;background:var(--card)}
@@ -87,7 +88,7 @@ label.f{display:grid;gap:.2rem;font-size:.8rem;color:var(--mute)}
 <section id="caja" hidden><form id="fPay"><select id="yPatient" required aria-label="Paciente"></select><input id="yConcept" placeholder="Concepto" required><input id="yAmount" type="number" min="0" placeholder="Monto CLP" required inputmode="numeric">
 <select id="yMethod"><option value="cash">Efectivo</option><option value="card">Tarjeta</option><option value="transfer">Transferencia</option><option value="insurance">Seguro / Isapre</option></select><button class="p">Registrar pago</button></form><a class="mini" href="/api/export/payments.csv">Descargar pagos (Excel)</a><div id="payList"></div></section>
 </main>
-<nav role="tablist"><button aria-selected="true" data-t="agenda">Agenda</button><button data-t="pacientes">Pacientes</button><button data-t="atencion">Atención</button><button data-t="biblioteca">Biblioteca</button><button data-t="caja">Caja</button><button data-t="admin" id="tabAdmin" hidden>Admin</button></nav>
+<nav aria-label="Secciones"><button aria-selected="true" aria-current="page" data-t="agenda">Agenda</button><button data-t="pacientes">Pacientes</button><button data-t="atencion">Atención</button><button data-t="biblioteca">Biblioteca</button><button data-t="caja">Caja</button><button data-t="admin" id="tabAdmin" hidden>Admin</button></nav>
 <div id="detail" role="dialog" aria-modal="true"><div id="detailBody"></div></div>
 <div id="login"><form id="fLogin"><h2 style="margin:0 0 .6rem">🩺 KinePro</h2><input id="lgUser" placeholder="Usuario" autocomplete="username" required><input id="lgPass" type="password" placeholder="Clave" autocomplete="current-password" required><button class="p">Ingresar</button><p class="note" id="lgErr" role="alert"></p></form></div>
 <div id="msg" role="status"></div>
@@ -99,13 +100,14 @@ const clp=n=>new Intl.NumberFormat("es-CL",{style:"currency",currency:"CLP",maxi
 const localDay=(d=new Date())=>new Date(d-d.getTimezoneOffset()*6e4).toISOString().slice(0,10);
 const dm=d=>d.slice(8,10)+"/"+d.slice(5,7);
 async function api(u,o){const r=await fetch(u,o);if(r.status===401&&!u.includes("/auth/login")){showLogin();throw new Error("Sesión expirada")}if(!r.ok){let d="Error";try{d=(await r.json()).detail}catch{};throw new Error(typeof d==="string"?d:"Datos inválidos")}return r.status===204?null:r.json()}
-function say(t){const m=$("msg");m.textContent=t;m.classList.add("on");setTimeout(()=>m.classList.remove("on"),2600)}
+function say(t){const m=$("msg");m.setAttribute("role",/inv[aá]lid|error|no |ya |omitidas|choc|requerid|expir/i.test(t)?"alert":"status");m.textContent=t;m.classList.add("on");setTimeout(()=>m.classList.remove("on"),3800)}
 const send=(m,u,b)=>api(u,{method:m,headers:{"Content-Type":"application/json"},body:JSON.stringify(b)}),post=(u,b)=>send("POST",u,b);
 let pats=[],pros=[],me=null,cat="";
 const opts=(l,f)=>l.map(x=>`<option value="${x.id}">${esc(f(x))}</option>`).join("");
-const sheet=h=>{$("detailBody").innerHTML=h;$("detail").classList.add("on");$("detail").scrollTop=0;$("detailBody").parentElement.scrollTop=0};
-const closeSheet=()=>$("detail").classList.remove("on");
-function go(t){document.querySelectorAll("nav button").forEach(x=>x.setAttribute("aria-selected",x.dataset.t===t));document.querySelectorAll("main section").forEach(s=>s.hidden=s.id!==t)}
+let lastFocus=null;
+const sheet=h=>{if(!$("detail").classList.contains("on"))lastFocus=document.activeElement;const b=$("detailBody");b.innerHTML=h;$("detail").classList.add("on");b.parentElement.scrollTop=0;b.setAttribute("tabindex","-1");const t=b.querySelector("h2");if(t){t.id="sheetTitle";$("detail").setAttribute("aria-labelledby","sheetTitle")}document.querySelectorAll("header,main,nav").forEach(x=>x.inert=true);b.focus()};
+const closeSheet=()=>{if(!$("detail").classList.contains("on"))return;$("detail").classList.remove("on");document.querySelectorAll("header,main,nav").forEach(x=>x.inert=false);lastFocus?.isConnected&&lastFocus.focus()};
+function go(t){document.querySelectorAll("nav button").forEach(x=>{const on=x.dataset.t===t;x.setAttribute("aria-selected",on);on?x.setAttribute("aria-current","page"):x.removeAttribute("aria-current")});document.querySelectorAll("main section").forEach(s=>s.hidden=s.id!==t)}
 
 /* ---------- panel, agenda, listas ---------- */
 async function stats(){const d=await api("/api/dashboard");$("stats").innerHTML=[["Citas hoy",d.today_appointments],["Pendientes",d.today_pending],["Realizadas",d.today_done],["Pacientes",d.patients],["Ingresos mes",clp(d.month_revenue)]].map(([k,v])=>`<div class="stat"><b>${v}</b><span>${k}</span></div>`).join("")}
@@ -141,7 +143,7 @@ $("linkRes").addEventListener("click",e=>{const b=e.target.closest("[data-add]")
 $("linkSel").addEventListener("click",e=>{const b=e.target.closest("[data-rm]");if(b){links.delete(+b.dataset.rm);drawLinks()}});
 async function loadPlans(selected){const pid=$("cPatient").value;if(!pid){$("cPlan").innerHTML="";return}const l=await api("/api/plans?patient_id="+pid+"&status=active");$("cPlan").innerHTML='<option value="">Sin plan (atención suelta)</option>'+l.map(p=>`<option value="${p.id}">${esc(p.title)} · ${p.sessions_done}/${p.total_sessions}</option>`).join("");if(selected)$("cPlan").value=selected}
 $("cPatient").addEventListener("change",()=>{$("cAppt").value="";$("cApptNote").hidden=true;loadPlans()});
-async function startAttention(apptId,opt={}){try{go("atencion");await lists();if(apptId){const a=(await api("/api/appointments/"+apptId));$("cPatient").value=a.patient_id;$("cPro").value=a.professional_id;$("cAppt").value=a.id;$("cApptNote").hidden=false;$("cApptNote").textContent="Atención de la cita del "+a.starts_at.replace("T"," ");await loadPlans(a.plan_id)}else{if(opt.patient)$("cPatient").value=opt.patient;await loadPlans(opt.plan)}window.scrollTo({top:0,behavior:"smooth"})}catch(x){say(x.message)}}
+async function startAttention(apptId,opt={}){try{go("atencion");await lists();if(apptId){const a=(await api("/api/appointments/"+apptId));$("cPatient").value=a.patient_id;$("cPro").value=a.professional_id;$("cAppt").value=a.id;$("cApptNote").hidden=false;$("cApptNote").textContent="Atención de la cita del "+a.starts_at.replace("T"," ");await loadPlans(a.plan_id)}else{if(opt.patient)$("cPatient").value=opt.patient;await loadPlans(opt.plan)}window.scrollTo({top:0,behavior:"smooth"});$("cDiag").focus({preventScroll:true})}catch(x){say(x.message)}}
 $("fCons").addEventListener("submit",async e=>{e.preventDefault();try{const f=new FormData();f.append("patient_id",$("cPatient").value);f.append("professional_id",$("cPro").value);if($("cAppt").value)f.append("appointment_id",$("cAppt").value);if($("cPlan").value)f.append("plan_id",$("cPlan").value);if(eva!==null)f.append("eva",eva);const m=measData();if(m.length)f.append("measurements",JSON.stringify(m));if(links.size)f.append("library_ids",[...links.keys()].join(","));f.append("diagnosis",$("cDiag").value);f.append("treatment",$("cTreat").value);if($("cFile").files[0])f.append("attachment",$("cFile").files[0]);await api("/api/consultations",{method:"POST",body:f});
 const keepP=$("cPatient").value,keepR=$("cPro").value,keepL=$("cPlan").value;e.target.reset();eva=null;links=new Map();drawLinks();$("measRows").innerHTML="";document.querySelectorAll("#evaRow button").forEach(x=>x.setAttribute("aria-pressed","false"));$("cAppt").value="";$("cApptNote").hidden=true;$("cPatient").value=keepP;$("cPro").value=keepR;await refresh();await loadPlans(keepL);say("Atención guardada")}catch(x){say(x.message)}});
 
@@ -198,9 +200,9 @@ else if(f.dataset.series){const q=f.elements,r=await post(`/api/plans/${f.datase
 const planBox=f.closest(".card");planBox.insertAdjacentHTML("beforeend",r.skipped.length?`<div class="notice">Omitidas: ${r.skipped.map(s=>esc(s.starts_at.replace("T"," "))+" ("+esc(s.reason)+")").join("; ")}</div>`:"");f.remove();refresh()}
 }catch(x){say(x.message)}});
 $("patList").addEventListener("click",e=>{const c=e.target.closest("[data-pat]");if(c)openPatient(+c.dataset.pat)});
-$("patList").addEventListener("keydown",e=>{if(e.key==="Enter"){const c=e.target.closest("[data-pat]");if(c)openPatient(+c.dataset.pat)}});
+$("patList").addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();const c=e.target.closest("[data-pat]");if(c)openPatient(+c.dataset.pat)}});
 $("consList").addEventListener("click",e=>{const b=e.target.closest("[data-lib]");if(b)libDetail(+b.dataset.lib).catch(x=>say(x.message))});
-document.addEventListener("keydown",e=>{if(e.key==="Escape")closeSheet()});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&$("detail").classList.contains("on"))closeSheet()});
 
 /* ---------- plantillas de ejercicios para el hogar ---------- */
 let tplItems=[],tplId=null;
@@ -217,7 +219,7 @@ let tt;$("tplQ").addEventListener("input",()=>{clearTimeout(tt);tt=setTimeout(as
 async function saveTemplate(){try{const name=$("tplName").value.trim();if(!name)return say("Ponga un nombre");const body={name,notes:$("tplNotes").value||null,items:tplItems.map(i=>({library_item_id:i.library_item_id,dosage:i.dosage||null,notes:i.notes||null}))};const t=tplId?await send("PUT","/api/templates/"+tplId,body):await post("/api/templates",body);say("Plantilla guardada");tplList();await openTemplate(t.id)}catch(x){say(x.message)}}
 $("newTpl").addEventListener("click",()=>openTemplate(null).catch(x=>say(x.message)));
 $("tplList").addEventListener("click",e=>{const c=e.target.closest("[data-tpl]");if(c)openTemplate(+c.dataset.tpl).catch(x=>say(x.message))});
-$("tplList").addEventListener("keydown",e=>{if(e.key==="Enter"){const c=e.target.closest("[data-tpl]");if(c)openTemplate(+c.dataset.tpl)}});
+$("tplList").addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();const c=e.target.closest("[data-tpl]");if(c)openTemplate(+c.dataset.tpl)}});
 $("libTabs").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;document.querySelectorAll("#libTabs .chip").forEach(x=>x.setAttribute("aria-pressed",x===b));$("libPane").hidden=b.dataset.p!=="lib";$("tplPane").hidden=b.dataset.p!=="tpl";if(b.dataset.p==="tpl")tplList().catch(x=>say(x.message))});
 
 /* ---------- sesión, biblioteca, administración ---------- */
@@ -238,6 +240,7 @@ form("fLib",async()=>{await post("/api/library",{category:$("lCat").value,region
 fetch("/api/meta").then(r=>r.json()).then(m=>{$("askBox").hidden=!m.ask_enabled;document.title=m.name;$("brand").textContent="🩺 "+m.name}).catch(()=>{});
 $("fAsk").addEventListener("submit",async e=>{e.preventDefault();$("askOut").innerHTML='<p class="mute">Consultando…</p>';try{const r=await post("/api/library/ask",{question:$("askQ").value});$("askOut").innerHTML=`<div class="card"><div class="body">${esc(r.answer)}</div><div class="mute" style="margin-top:.4rem">Fuentes: ${r.sources.map(s=>`<a href="#" data-src="${s.id}">${esc(s.title)}</a>`).join(" · ")||"—"}</div></div>`}catch(x){$("askOut").innerHTML="";say(x.message)}});
 $("askOut").addEventListener("click",e=>{const a=e.target.closest("a[data-src]");if(!a)return;e.preventDefault();libDetail(+a.dataset.src).catch(x=>say(x.message))});
+document.querySelectorAll("input[placeholder],textarea[placeholder]").forEach(x=>{if(!x.getAttribute("aria-label")&&!x.closest("label"))x.setAttribute("aria-label",x.placeholder)});
 if("serviceWorker" in navigator)navigator.serviceWorker.register("/sw.js").catch(()=>{});
 start();
 </script>
