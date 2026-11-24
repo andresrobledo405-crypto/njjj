@@ -1,0 +1,2416 @@
+# ClinicaPro — código fuente completo (sin la biblioteca de contenido)
+
+
+==================== ClinicaPro/.env.example ====================
+# Copie este archivo como .env y ajuste los valores. Nunca suba .env al repositorio.
+CLINICAPRO_NOMBRE=Clínica Pro
+# CLINICAPRO_DATA_DIR=C:\ClinicaPro\data
+# CLINICAPRO_ADMIN_USER=admin
+# CLINICAPRO_ADMIN_PASSWORD=   (si se omite, se genera y se guarda en data/admin_inicial.txt)
+# CLINICAPRO_SECRET=           (firma de sesiones; si se omite, se genera en data/.secret)
+# CLINICAPRO_COOKIE_SECURE=1   (obligatorio al publicar con HTTPS)
+
+
+==================== ClinicaPro/.gitignore ====================
+.venv/
+__pycache__/
+.env
+data/*.db
+data/uploads/*
+!data/uploads/.gitkeep
+backups/
+.pytest_cache/
+data/.secret
+data/admin_inicial.txt
+
+
+==================== ClinicaPro/DEPLOY.md ====================
+# Publicar Clínica Pro en Render
+
+Servicio web **clinicapro** (plan gratuito, Python), independiente de cualquier otro servicio.
+
+| Campo | Valor |
+|---|---|
+| Repo / rama | `https://github.com/andresrobledo405-crypto/njjj` · rama `claude/clinicapro-general` |
+| Build | `cd ClinicaPro && pip install -r requirements.txt` |
+| Start | `cd ClinicaPro && uvicorn app.main:app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips='*'` |
+| Variables | `CLINICAPRO_NOMBRE=Clínica Pro`, `CLINICAPRO_ADMIN_USER=admin`, `CLINICAPRO_ADMIN_PASSWORD=<aleatoria>`, `CLINICAPRO_SECRET=<aleatoria>`, `CLINICAPRO_COOKIE_SECURE=1`, `TZ=America/Santiago` (horas y caja en hora de Chile) |
+
+Genere las claves con `python -c "import secrets;print(secrets.token_urlsafe(18))"`. **No las suba al repositorio.**
+
+## Persistencia de datos
+El plan gratuito tiene disco efímero: la base SQLite (`data/`) **se pierde en cada reinicio o redeploy**. Úselo solo para demostración. Para datos reales:
+1. **Disco persistente** (de pago): monte un disco en `/var/data` y fije `CLINICAPRO_DATA_DIR=/var/data`.
+2. **PostgreSQL**: requiere adaptar la capa de datos (hoy es SQLite).
+
+Cambiar la clave del administrador tras el primer ingreso (Admin → Mi clave). La variable `CLINICAPRO_ADMIN_PASSWORD` solo se usa mientras no existan usuarios.
+
+
+==================== ClinicaPro/GUIA_VENTA.md ====================
+# Guía de venta — Clínica Pro
+
+**Cliente ideal:** consultas médicas de cualquier especialidad, centros dentales y policlínicos pequeños que hoy usan papel o Excel.
+
+**Dolor que resuelve:** dobles reservas, fichas perdidas, alergias no vistas, cierre de caja manual.
+
+## Demostración (10 min)
+1. Ejecutar `demo_clinica_pro.bat`.
+2. Mostrar la agenda del día y el aviso de alergias en la cita.
+3. Intentar agendar un choque de horario → el sistema lo rechaza.
+4. Registrar una atención con foto de un examen desde el celular.
+5. Abrir la ficha de un paciente (historial) y la pestaña Recordatorios: copiar el mensaje de WhatsApp de las citas de mañana.
+6. Registrar un pago, mostrar el informe de caja diario/mensual y descargar Excel.
+
+## Propuesta
+- **Piloto local:** instalación en 1 computador + celulares por Wi-Fi, capacitación de 1 hora.
+- **Mensual:** soporte, respaldos y actualizaciones. *(Definir precios según el cliente; no se fijan aquí.)*
+- **Ya incluido:** usuarios y roles, recordatorios para WhatsApp (copiar y enviar), ficha con historial, informe de caja, documentos internos.
+- **Fase 2 (servicio en Internet):** auditoría de accesos, respaldos cifrados, PostgreSQL administrada, envío automático de recordatorios (opcional).
+
+## Objeciones frecuentes
+- *¿Y la privacidad?* Datos en el computador o servidor de la clínica; no se envían a servicios externos ni a IA. En fase 2, cifrado y auditoría.
+- *¿Se puede migrar mi Excel?* Sí, vía API/CSV en el onboarding.
+
+
+==================== ClinicaPro/README.md ====================
+# Clínica Pro — Gestión clínica
+
+Sistema web móvil para clínicas y consultas médicas de **cualquier especialidad**: login con roles, agenda con detección de choques (profesional, paciente, sala), ficha de paciente con historial, atenciones con adjuntos (foto/PDF de exámenes), recordatorios de citas para WhatsApp (se copian y se envían a mano), caja con informe diario/mensual, documentos internos de la clínica y exportación a CSV compatible con Excel. No incluye contenido clínico precargado ni servicios de IA: ningún dato sale del servidor.
+
+## Abrir sin complicaciones
+
+### Primera instalación
+1. Instalar Python 3.11 o superior desde <https://www.python.org/downloads/>.
+2. Descomprimir esta carpeta en el computador de recepción.
+3. Ejecutar `install_clinica_pro.ps1` con PowerShell.
+4. Ejecutar `run_clinica_pro.bat`. Se abre `http://127.0.0.1:8000`.
+
+Siguientes veces: doble clic en `run_clinica_pro.bat`.
+Demostración con datos de ejemplo: `demo_clinica_pro.bat` (no borra datos existentes).
+Copia de la base y adjuntos: `backup_clinica_pro.bat`.
+
+## Uso en celulares
+Computador y celulares en la misma red Wi-Fi. Buscar la IP con `ipconfig` y abrir `http://IP-DEL-COMPUTADOR:8000`; en el navegador elegir **Agregar a pantalla de inicio**.
+
+## Flujo
+1. **Ingreso**: usuario y clave. Roles: *administrador* (usuarios, documentos) y *profesional*. En el primer arranque se crea `admin` con la clave de `CLINICAPRO_ADMIN_PASSWORD` (o una generada en `data/admin_inicial.txt`).
+2. **Pacientes**: nombre, RUT (normalizado, no se repite), teléfono, alergias. Al tocar un paciente se abre su **ficha con historial** (citas, atenciones, pagos).
+3. **Agenda**: el sistema rechaza choques de profesional, paciente o sala. Estados: En espera, Realizada, Cancelada, No asistió.
+4. **Atención**: diagnóstico, tratamiento y adjunto (JPG/PNG/WEBP/PDF, máx. 8 MB); la cita pasa a *Realizada*.
+5. **Recordatorios**: lista de citas de mañana (o de otra fecha) con el mensaje listo; botón *Copiar mensaje* y enlace a WhatsApp. **Nada se envía automáticamente.**
+6. **Caja**: pagos por medio (efectivo, tarjeta, transferencia, seguro) y **informe de caja diario y mensual**.
+7. **Documentos**: módulo opcional donde el administrador sube/edita notas internas (protocolos, consentimientos, tarifas). Viene vacío. No guarde datos de pacientes ahí.
+8. Exportar citas y pagos en CSV (separador `;`, UTF-8 con BOM).
+
+## Configuración (variables de entorno)
+`CLINICAPRO_NOMBRE`, `CLINICAPRO_ADMIN_USER`, `CLINICAPRO_ADMIN_PASSWORD`, `CLINICAPRO_SECRET` (firma de sesiones), `CLINICAPRO_COOKIE_SECURE=1` (con HTTPS), `CLINICAPRO_DATA_DIR`. Ver `.env.example`. Publicación en Render: `DEPLOY.md`.
+
+## API
+Documentación en `/docs` (requiere sesión). Todo `/api` exige sesión salvo `/api/auth/login`, `/api/health` y `/api/meta` (solo el nombre de la clínica). Rutas: `/api/patients` (+`/{id}/history`), `/api/professionals`, `/api/appointments`, `/api/agenda`, `/api/reminders`, `/api/consultations`, `/api/payments`, `/api/reports/cash`, `/api/documents`, `/api/dashboard`, `/api/users`.
+
+## Datos y respaldos
+- Base: `data/clinica.db` · Adjuntos: `data/uploads`.
+- Para respaldar: `backup_clinica_pro.bat` o copiar la carpeta `data`. No publicar el puerto en Internet.
+
+## Seguridad
+Contraseñas con scrypt, sesión en cookie firmada (HttpOnly, SameSite=Strict, Secure con HTTPS), bloqueo tras 5 intentos fallidos, sin secretos en el repositorio y sin llamadas a servicios externos con datos de pacientes. Pendiente para operar con datos reales en Internet: auditoría de accesos, copias automáticas cifradas, base PostgreSQL administrada y cumplimiento de las leyes 19.628 y 20.584. Ver `GUIA_VENTA.md`.
+
+## Validación técnica
+```
+python -m pytest -q
+```
+Cubre RUT, choques de agenda, adjuntos, pagos, dashboard, exportación, login y roles, documentos, recordatorios, ficha de paciente e informe de caja.
+
+
+==================== ClinicaPro/app/__init__.py ====================
+
+
+==================== ClinicaPro/app/auth.py ====================
+"""Autenticación: contraseñas con scrypt y sesión en cookie firmada (HMAC-SHA256)."""
+import base64
+import hashlib
+import hmac
+import json
+import os
+import secrets
+import time
+
+from .config import DATA_DIR
+
+SESSION_COOKIE = "clinicapro_session"
+SESSION_SECONDS = 12 * 3600
+
+
+def hash_password(password: str, salt: bytes | None = None) -> str:
+    salt = salt or secrets.token_bytes(16)
+    digest = hashlib.scrypt(password.encode(), salt=salt, n=2**14, r=8, p=1, dklen=32)
+    return f"scrypt${salt.hex()}${digest.hex()}"
+
+
+def verify_password(password: str, stored: str) -> bool:
+    try:
+        _, salt_hex, digest_hex = stored.split("$")
+        expected = hash_password(password, bytes.fromhex(salt_hex)).split("$")[2]
+    except ValueError:
+        return False
+    return hmac.compare_digest(expected, digest_hex)
+
+
+def _secret() -> bytes:
+    env = os.getenv("CLINICAPRO_SECRET")
+    if env:
+        return env.encode()
+    path = DATA_DIR / ".secret"
+    if not path.exists():
+        path.write_text(secrets.token_hex(32))
+        try:
+            path.chmod(0o600)
+        except OSError:
+            pass
+    return path.read_text().strip().encode()
+
+
+def _b64(data: bytes) -> str:
+    return base64.urlsafe_b64encode(data).decode().rstrip("=")
+
+
+def make_token(user: dict) -> str:
+    payload = _b64(json.dumps({"id": user["id"], "u": user["username"], "r": user["role"], "exp": int(time.time()) + SESSION_SECONDS}).encode())
+    return f"{payload}.{_b64(hmac.new(_secret(), payload.encode(), hashlib.sha256).digest())}"
+
+
+def read_token(token: str | None) -> dict | None:
+    if not token or "." not in token:
+        return None
+    payload, signature = token.rsplit(".", 1)
+    expected = _b64(hmac.new(_secret(), payload.encode(), hashlib.sha256).digest())
+    if not hmac.compare_digest(signature, expected):
+        return None
+    try:
+        data = json.loads(base64.urlsafe_b64decode(payload + "=" * (-len(payload) % 4)))
+    except ValueError:
+        return None
+    return data if data.get("exp", 0) > time.time() else None
+
+
+class LoginThrottle:
+    """Bloquea 5 minutos tras 5 intentos fallidos por usuario+IP."""
+
+    def __init__(self, limit: int = 5, window: int = 300):
+        self.limit, self.window, self.fails = limit, window, {}
+
+    def _recent(self, key):
+        now = time.time()
+        self.fails[key] = [t for t in self.fails.get(key, []) if now - t < self.window]
+        return self.fails[key]
+
+    def blocked(self, key) -> bool:
+        return len(self._recent(key)) >= self.limit
+
+    def fail(self, key) -> None:
+        self._recent(key).append(time.time())
+
+    def reset(self, key) -> None:
+        self.fails.pop(key, None)
+
+
+throttle = LoginThrottle()
+
+
+==================== ClinicaPro/app/config.py ====================
+import os
+from pathlib import Path
+
+from dotenv import load_dotenv
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(BASE_DIR / ".env")
+
+APP_NAME = os.getenv("CLINICAPRO_NOMBRE", "Clínica Pro")
+DATA_DIR = Path(os.getenv("CLINICAPRO_DATA_DIR", BASE_DIR / "data"))
+UPLOAD_DIR = DATA_DIR / "uploads"
+DATABASE_PATH = DATA_DIR / "clinica.db"
+MAX_UPLOAD_BYTES = 8 * 1024 * 1024
+
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+
+
+==================== ClinicaPro/app/db.py ====================
+import sqlite3
+from collections.abc import Generator
+
+from .config import DATABASE_PATH
+
+SCHEMA = """
+CREATE TABLE IF NOT EXISTS patients (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    rut TEXT UNIQUE,
+    birth_date TEXT,
+    phone TEXT,
+    email TEXT,
+    insurance TEXT,
+    allergies TEXT,
+    active INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS professionals (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    specialty TEXT NOT NULL,
+    phone TEXT,
+    email TEXT,
+    active INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS appointments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    patient_id INTEGER NOT NULL,
+    professional_id INTEGER NOT NULL,
+    starts_at TEXT NOT NULL,
+    duration_min INTEGER NOT NULL DEFAULT 30,
+    room TEXT,
+    reason TEXT,
+    status TEXT NOT NULL DEFAULT 'scheduled'
+        CHECK (status IN ('scheduled', 'arrived', 'done', 'cancelled', 'no_show')),
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (patient_id) REFERENCES patients(id),
+    FOREIGN KEY (professional_id) REFERENCES professionals(id)
+);
+CREATE TABLE IF NOT EXISTS consultations (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    patient_id INTEGER NOT NULL,
+    professional_id INTEGER NOT NULL,
+    appointment_id INTEGER,
+    diagnosis TEXT,
+    treatment TEXT,
+    notes TEXT,
+    attachment_path TEXT,
+    occurred_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+    FOREIGN KEY (patient_id) REFERENCES patients(id),
+    FOREIGN KEY (professional_id) REFERENCES professionals(id),
+    FOREIGN KEY (appointment_id) REFERENCES appointments(id)
+);
+CREATE TABLE IF NOT EXISTS payments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    patient_id INTEGER NOT NULL,
+    appointment_id INTEGER,
+    concept TEXT NOT NULL,
+    amount INTEGER NOT NULL CHECK (amount >= 0),
+    method TEXT NOT NULL DEFAULT 'cash'
+        CHECK (method IN ('cash', 'card', 'transfer', 'insurance')),
+    paid_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+    FOREIGN KEY (patient_id) REFERENCES patients(id),
+    FOREIGN KEY (appointment_id) REFERENCES appointments(id)
+);
+CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT NOT NULL UNIQUE,
+    name TEXT NOT NULL,
+    password_hash TEXT NOT NULL,
+    role TEXT NOT NULL DEFAULT 'profesional' CHECK (role IN ('admin', 'profesional')),
+    active INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS documents (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    category TEXT NOT NULL DEFAULT 'protocolo',
+    title TEXT NOT NULL UNIQUE,
+    content TEXT,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_appointments_starts_at ON appointments(starts_at);
+CREATE INDEX IF NOT EXISTS idx_consultations_patient ON consultations(patient_id);
+"""
+
+
+def get_connection() -> sqlite3.Connection:
+    connection = sqlite3.connect(str(DATABASE_PATH), check_same_thread=False)
+    connection.row_factory = sqlite3.Row
+    connection.execute("PRAGMA foreign_keys = ON")
+    return connection
+
+
+def init_db() -> None:
+    connection = get_connection()
+    try:
+        connection.executescript(SCHEMA)
+        connection.execute("DROP TABLE IF EXISTS library_items")  # migración: módulo anterior ya no existe
+        connection.commit()
+    finally:
+        connection.close()
+
+
+def get_db() -> Generator[sqlite3.Connection, None, None]:
+    connection = get_connection()
+    try:
+        yield connection
+    finally:
+        connection.close()
+
+
+==================== ClinicaPro/app/exporters.py ====================
+import csv
+import io
+from collections.abc import Iterable
+from sqlite3 import Row
+
+
+def safe_cell(value):
+    """Evita inyección de fórmulas en Excel: texto que empieza con = + - @ se antepone con comilla."""
+    if value is None:
+        return ""
+    if isinstance(value, str) and value[:1] in ("=", "+", "-", "@", "\t", "\r"):
+        return "'" + value
+    return value
+
+
+class CsvExporter:
+    """Exporta filas a CSV con BOM UTF-8 para que Excel respete las tildes."""
+
+    def export(self, rows: Iterable[Row]) -> io.StringIO:
+        rows = list(rows)
+        stream = io.StringIO()
+        stream.write("\ufeff")
+        if rows:
+            writer = csv.writer(stream, delimiter=";")
+            writer.writerow(rows[0].keys())
+            for row in rows:
+                writer.writerow([safe_cell(value) for value in tuple(row)])
+        return stream
+
+
+==================== ClinicaPro/app/main.py ====================
+from contextlib import asynccontextmanager
+from datetime import datetime, timedelta, timezone
+import mimetypes
+from pathlib import Path
+import secrets
+import sqlite3
+from typing import Any
+
+from fastapi import Depends, FastAPI, File, Form, HTTPException, Query, UploadFile
+from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
+from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel, Field
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request
+
+import os
+import time
+import unicodedata
+
+from fastapi.responses import JSONResponse, Response
+
+from .auth import SESSION_COOKIE, SESSION_SECONDS, hash_password, make_token, read_token, throttle, verify_password
+from .config import APP_NAME, DATA_DIR, MAX_UPLOAD_BYTES, UPLOAD_DIR
+from .db import get_connection, get_db, init_db
+from .exporters import CsvExporter
+
+STATIC_DIR = Path(__file__).parent / "static"
+STATUSES = {"scheduled", "arrived", "done", "cancelled", "no_show"}
+METHODS = {"cash", "card", "transfer", "insurance"}
+ACTIVE_STATUSES = ("scheduled", "arrived")
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    init_db()
+    connection = get_connection()
+    try:
+        bootstrap_admin(connection)
+    finally:
+        connection.close()
+    yield
+
+
+def bootstrap_admin(db: sqlite3.Connection) -> None:
+    """Crea el administrador inicial si no hay usuarios. La clave sale del entorno o se genera."""
+    if db.execute("SELECT COUNT(*) FROM users").fetchone()[0]:
+        return
+    username = os.getenv("CLINICAPRO_ADMIN_USER", "admin")
+    password = os.getenv("CLINICAPRO_ADMIN_PASSWORD")
+    if not password:
+        password = secrets.token_urlsafe(12)
+        (DATA_DIR / "admin_inicial.txt").write_text(f"usuario: {username}\nclave: {password}\n(cámbiela al ingresar y borre este archivo)\n")
+    db.execute("INSERT INTO users (username, name, password_hash, role) VALUES (?, ?, ?, 'admin')",
+               (username, "Administrador", hash_password(password)))
+    db.commit()
+
+
+app = FastAPI(title=f"{APP_NAME} - Gestión clínica", version="2.0.0", lifespan=lifespan)
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "SAMEORIGIN"
+        response.headers["Referrer-Policy"] = "same-origin"
+        response.headers["Permissions-Policy"] = "camera=(self), microphone=(), geolocation=()"
+        if os.getenv("CLINICAPRO_COOKIE_SECURE") == "1":
+            response.headers["Strict-Transport-Security"] = "max-age=31536000"
+        if request.url.path.startswith("/api"):
+            response.headers["Cache-Control"] = "no-store"  # datos clínicos: nunca en caché del navegador/proxy
+        if response.headers.get("content-type", "").startswith("text/html") and not request.url.path.startswith(("/docs", "/redoc")):
+            response.headers["Content-Security-Policy"] = (
+                "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; "
+                "img-src 'self' data: blob:; connect-src 'self'; object-src 'none'; base-uri 'none'; "
+                "form-action 'self'; frame-ancestors 'self'")
+        return response
+
+
+PUBLIC_PATHS = {"/api/auth/login", "/api/health", "/api/meta"}
+
+
+class AuthMiddleware(BaseHTTPMiddleware):
+    """Todo lo que cuelga de /api y la documentación exige sesión válida."""
+
+    async def dispatch(self, request: Request, call_next):
+        path = request.url.path
+        protected = path.startswith(("/api", "/docs", "/redoc", "/openapi"))
+        request.state.user = read_token(request.cookies.get(SESSION_COOKIE))
+        if protected and path not in PUBLIC_PATHS and request.state.user is None:
+            return JSONResponse({"detail": "Sesión requerida"}, status_code=401)
+        return await call_next(request)
+
+
+app.add_middleware(AuthMiddleware)
+app.add_middleware(SecurityHeadersMiddleware)
+
+
+def admin_only(request: Request) -> dict:
+    user = request.state.user
+    if not user or user["r"] != "admin":
+        raise HTTPException(403, "Solo el administrador puede hacer esto")
+    return user
+
+
+@app.get("/api/health")
+def health() -> dict[str, str]:
+    return {"status": "ok"}
+
+
+@app.get("/api/meta")
+def meta() -> dict[str, Any]:
+    return {"name": APP_NAME}
+
+
+class LoginIn(BaseModel):
+    username: str = Field(min_length=1, max_length=60)
+    password: str = Field(min_length=1, max_length=200)
+
+
+@app.post("/api/auth/login")
+def login(payload: LoginIn, request: Request, db: sqlite3.Connection = Depends(get_db)) -> Response:
+    key = (payload.username.lower(), request.client.host if request.client else "-")
+    if throttle.blocked(key):
+        raise HTTPException(429, "Demasiados intentos; espere 5 minutos")
+    row = db.execute("SELECT * FROM users WHERE username = ? AND active = 1", (payload.username,)).fetchone()
+    if row is None or not verify_password(payload.password, row["password_hash"]):
+        throttle.fail(key)
+        raise HTTPException(401, "Usuario o clave incorrectos")
+    throttle.reset(key)
+    user = {"id": row["id"], "username": row["username"], "role": row["role"], "name": row["name"]}
+    response = JSONResponse(user)
+    response.set_cookie(SESSION_COOKIE, make_token(user), max_age=SESSION_SECONDS, httponly=True, samesite="strict",
+                        secure=os.getenv("CLINICAPRO_COOKIE_SECURE") == "1")
+    return response
+
+
+@app.post("/api/auth/logout")
+def logout() -> Response:
+    response = JSONResponse({"ok": True})
+    response.delete_cookie(SESSION_COOKIE)
+    return response
+
+
+@app.get("/api/auth/me")
+def me(request: Request, db: sqlite3.Connection = Depends(get_db)) -> dict[str, Any]:
+    row = db.execute("SELECT id, username, name, role FROM users WHERE id = ? AND active = 1", (request.state.user["id"],)).fetchone()
+    if row is None:
+        raise HTTPException(401, "Sesión requerida")
+    return dict(row)
+
+
+class PasswordIn(BaseModel):
+    current: str
+    new: str = Field(min_length=10, max_length=200)
+
+
+@app.post("/api/auth/password")
+def change_password(payload: PasswordIn, request: Request, db: sqlite3.Connection = Depends(get_db)) -> dict[str, bool]:
+    row = db.execute("SELECT * FROM users WHERE id = ?", (request.state.user["id"],)).fetchone()
+    if row is None or not verify_password(payload.current, row["password_hash"]):
+        raise HTTPException(403, "La clave actual no coincide")
+    db.execute("UPDATE users SET password_hash = ? WHERE id = ?", (hash_password(payload.new), row["id"]))
+    db.commit()
+    return {"ok": True}
+
+
+class UserIn(BaseModel):
+    username: str = Field(min_length=3, max_length=60, pattern=r"^[A-Za-z0-9_.@-]+$")
+    name: str = Field(min_length=1, max_length=120)
+    password: str | None = Field(default=None, min_length=10, max_length=200)
+    role: str = "profesional"
+    active: bool = True
+
+
+def _admins_left(db: sqlite3.Connection, excluding: int) -> int:
+    return db.execute("SELECT COUNT(*) FROM users WHERE role='admin' AND active=1 AND id != ?", (excluding,)).fetchone()[0]
+
+
+@app.get("/api/users")
+def list_users(request: Request, db: sqlite3.Connection = Depends(get_db)) -> list[dict[str, Any]]:
+    admin_only(request)
+    return [row_dict(r) for r in db.execute("SELECT id, username, name, role, active, created_at FROM users ORDER BY id")]
+
+
+@app.post("/api/users", status_code=201)
+def create_user(payload: UserIn, request: Request, db: sqlite3.Connection = Depends(get_db)) -> dict[str, Any]:
+    admin_only(request)
+    if payload.role not in ("admin", "profesional") or not payload.password:
+        raise HTTPException(422, "Rol no válido o clave faltante (mínimo 10 caracteres)")
+    try:
+        cursor = db.execute("INSERT INTO users (username, name, password_hash, role, active) VALUES (?,?,?,?,?)",
+                            (payload.username, payload.name, hash_password(payload.password), payload.role, int(payload.active)))
+        db.commit()
+    except sqlite3.IntegrityError as error:
+        raise HTTPException(409, "Ese usuario ya existe") from error
+    return row_dict(db.execute("SELECT id, username, name, role, active FROM users WHERE id = ?", (cursor.lastrowid,)).fetchone())
+
+
+@app.put("/api/users/{user_id}")
+def update_user(user_id: int, payload: UserIn, request: Request, db: sqlite3.Connection = Depends(get_db)) -> dict[str, Any]:
+    admin_only(request)
+    if payload.role not in ("admin", "profesional"):
+        raise HTTPException(422, "Rol no válido")
+    if (payload.role != "admin" or not payload.active) and _admins_left(db, user_id) == 0:
+        raise HTTPException(409, "Debe quedar al menos un administrador activo")
+    sets, params = ["username=?", "name=?", "role=?", "active=?"], [payload.username, payload.name, payload.role, int(payload.active)]
+    if payload.password:
+        sets.append("password_hash=?")
+        params.append(hash_password(payload.password))
+    try:
+        cursor = db.execute(f"UPDATE users SET {', '.join(sets)} WHERE id=?", (*params, user_id))
+        db.commit()
+    except sqlite3.IntegrityError as error:
+        raise HTTPException(409, "Ese usuario ya existe") from error
+    if cursor.rowcount == 0:
+        raise HTTPException(404, "Usuario no encontrado")
+    return row_dict(db.execute("SELECT id, username, name, role, active FROM users WHERE id = ?", (user_id,)).fetchone())
+
+
+@app.delete("/api/users/{user_id}", status_code=204)
+def delete_user(user_id: int, request: Request, db: sqlite3.Connection = Depends(get_db)) -> None:
+    admin_only(request)
+    if _admins_left(db, user_id) == 0:
+        raise HTTPException(409, "Debe quedar al menos un administrador activo")
+    db.execute("DELETE FROM users WHERE id = ?", (user_id,))
+    db.commit()
+
+
+def fold(text: str | None) -> str:
+    return "".join(c for c in unicodedata.normalize("NFD", (text or "").lower()) if unicodedata.category(c) != "Mn")
+
+
+class PatientIn(BaseModel):
+    name: str = Field(min_length=1, max_length=120)
+    rut: str | None = Field(default=None, max_length=20)
+    birth_date: str | None = Field(default=None, max_length=10)
+    phone: str | None = Field(default=None, max_length=40)
+    email: str | None = Field(default=None, max_length=160)
+    insurance: str | None = Field(default=None, max_length=80)
+    allergies: str | None = Field(default=None, max_length=300)
+    active: bool = True
+
+
+class ProfessionalIn(BaseModel):
+    name: str = Field(min_length=1, max_length=120)
+    specialty: str = Field(min_length=1, max_length=80)
+    phone: str | None = Field(default=None, max_length=40)
+    email: str | None = Field(default=None, max_length=160)
+    active: bool = True
+
+
+class PaymentIn(BaseModel):
+    patient_id: int
+    appointment_id: int | None = None
+    concept: str = Field(min_length=1, max_length=160)
+    amount: int = Field(ge=0)
+    method: str = "cash"
+
+
+class AppointmentIn(BaseModel):
+    patient_id: int
+    professional_id: int
+    starts_at: str = Field(min_length=16, max_length=19)  # YYYY-MM-DDTHH:MM
+    duration_min: int = Field(default=30, ge=5, le=480)
+    room: str | None = Field(default=None, max_length=40)
+    reason: str | None = Field(default=None, max_length=200)
+    status: str = "scheduled"
+
+
+def row_dict(row: sqlite3.Row) -> dict[str, Any]:
+    result = dict(row)
+    if "active" in result:
+        result["active"] = bool(result["active"])
+    return result
+
+
+def normalize_rut(rut: str | None) -> str | None:
+    if rut is None:
+        return None
+    cleaned = "".join(ch for ch in rut.upper() if ch.isalnum())
+    if not cleaned:
+        return None
+    return f"{cleaned[:-1]}-{cleaned[-1]}" if len(cleaned) > 1 else cleaned
+
+
+def parse_start(value: str) -> datetime:
+    try:
+        return datetime.fromisoformat(value)
+    except ValueError as error:
+        raise HTTPException(422, "Fecha/hora inválida (use AAAA-MM-DDTHH:MM)") from error
+
+
+def bind(values: dict[str, Any], columns: tuple[str, ...]) -> tuple:
+    return tuple(int(values[c]) if isinstance(values[c], bool) else values[c] for c in columns)
+
+
+def crud_router(table: str, model: type[BaseModel], columns: tuple[str, ...], before_save=None):
+    """CRUD pequeño y consistente para una tabla. `before_save` puede validar/normalizar."""
+    prefix = f"/api/{table}"
+
+    def prepare(payload: BaseModel, db: sqlite3.Connection, item_id: int | None = None) -> dict:
+        values = payload.model_dump()
+        if before_save:
+            before_save(values, db, item_id)
+        return values
+
+    @app.get(prefix)
+    def list_items(db: sqlite3.Connection = Depends(get_db)) -> list[dict[str, Any]]:
+        return [row_dict(r) for r in db.execute(f"SELECT * FROM {table} ORDER BY id DESC")]
+
+    @app.get(f"{prefix}/{{item_id}}")
+    def get_item(item_id: int, db: sqlite3.Connection = Depends(get_db)) -> dict[str, Any]:
+        row = db.execute(f"SELECT * FROM {table} WHERE id = ?", (item_id,)).fetchone()
+        if row is None:
+            raise HTTPException(404, "Registro no encontrado")
+        return row_dict(row)
+
+    @app.post(prefix, status_code=201)
+    def create_item(payload: model, db: sqlite3.Connection = Depends(get_db)) -> dict[str, Any]:  # type: ignore[valid-type]
+        values = prepare(payload, db)
+        try:
+            cursor = db.execute(
+                f"INSERT INTO {table} ({', '.join(columns)}) VALUES ({', '.join('?' for _ in columns)})",
+                bind(values, columns),
+            )
+            db.commit()
+        except sqlite3.IntegrityError as error:
+            raise HTTPException(409, f"Registro duplicado o referencia inválida: {error}") from error
+        return row_dict(db.execute(f"SELECT * FROM {table} WHERE id = ?", (cursor.lastrowid,)).fetchone())
+
+    @app.put(f"{prefix}/{{item_id}}")
+    def update_item(item_id: int, payload: model, db: sqlite3.Connection = Depends(get_db)) -> dict[str, Any]:  # type: ignore[valid-type]
+        values = prepare(payload, db, item_id)
+        assignments = ", ".join(f"{c} = ?" for c in columns)
+        try:
+            cursor = db.execute(
+                f"UPDATE {table} SET {assignments} WHERE id = ?", bind(values, columns) + (item_id,)
+            )
+            db.commit()
+        except sqlite3.IntegrityError as error:
+            raise HTTPException(409, f"Registro duplicado o referencia inválida: {error}") from error
+        if cursor.rowcount == 0:
+            raise HTTPException(404, "Registro no encontrado")
+        return row_dict(db.execute(f"SELECT * FROM {table} WHERE id = ?", (item_id,)).fetchone())
+
+    @app.delete(f"{prefix}/{{item_id}}", status_code=204)
+    def delete_item(item_id: int, request: Request, db: sqlite3.Connection = Depends(get_db)) -> None:
+        admin_only(request)
+        try:
+            cursor = db.execute(f"DELETE FROM {table} WHERE id = ?", (item_id,))
+            db.commit()
+        except sqlite3.IntegrityError as error:
+            raise HTTPException(409, "Tiene registros asociados; desactívelo en vez de borrarlo") from error
+        if cursor.rowcount == 0:
+            raise HTTPException(404, "Registro no encontrado")
+
+
+def patient_rules(values: dict, db: sqlite3.Connection, item_id: int | None) -> None:
+    values["rut"] = normalize_rut(values["rut"])
+
+
+def payment_rules(values: dict, db: sqlite3.Connection, item_id: int | None) -> None:
+    if values["method"] not in METHODS:
+        raise HTTPException(422, "Medio de pago no válido")
+
+
+def appointment_rules(values: dict, db: sqlite3.Connection, item_id: int | None) -> None:
+    if values["status"] not in STATUSES:
+        raise HTTPException(422, "Estado no válido")
+    start = parse_start(values["starts_at"])
+    values["starts_at"] = start.strftime("%Y-%m-%dT%H:%M")
+    if values["status"] in ("cancelled", "no_show"):
+        return
+    end = start + timedelta(minutes=values["duration_min"])
+    rows = db.execute(
+        """SELECT id, starts_at, duration_min, room, professional_id, patient_id FROM appointments
+           WHERE status IN ('scheduled','arrived') AND date(starts_at) = date(?) AND id IS NOT ?""",
+        (values["starts_at"], item_id),
+    )
+    for row in rows:
+        other_start = datetime.fromisoformat(row["starts_at"])
+        other_end = other_start + timedelta(minutes=row["duration_min"])
+        if not (start < other_end and other_start < end):
+            continue
+        if row["professional_id"] == values["professional_id"]:
+            raise HTTPException(409, "El profesional ya tiene una cita en ese horario")
+        if row["patient_id"] == values["patient_id"]:
+            raise HTTPException(409, "El paciente ya tiene una cita en ese horario")
+        if values["room"] and row["room"] == values["room"]:
+            raise HTTPException(409, "La sala ya está ocupada en ese horario")
+
+
+crud_router("patients", PatientIn, ("name", "rut", "birth_date", "phone", "email", "insurance", "allergies", "active"), patient_rules)
+crud_router("professionals", ProfessionalIn, ("name", "specialty", "phone", "email", "active"))
+crud_router("appointments", AppointmentIn, ("patient_id", "professional_id", "starts_at", "duration_min", "room", "reason", "status"), appointment_rules)
+crud_router("payments", PaymentIn, ("patient_id", "appointment_id", "concept", "amount", "method"), payment_rules)
+
+
+@app.get("/api/agenda")
+def agenda(
+    day: str | None = Query(default=None, description="AAAA-MM-DD; por defecto hoy"),
+    professional_id: int | None = None,
+    db: sqlite3.Connection = Depends(get_db),
+) -> list[dict[str, Any]]:
+    day = day or datetime.now().strftime("%Y-%m-%d")
+    sql = """SELECT a.*, p.name AS patient_name, p.allergies, pr.name AS professional_name, pr.specialty
+             FROM appointments a
+             JOIN patients p ON p.id = a.patient_id
+             JOIN professionals pr ON pr.id = a.professional_id
+             WHERE date(a.starts_at) = date(?)"""
+    params: list[Any] = [day]
+    if professional_id is not None:
+        sql += " AND a.professional_id = ?"
+        params.append(professional_id)
+    return [row_dict(r) for r in db.execute(sql + " ORDER BY a.starts_at", params)]
+
+
+@app.post("/api/appointments/{appointment_id}/status")
+def set_status(appointment_id: int, status: str = Form(...), db: sqlite3.Connection = Depends(get_db)) -> dict[str, Any]:
+    if status not in STATUSES:
+        raise HTTPException(422, "Estado no válido")
+    cursor = db.execute("UPDATE appointments SET status = ? WHERE id = ?", (status, appointment_id))
+    db.commit()
+    if cursor.rowcount == 0:
+        raise HTTPException(404, "Cita no encontrada")
+    return row_dict(db.execute("SELECT * FROM appointments WHERE id = ?", (appointment_id,)).fetchone())
+
+
+
+MAGIC = {".jpg": (b"\xff\xd8\xff",), ".jpeg": (b"\xff\xd8\xff",), ".png": (b"\x89PNG\r\n\x1a\n",), ".pdf": (b"%PDF-",)}
+
+
+def _looks_like(extension: str, content: bytes) -> bool:
+    """Verifica la firma real del archivo, no solo la extensión."""
+    if extension == ".webp":
+        return content[:4] == b"RIFF" and content[8:12] == b"WEBP"
+    return any(content.startswith(sig) for sig in MAGIC.get(extension, ()))
+
+
+CONSULTATION_SELECT = """SELECT c.*, p.name AS patient_name, pr.name AS professional_name
+    FROM consultations c JOIN patients p ON p.id = c.patient_id
+    JOIN professionals pr ON pr.id = c.professional_id"""
+
+
+@app.get("/api/consultations")
+def list_consultations(
+    patient_id: int | None = None,
+    limit: int = Query(default=50, ge=1, le=500),
+    db: sqlite3.Connection = Depends(get_db),
+) -> list[dict[str, Any]]:
+    sql, params = CONSULTATION_SELECT, []
+    if patient_id is not None:
+        sql += " WHERE c.patient_id = ?"
+        params.append(patient_id)
+    return [row_dict(r) for r in db.execute(sql + " ORDER BY c.occurred_at DESC, c.id DESC LIMIT ?", (*params, limit))]
+
+
+@app.post("/api/consultations", status_code=201)
+async def create_consultation(
+    patient_id: int = Form(...),
+    professional_id: int = Form(...),
+    appointment_id: int | None = Form(None),
+    diagnosis: str | None = Form(None),
+    treatment: str | None = Form(None),
+    notes: str | None = Form(None),
+    attachment: UploadFile | None = File(None),
+    db: sqlite3.Connection = Depends(get_db),
+) -> dict[str, Any]:
+    stored: str | None = None
+    if attachment and attachment.filename:
+        extension = Path(attachment.filename).suffix.lower()
+        if extension not in {".jpg", ".jpeg", ".png", ".webp", ".pdf"}:
+            raise HTTPException(415, "Solo se aceptan JPG, PNG, WEBP o PDF")
+        content = await attachment.read(MAX_UPLOAD_BYTES + 1)
+        if len(content) > MAX_UPLOAD_BYTES:
+            raise HTTPException(413, "El archivo excede el tamaño máximo permitido")
+        if not _looks_like(extension, content):
+            raise HTTPException(415, "El contenido del archivo no coincide con su tipo")
+        stored = f"{datetime.now(timezone.utc):%Y%m%d%H%M%S}_{secrets.token_hex(8)}{extension}"
+        (UPLOAD_DIR / stored).write_bytes(content)
+    try:
+        cursor = db.execute(
+            """INSERT INTO consultations (patient_id, professional_id, appointment_id, diagnosis, treatment, notes, attachment_path)
+               VALUES (?, ?, ?, ?, ?, ?, ?)""",
+            (patient_id, professional_id, appointment_id, diagnosis, treatment, notes, stored),
+        )
+        if appointment_id is not None:
+            db.execute("UPDATE appointments SET status = 'done' WHERE id = ?", (appointment_id,))
+        db.commit()
+    except sqlite3.IntegrityError as error:
+        if stored:
+            (UPLOAD_DIR / stored).unlink(missing_ok=True)
+        raise HTTPException(409, f"Referencia inválida: {error}") from error
+    return row_dict(db.execute(CONSULTATION_SELECT + " WHERE c.id = ?", (cursor.lastrowid,)).fetchone())
+
+
+@app.get("/api/consultations/{consultation_id}/attachment")
+def get_attachment(consultation_id: int, db: sqlite3.Connection = Depends(get_db)) -> FileResponse:
+    row = db.execute("SELECT attachment_path FROM consultations WHERE id = ?", (consultation_id,)).fetchone()
+    if row is None or not row["attachment_path"]:
+        raise HTTPException(404, "Adjunto no encontrado")
+    path = (UPLOAD_DIR / row["attachment_path"]).resolve()
+    if path.parent != UPLOAD_DIR.resolve() or not path.is_file():
+        raise HTTPException(404, "Adjunto no encontrado")
+    return FileResponse(path, media_type=mimetypes.guess_type(path.name)[0] or "application/octet-stream")
+
+
+@app.get("/api/dashboard")
+def dashboard(db: sqlite3.Connection = Depends(get_db)) -> dict[str, Any]:
+    def count(sql: str) -> int:
+        return db.execute(sql).fetchone()[0]
+
+    today = "date(starts_at) = date('now','localtime')"
+    return {
+        "patients": count("SELECT COUNT(*) FROM patients WHERE active = 1"),
+        "professionals": count("SELECT COUNT(*) FROM professionals WHERE active = 1"),
+        "today_appointments": count(f"SELECT COUNT(*) FROM appointments WHERE {today} AND status NOT IN ('cancelled','no_show')"),
+        "today_done": count(f"SELECT COUNT(*) FROM appointments WHERE {today} AND status = 'done'"),
+        "today_pending": count(f"SELECT COUNT(*) FROM appointments WHERE {today} AND status IN ('scheduled','arrived')"),
+        "month_revenue": count(
+            "SELECT COALESCE(SUM(amount),0) FROM payments WHERE strftime('%Y-%m', paid_at) = strftime('%Y-%m','now','localtime')"
+        ),
+    }
+
+
+def csv_response(db: sqlite3.Connection, sql: str, filename: str) -> StreamingResponse:
+    stream = CsvExporter().export(db.execute(sql))
+    return StreamingResponse(
+        iter([stream.getvalue()]),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
+    )
+
+
+@app.get("/api/export/appointments.csv")
+def export_appointments(db: sqlite3.Connection = Depends(get_db)) -> StreamingResponse:
+    return csv_response(
+        db,
+        """SELECT a.id, a.starts_at, a.duration_min, p.name AS paciente, p.rut, pr.name AS profesional,
+                  pr.specialty AS especialidad, a.room AS sala, a.reason AS motivo, a.status AS estado
+           FROM appointments a JOIN patients p ON p.id = a.patient_id
+           JOIN professionals pr ON pr.id = a.professional_id ORDER BY a.starts_at DESC""",
+        "citas.csv",
+    )
+
+
+@app.get("/api/export/payments.csv")
+def export_payments(db: sqlite3.Connection = Depends(get_db)) -> StreamingResponse:
+    return csv_response(
+        db,
+        """SELECT y.id, y.paid_at, p.name AS paciente, y.concept AS concepto, y.amount AS monto, y.method AS medio
+           FROM payments y JOIN patients p ON p.id = y.patient_id ORDER BY y.paid_at DESC""",
+        "pagos.csv",
+    )
+
+
+
+# ---------- Documentos y protocolos de la clínica (módulo opcional, sin contenido precargado) ----------
+DOC_CATEGORIES = {"protocolo": "Protocolo", "consentimiento": "Consentimiento", "tarifas": "Tarifas", "otro": "Otro"}
+
+
+class DocumentIn(BaseModel):
+    category: str = "protocolo"
+    title: str = Field(min_length=1, max_length=160)
+    content: str | None = Field(default=None, max_length=20000)
+
+
+def _check_doc(payload: DocumentIn) -> None:
+    if payload.category not in DOC_CATEGORIES:
+        raise HTTPException(422, "Categoría no válida")
+
+
+@app.get("/api/documents")
+def documents_list(q: str | None = None, category: str | None = None, db: sqlite3.Connection = Depends(get_db)) -> list[dict[str, Any]]:
+    sql, params = "SELECT * FROM documents WHERE 1=1", []
+    if category:
+        sql, params = sql + " AND category = ?", [category]
+    rows = [dict(r) for r in db.execute(sql + " ORDER BY category, title", params)]
+    if q:
+        terms = fold(q).split()
+        rows = [r for r in rows if all(t in fold(f"{r['title']} {r['content'] or ''}") for t in terms)]
+    return rows
+
+
+@app.get("/api/documents/{doc_id}")
+def documents_get(doc_id: int, db: sqlite3.Connection = Depends(get_db)) -> dict[str, Any]:
+    row = db.execute("SELECT * FROM documents WHERE id = ?", (doc_id,)).fetchone()
+    if row is None:
+        raise HTTPException(404, "Documento no encontrado")
+    return dict(row)
+
+
+@app.post("/api/documents", status_code=201)
+def documents_create(payload: DocumentIn, request: Request, db: sqlite3.Connection = Depends(get_db)) -> dict[str, Any]:
+    admin_only(request)
+    _check_doc(payload)
+    try:
+        cursor = db.execute("INSERT INTO documents (category, title, content) VALUES (?,?,?)", (payload.category, payload.title, payload.content))
+        db.commit()
+    except sqlite3.IntegrityError as error:
+        raise HTTPException(409, "Ya existe un documento con ese título") from error
+    return dict(db.execute("SELECT * FROM documents WHERE id = ?", (cursor.lastrowid,)).fetchone())
+
+
+@app.put("/api/documents/{doc_id}")
+def documents_update(doc_id: int, payload: DocumentIn, request: Request, db: sqlite3.Connection = Depends(get_db)) -> dict[str, Any]:
+    admin_only(request)
+    _check_doc(payload)
+    try:
+        cursor = db.execute("UPDATE documents SET category=?, title=?, content=?, updated_at=CURRENT_TIMESTAMP WHERE id=?",
+                            (payload.category, payload.title, payload.content, doc_id))
+        db.commit()
+    except sqlite3.IntegrityError as error:
+        raise HTTPException(409, "Ya existe un documento con ese título") from error
+    if cursor.rowcount == 0:
+        raise HTTPException(404, "Documento no encontrado")
+    return dict(db.execute("SELECT * FROM documents WHERE id = ?", (doc_id,)).fetchone())
+
+
+@app.delete("/api/documents/{doc_id}", status_code=204)
+def documents_delete(doc_id: int, request: Request, db: sqlite3.Connection = Depends(get_db)) -> None:
+    admin_only(request)
+    if db.execute("DELETE FROM documents WHERE id = ?", (doc_id,)).rowcount == 0:
+        raise HTTPException(404, "Documento no encontrado")
+    db.commit()
+
+
+# ---------- Recordatorios de citas (solo genera el texto; la clínica lo envía a mano) ----------
+def reminder_text(clinic: str, name: str, starts_at: str, professional: str) -> str:
+    start = datetime.fromisoformat(starts_at)
+    return (f"Hola {name.split()[0]}, le recordamos su cita en {clinic} el {start:%d-%m-%Y} a las {start:%H:%M} "
+            f"con {professional}. Si no puede asistir, avísenos con anticipación. ¡Gracias!")
+
+
+@app.get("/api/reminders")
+def reminders(day: str | None = Query(default=None, description="AAAA-MM-DD; por defecto mañana"),
+              db: sqlite3.Connection = Depends(get_db)) -> list[dict[str, Any]]:
+    day = day or (datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d")
+    rows = db.execute(
+        """SELECT a.id, a.starts_at, a.room, p.name AS patient_name, p.phone, pr.name AS professional_name
+           FROM appointments a JOIN patients p ON p.id = a.patient_id JOIN professionals pr ON pr.id = a.professional_id
+           WHERE date(a.starts_at) = date(?) AND a.status IN ('scheduled','arrived') ORDER BY a.starts_at""", (day,))
+    out = []
+    for r in rows:
+        item = dict(r)
+        item["message"] = reminder_text(APP_NAME, r["patient_name"], r["starts_at"], r["professional_name"])
+        digits = "".join(ch for ch in (r["phone"] or "") if ch.isdigit())
+        if digits.startswith("0"):
+            digits = digits.lstrip("0")
+        if digits and len(digits) <= 9:  # número local chileno sin código de país
+            digits = "56" + digits
+        item["whatsapp_url"] = f"https://wa.me/{digits}" if digits else None
+        out.append(item)
+    return out
+
+
+# ---------- Ficha de paciente con historial ----------
+@app.get("/api/patients/{patient_id}/history")
+def patient_history(patient_id: int, db: sqlite3.Connection = Depends(get_db)) -> dict[str, Any]:
+    patient = db.execute("SELECT * FROM patients WHERE id = ?", (patient_id,)).fetchone()
+    if patient is None:
+        raise HTTPException(404, "Paciente no encontrado")
+    appts = db.execute(
+        """SELECT a.id, a.starts_at, a.status, a.reason, a.room, pr.name AS professional_name, pr.specialty
+           FROM appointments a JOIN professionals pr ON pr.id = a.professional_id
+           WHERE a.patient_id = ? ORDER BY a.starts_at DESC""", (patient_id,))
+    cons = db.execute(CONSULTATION_SELECT + " WHERE c.patient_id = ? ORDER BY c.occurred_at DESC, c.id DESC", (patient_id,))
+    pays = db.execute("SELECT id, concept, amount, method, paid_at FROM payments WHERE patient_id = ? ORDER BY paid_at DESC, id DESC", (patient_id,))
+    payments = [dict(r) for r in pays]
+    return {"patient": row_dict(patient), "appointments": [dict(r) for r in appts],
+            "consultations": [row_dict(r) for r in cons], "payments": payments,
+            "total_paid": sum(p["amount"] for p in payments)}
+
+
+# ---------- Reporte de caja ----------
+@app.get("/api/reports/cash")
+def cash_report(period: str = Query(default="day", pattern="^(day|month)$"),
+                date: str | None = Query(default=None, description="AAAA-MM-DD (día) o AAAA-MM (mes); por defecto hoy/este mes"),
+                db: sqlite3.Connection = Depends(get_db)) -> dict[str, Any]:
+    now = datetime.now()
+    if period == "day":
+        date = date or now.strftime("%Y-%m-%d")
+        fmt, value = "%Y-%m-%d", date
+    else:
+        date = (date or now.strftime("%Y-%m"))[:7]
+        fmt, value = "%Y-%m", date
+    try:
+        datetime.strptime(value, fmt)
+    except ValueError as error:
+        raise HTTPException(422, "Fecha inválida") from error
+    rows = db.execute(f"SELECT method, COUNT(*) AS n, SUM(amount) AS total FROM payments WHERE strftime('{fmt}', paid_at) = ? GROUP BY method", (value,))
+    by_method = {r["method"]: {"count": r["n"], "total": r["total"]} for r in rows}
+    items = db.execute(
+        f"""SELECT y.id, y.paid_at, y.concept, y.amount, y.method, p.name AS patient_name FROM payments y
+            JOIN patients p ON p.id = y.patient_id WHERE strftime('{fmt}', y.paid_at) = ? ORDER BY y.paid_at""", (value,))
+    return {"period": period, "date": value, "total": sum(m["total"] for m in by_method.values()),
+            "count": sum(m["count"] for m in by_method.values()), "by_method": by_method, "payments": [dict(r) for r in items]}
+
+
+@app.get("/sw.js", include_in_schema=False)
+def service_worker() -> FileResponse:
+    return FileResponse(STATIC_DIR / "sw.js", media_type="application/javascript", headers={"Service-Worker-Allowed": "/"})
+
+
+@app.get("/", response_class=HTMLResponse)
+def index() -> FileResponse:
+    return FileResponse(STATIC_DIR / "index.html")
+
+
+==================== ClinicaPro/app/static/icon.svg ====================
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><title>Clínica Pro</title><rect width="512" height="512" rx="136" fill="#1d5c4d"/><path d="M256 136v240M136 256h240" stroke="#f6efe3" stroke-width="72" stroke-linecap="round"/><path d="M388 172A156 156 0 1 1 340 124.8" fill="none" stroke="#8fd1bb" stroke-width="24" stroke-linecap="round"/><circle cx="380.8" cy="148.8" r="21" fill="#e9a27c"/></svg>
+
+
+==================== ClinicaPro/app/static/index.html ====================
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#f6f4ef" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1312" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="/static/manifest.webmanifest">
+<title>Clínica Pro</title>
+<link rel="icon" href="/static/icon.svg" type="image/svg+xml">
+<style>
+:root{
+  color-scheme:light dark;
+  --bg:#f6f4ef;--surface:#fff;--surface-2:#efece5;--field:#fff;
+  --ink:#17211e;--ink-2:#3d4945;--mute:#5f6c67;--line:#e4e0d7;--line-2:#d3cec3;
+  --brand:#1d5c4d;--brand-2:#164a3e;--brand-ink:#fff;--brand-soft:#e1ede8;--brand-soft-ink:#164a3e;
+  --clay:#a5461f;--clay-soft:#f8e8df;
+  --info:#2c5a86;--info-bg:#e5edf6;--wait:#875500;--wait-bg:#faefd6;--ok:#276843;--ok-bg:#e1f0e6;--bad:#a3302b;--bad-bg:#f8e4e2;--off:#5f6c67;--off-bg:#ecebe6;
+  --card-border:transparent;--card-shadow:0 1px 2px rgb(23 33 30/.05),0 6px 20px -10px rgb(23 33 30/.14);
+  --sheet-shadow:0 -10px 40px -12px rgb(23 33 30/.28);
+  --scrim:rgb(16 22 20/.42);
+  --r:14px;--r-sm:11px;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,"Helvetica Neue",Arial,sans-serif;
+  --serif:"Iowan Old Style","Charter","Bitstream Charter","Palatino Linotype",Georgia,serif;
+  --ease:cubic-bezier(.22,1,.36,1);
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#0f1312;--surface:#171c1a;--surface-2:#1f2522;--field:#131816;
+  --ink:#edf1ee;--ink-2:#c5ceca;--mute:#97a49f;--line:#28302d;--line-2:#36403c;
+  --brand:#7fc8b0;--brand-2:#9ad6c2;--brand-ink:#0b2a22;--brand-soft:#18302a;--brand-soft-ink:#a6dcca;
+  --clay:#eb9e78;--clay-soft:#33211a;
+  --info:#93bbe3;--info-bg:#1a2633;--wait:#e8bd66;--wait-bg:#2c2413;--ok:#8dd3a9;--ok-bg:#16291f;--bad:#f0948d;--bad-bg:#341b1b;--off:#97a49f;--off-bg:#222826;
+  --card-border:var(--line);--card-shadow:none;--sheet-shadow:0 -10px 40px -8px rgb(0 0 0/.6);
+  --scrim:rgb(0 0 0/.6);
+}}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{-webkit-text-size-adjust:100%;scrollbar-color:var(--line-2) transparent}
+body{margin:0;font:16px/1.5 var(--sans);background:var(--bg);color:var(--ink);padding-bottom:calc(76px + env(safe-area-inset-bottom));-webkit-font-smoothing:antialiased;caret-color:var(--brand);accent-color:var(--brand)}
+body:has(#detail.on){overflow:hidden}
+::selection{background:var(--brand-soft);color:var(--brand-soft-ink)}
+:focus-visible{outline:2px solid var(--brand);outline-offset:2px;border-radius:8px}
+h1,h2,h3,p{margin:0}
+a{color:var(--brand)}
+svg.i{width:20px;height:20px;flex:none;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+button>*,a>*,summary>*{pointer-events:none}
+.mute{color:var(--mute)}
+.note{font-size:.84rem;color:var(--mute);line-height:1.45}
+.num,time{font-variant-numeric:tabular-nums}
+
+/* ---------- marca ---------- */
+.mark{display:inline-grid;place-items:center;width:38px;height:38px;flex:none}
+.mark svg{width:100%;height:100%;display:block}
+
+/* ---------- encabezado ---------- */
+header.top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:calc(14px + env(safe-area-inset-top)) 16px 10px;max-width:880px;margin:auto}
+.who{display:flex;align-items:center;gap:11px;min-width:0}
+#brand{font:600 1.15rem/1.15 var(--serif);letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.who p{font-size:.8rem;color:var(--mute)}
+.hact{display:flex;gap:6px}
+.icon-btn{display:inline-grid;place-items:center;width:44px;height:44px;border-radius:12px;border:0;background:transparent;color:var(--ink-2);cursor:pointer;transition:background-color .15s ease-out,transform .15s var(--ease);text-decoration:none}
+.icon-btn:hover{background:var(--surface-2)}
+.icon-btn:active{transform:scale(.94)}
+
+/* ---------- panel del día ---------- */
+#stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:6px 16px 4px;max-width:880px;margin:auto}
+body:has(#agenda[hidden]) #stats{display:none}
+.stat-main,.stat{background:var(--surface);border:1px solid var(--card-border);box-shadow:var(--card-shadow);border-radius:var(--r)}
+.stat-main{grid-column:1/-1;padding:16px 16px 14px;background:var(--brand);color:var(--brand-ink);border-color:transparent;box-shadow:0 10px 30px -16px rgb(22 74 62/.7)}
+.sm-top{display:flex;justify-content:space-between;align-items:baseline;font-size:.82rem;opacity:.86}
+.sm-num{display:flex;align-items:baseline;gap:8px;margin:4px 0 12px}
+.sm-num strong{font:500 2.9rem/1 var(--serif);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.sm-num span{font-size:.95rem;opacity:.86}
+.seg{display:flex;gap:3px;height:8px;border-radius:99px;overflow:hidden;background:color-mix(in srgb,var(--brand-ink) 16%,transparent)}
+.seg i{display:block;min-width:0}
+.seg .s-ok{background:var(--brand-ink)}
+.seg .s-pend{background:color-mix(in srgb,var(--brand-ink) 45%,transparent)}
+.seg .s-oth{background:color-mix(in srgb,var(--brand-ink) 22%,transparent)}
+.legend{display:flex;gap:16px;margin-top:10px;font-size:.82rem}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend .dot{width:8px;height:8px;border-radius:50%;background:var(--brand-ink)}
+.legend .dot.pend{background:color-mix(in srgb,var(--brand-ink) 45%,transparent)}
+.stat{padding:12px 14px}
+.lbl{font-size:.78rem;font-weight:600;color:var(--mute)}
+.stat-main .lbl{color:inherit}
+.stat strong{display:block;font:500 1.55rem/1.2 var(--serif);letter-spacing:-.01em;margin-top:2px;font-variant-numeric:tabular-nums}
+.stat small{display:block;font-size:.78rem;color:var(--mute);margin-top:2px}
+
+/* ---------- contenido ---------- */
+main{padding:14px 16px 24px;max-width:880px;margin:auto}
+main>section:not([hidden]){animation:enter .22s var(--ease)}
+@keyframes enter{from{opacity:0;transform:translateY(6px)}}
+.sh{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin:6px 0 14px}
+.sh h2{font:600 1.6rem/1.15 var(--serif);letter-spacing:-.015em}
+.sh p{font-size:.88rem;color:var(--mute);margin-top:3px}
+.sh p:first-letter{text-transform:uppercase}
+h3.sub{font-size:.8rem;font-weight:650;letter-spacing:.02em;color:var(--mute);margin:22px 4px 8px;display:flex;justify-content:space-between;align-items:baseline}
+.card{background:var(--surface);border:1px solid var(--card-border);box-shadow:var(--card-shadow);border-radius:var(--r);padding:14px}
+
+/* ---------- controles ---------- */
+.fld{display:grid;gap:6px;min-width:0}
+.fld>span{font-size:.8rem;font-weight:600;color:var(--ink-2)}
+input,select,textarea{font:inherit;font-size:16px;width:100%;min-height:48px;padding:11px 13px;border-radius:var(--r-sm);border:1px solid var(--line-2);background:var(--field);color:var(--ink);transition:border-color .15s ease-out,box-shadow .15s ease-out}
+textarea{min-height:96px;resize:vertical;line-height:1.45}
+input::placeholder,textarea::placeholder{color:var(--mute);opacity:1}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 3px color-mix(in srgb,var(--brand) 22%,transparent)}
+input[type=file]{padding:9px;font-size:.88rem;color:var(--mute)}
+input[type=file]::file-selector-button{font:inherit;font-weight:600;margin-right:10px;border:0;border-radius:8px;padding:7px 12px;background:var(--brand-soft);color:var(--brand-soft-ink);cursor:pointer}
+input[type=search]{padding-left:42px}
+.search{position:relative}
+.search svg{position:absolute;left:13px;top:14px;color:var(--mute);pointer-events:none}
+form{display:grid;gap:12px}
+.grid2{display:grid;gap:12px}
+@media (min-width:560px){.grid2{grid-template-columns:1fr 1fr}}
+.btn,button.p{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 16px;border-radius:12px;border:1px solid transparent;font:inherit;font-weight:600;font-size:.94rem;cursor:pointer;text-decoration:none;transition:transform .15s var(--ease),background-color .15s ease-out,border-color .15s ease-out;-webkit-tap-highlight-color:transparent}
+button.p{width:100%;min-height:50px;background:var(--brand);color:var(--brand-ink);font-size:1rem}
+button.p:hover{background:var(--brand-2)}
+.btn:active,button.p:active,.chip:active,.panel>summary:active,.row-i[role=button]:active{transform:scale(.97)}
+.btn.sm{min-height:44px;padding:0 13px;font-size:.88rem}
+.btn.tonal{background:var(--brand-soft);color:var(--brand-soft-ink)}
+.btn.tonal:hover{background:color-mix(in srgb,var(--brand-soft) 80%,var(--brand))}
+.btn.ghost{background:transparent;color:var(--ink-2);border-color:var(--line-2)}
+.btn.ghost:hover{background:var(--surface-2)}
+.btn.danger{background:var(--bad-bg);color:var(--bad)}
+.btn svg.i{width:18px;height:18px}
+.chips{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 6px;margin:0 -2px;scrollbar-width:none}
+.chip{white-space:nowrap;min-height:40px;border:1px solid var(--line-2);background:var(--surface);color:var(--ink-2);border-radius:99px;padding:0 15px;font:inherit;font-size:.88rem;font-weight:550;cursor:pointer;transition:background-color .15s ease-out,color .15s ease-out,transform .15s var(--ease)}
+.chip[aria-pressed=true]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+
+/* paneles colapsables (formularios) */
+.panel{background:var(--surface);border:1px solid var(--card-border);box-shadow:var(--card-shadow);border-radius:var(--r);margin-bottom:14px}
+.panel>summary{list-style:none;display:flex;align-items:center;gap:12px;min-height:56px;padding:6px 14px;cursor:pointer;font-weight:600;border-radius:var(--r);transition:transform .15s var(--ease)}
+.panel>summary::-webkit-details-marker{display:none}
+.panel>summary .plus{display:grid;place-items:center;width:32px;height:32px;border-radius:10px;background:var(--brand);color:var(--brand-ink)}
+.panel>summary .plus svg{width:18px;height:18px;stroke-width:2.2}
+.panel>summary .chev{margin-left:auto;color:var(--mute);transition:transform .2s var(--ease)}
+.panel[open]>summary .chev{transform:rotate(180deg)}
+.panel>summary small{display:block;font-weight:400;font-size:.8rem;color:var(--mute)}
+.panel>form,.panel>.pbody{padding:4px 14px 16px;animation:enter .2s var(--ease)}
+.panel.plain>summary .plus{background:var(--surface-2);color:var(--ink-2)}
+
+/* ---------- etiquetas de estado ---------- */
+.st{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;font-size:.76rem;font-weight:650;padding:4px 9px;border-radius:99px;background:var(--off-bg);color:var(--off)}
+.st::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.st-scheduled{background:var(--info-bg);color:var(--info)}
+.st-arrived{background:var(--wait-bg);color:var(--wait)}
+.st-done{background:var(--ok-bg);color:var(--ok)}
+.st-no_show{background:var(--bad-bg);color:var(--bad)}
+.pill{display:inline-flex;align-items:center;font-size:.8rem;padding:3px 9px;border-radius:8px;background:var(--surface-2);color:var(--ink-2)}
+.alert{display:flex;gap:8px;align-items:flex-start;margin-top:10px;padding:9px 11px;border-radius:10px;background:var(--clay-soft);color:var(--clay);font-size:.86rem}
+.alert svg.i{width:17px;height:17px;margin-top:1px}
+.alert-inline{display:inline-flex;align-items:center;gap:5px;color:var(--clay);font-size:.8rem;font-weight:550}
+.alert-inline svg.i{width:14px;height:14px}
+
+/* avatar */
+.av{--h:#1d5c4d;display:inline-grid;place-items:center;flex:none;width:40px;height:40px;border-radius:50%;font-size:.84rem;font-weight:650;letter-spacing:.02em;color:var(--h);background:color-mix(in srgb,var(--h) 13%,var(--surface))}
+.a0{--h:#1d5c4d}.a1{--h:#8a4a24}.a2{--h:#2c5a86}.a3{--h:#6a4c8a}.a4{--h:#7a5a12}.a5{--h:#3f6a2a}
+@media (prefers-color-scheme:dark){.av{color:color-mix(in srgb,var(--h) 45%,#fff);background:color-mix(in srgb,var(--h) 30%,var(--surface))}}
+.av.xl{width:60px;height:60px;font-size:1.2rem}
+
+/* ---------- agenda: línea de tiempo ---------- */
+.daybar{display:flex;gap:6px;align-items:center;margin-bottom:14px}
+.daybar input{flex:1;min-width:0;text-align:center;font-weight:600}
+.tl{position:relative;display:grid;gap:12px}
+.tl-i{display:grid;grid-template-columns:50px 1fr;gap:12px;position:relative}
+.tl-t{position:relative;padding-top:12px;text-align:right}
+.tl-t b{display:block;font-size:1.06rem;font-weight:650;letter-spacing:-.01em;font-variant-numeric:tabular-nums}
+.tl-t span{font-size:.74rem;color:var(--mute)}
+.tl-i::before{content:"";position:absolute;left:50px;top:0;bottom:-12px;width:0;border-left:1.5px dashed var(--line-2);transform:translateX(6px)}
+.tl-i:last-child::before{bottom:auto;height:24px}
+.tl-c{position:relative;margin-left:12px}
+.tl-c::before{content:"";position:absolute;left:-19px;top:17px;width:11px;height:11px;border-radius:50%;background:var(--surface);border:2.5px solid var(--info)}
+.s-arrived .tl-c::before{border-color:var(--wait);background:var(--wait)}
+.s-done .tl-c::before{border-color:var(--ok);background:var(--ok)}
+.s-cancelled .tl-c::before{border-color:var(--off)}
+.s-no_show .tl-c::before{border-color:var(--bad)}
+.s-cancelled .tl-t b,.s-no_show .tl-t b{color:var(--mute);text-decoration:line-through;text-decoration-thickness:1px}
+.s-cancelled .card,.s-no_show .card{background:color-mix(in srgb,var(--surface) 55%,var(--bg))}
+.s-arrived .card{box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--wait) 55%,transparent),var(--card-shadow)}
+.tl-h{display:flex;gap:11px;align-items:center}
+.tl-n{flex:1;min-width:0;display:grid}
+.tl-n b{font-size:1rem;line-height:1.3}
+.tl-n .mute{font-size:.84rem;line-height:1.35}
+.meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;align-items:flex-start}
+.more>summary{list-style:none;display:inline-flex;align-items:center;gap:4px;min-height:44px;padding:0 10px;border-radius:12px;color:var(--mute);font-size:.86rem;font-weight:550;cursor:pointer}
+.more>summary::-webkit-details-marker{display:none}
+.more>summary:hover{color:var(--ink);background:var(--surface-2)}
+.more>summary svg.i{width:16px;height:16px;transition:transform .2s var(--ease)}
+.more[open]>summary svg.i{transform:rotate(180deg)}
+.more[open]{flex-basis:100%}
+.menu{display:flex;flex-wrap:wrap;gap:6px;padding-top:6px;animation:enter .18s var(--ease)}
+.now{display:grid;grid-template-columns:50px 1fr;gap:12px;align-items:center;margin:-4px 0}
+.now span{font-size:.72rem;font-weight:700;color:var(--clay);text-align:right;font-variant-numeric:tabular-nums}
+.now i{height:1.5px;background:var(--clay);position:relative;margin-left:2px}
+.now i::before{content:"";position:absolute;left:-1px;top:-3.5px;width:8px;height:8px;border-radius:50%;background:var(--clay)}
+
+/* ---------- listas ---------- */
+.list{background:var(--surface);border:1px solid var(--card-border);box-shadow:var(--card-shadow);border-radius:var(--r);overflow:hidden}
+.list>.card{border:0;box-shadow:none;border-radius:0;background:transparent}
+.list>.card+.card{border-top:1px solid var(--line)}
+.row-i{display:flex;align-items:center;gap:12px;padding:12px 14px;min-height:64px}
+.row-i[role=button]{cursor:pointer;transition:background-color .15s ease-out,transform .15s var(--ease)}
+.row-i[role=button]:hover{background:var(--surface-2)}
+.ri-b{flex:1;min-width:0;display:grid;gap:1px}
+.ri-b b{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ri-b .mute{font-size:.84rem;overflow-wrap:anywhere}
+.chev{color:var(--line-2)}
+.nw{white-space:nowrap}
+.amt{font-variant-numeric:tabular-nums;white-space:nowrap}
+.doc-ic{display:grid;place-items:center;width:40px;height:40px;border-radius:12px;background:var(--surface-2);color:var(--ink-2);flex:none}
+.mi{display:grid;place-items:center;width:40px;height:40px;border-radius:12px;flex:none;background:var(--surface-2);color:var(--ink-2)}
+.m-cash{background:var(--ok-bg);color:var(--ok)}.m-card{background:var(--info-bg);color:var(--info)}.m-transfer{background:var(--brand-soft);color:var(--brand-soft-ink)}.m-insurance{background:var(--wait-bg);color:var(--wait)}
+.cons{display:flex;gap:12px;margin-bottom:10px}
+.cb{flex:1;min-width:0}
+.ch{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+.ch time{font-size:.8rem;white-space:nowrap}
+.dx{font-weight:600;margin-top:6px}
+.cb .mute{font-size:.9rem;margin-top:2px}
+.by{font-size:.8rem;color:var(--mute);margin-top:8px}
+.cb .btn{margin-top:10px}
+.rem{margin-bottom:12px}
+.rem .acts{flex-wrap:nowrap}.rem .acts .btn{flex:1 1 0;padding:0 10px;min-width:0;white-space:nowrap}
+.rem-h{display:flex;gap:11px;align-items:center}
+.tel{font-size:.8rem;white-space:nowrap;font-variant-numeric:tabular-nums}
+.bubble{white-space:pre-wrap;margin-top:12px;padding:11px 13px;border-radius:4px 14px 14px 14px;background:var(--surface-2);font-size:.92rem;line-height:1.5;color:var(--ink-2)}
+.info{display:flex;gap:10px;align-items:flex-start;padding:11px 13px;border-radius:12px;background:var(--info-bg);color:var(--info);font-size:.86rem;margin-bottom:14px}
+.info svg.i{width:18px;height:18px;margin-top:1px}
+.empty{text-align:center;padding:34px 20px;color:var(--mute)}
+.empty .e-ic{display:inline-grid;place-items:center;width:56px;height:56px;border-radius:18px;background:var(--surface-2);color:var(--ink-2);margin-bottom:12px}
+.empty .e-ic svg.i{width:26px;height:26px;stroke-width:1.5}
+.empty b{display:block;color:var(--ink);font-weight:600;margin-bottom:3px}
+.empty p{font-size:.88rem;max-width:30ch;margin:auto}
+
+/* ---------- caja ---------- */
+#report{padding:18px 16px;margin:12px 0 14px}
+.rep-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.rep-top .lbl{text-transform:none}
+.big{display:block;font:500 2.2rem/1.1 var(--serif);letter-spacing:-.02em;margin:4px 0 2px;font-variant-numeric:tabular-nums}
+.bars{list-style:none;margin:18px 0 0;padding:0;display:grid;gap:14px}
+.bar-l{display:flex;align-items:baseline;gap:8px;font-size:.9rem;margin-bottom:6px}
+.bar-l span:first-child{font-weight:600}
+.bar-l .mute{font-size:.8rem}
+.bar-l b{margin-left:auto;font-weight:600;font-variant-numeric:tabular-nums}
+.track{height:8px;border-radius:99px;background:var(--surface-2);overflow:hidden}
+.track i{display:block;height:100%;border-radius:99px;background:var(--brand);transform-origin:left;animation:grow .5s var(--ease)}
+@keyframes grow{from{transform:scaleX(0)}}
+.b-cash i{background:var(--ok)}.b-card i{background:var(--info)}.b-transfer i{background:var(--brand)}.b-insurance i{background:var(--wait)}
+.bars .zero{opacity:.55}
+.dl{margin:4px 0 6px}
+
+/* ---------- navegación ---------- */
+.rail{position:fixed;left:0;right:0;bottom:0;z-index:10;background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
+.rail-brand,.rail-foot{display:none}
+nav{display:flex;max-width:880px;margin:auto}
+nav button{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:60px;padding:6px 2px;border:0;background:none;color:var(--mute);font:inherit;font-size:.68rem;font-weight:600;letter-spacing:-.005em;cursor:pointer;-webkit-tap-highlight-color:transparent;position:relative;transition:color .15s ease-out}
+nav button .l-l{display:none}
+nav button svg.i{width:22px;height:22px;transition:transform .2s var(--ease)}
+nav button[aria-selected=true]{color:var(--brand)}
+nav button[aria-selected=true] svg.i{stroke-width:2.1}
+nav button::after{content:"";position:absolute;top:0;left:30%;right:30%;height:2.5px;border-radius:0 0 3px 3px;background:var(--brand);transform:scaleX(0);transition:transform .2s var(--ease)}
+nav button[aria-selected=true]::after{transform:scaleX(1)}
+nav button:active svg.i{transform:scale(.9)}
+
+/* ---------- hoja inferior ---------- */
+#detail{position:fixed;inset:0;background:var(--scrim);display:none;align-items:flex-end;z-index:30}
+#detail.on{display:flex;animation:fade .2s ease-out}
+@keyframes fade{from{opacity:0}}
+#detail>div{position:relative;background:var(--bg);width:100%;max-width:680px;margin:0 auto;max-height:90vh;max-height:90dvh;overflow:auto;overscroll-behavior:contain;border-radius:22px 22px 0 0;padding:8px 16px calc(24px + env(safe-area-inset-bottom));box-shadow:var(--sheet-shadow)}
+#detail.on>div{animation:sheet .28s var(--ease)}
+@keyframes sheet{from{transform:translateY(100%)}}
+.grab{width:38px;height:5px;border-radius:99px;background:var(--line-2);margin:2px auto 4px}
+.sh-top{position:sticky;top:-8px;display:flex;justify-content:flex-end;margin:0 -8px -36px;z-index:1;pointer-events:none}
+.sh-top .icon-btn{pointer-events:auto;background:var(--surface-2);border-radius:50%;width:40px;height:40px;margin:6px 0}
+.pf{display:flex;gap:14px;align-items:center;padding:10px 48px 4px 0}
+.pf h2{font:600 1.45rem/1.2 var(--serif);letter-spacing:-.015em}
+.pf p{font-size:.88rem;color:var(--mute);margin-top:2px}
+.kv{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);border-radius:var(--r);overflow:hidden;margin-top:16px;border:1px solid var(--line)}
+.kv div{background:var(--surface);padding:10px 12px;min-width:0}
+.kv dt{font-size:.74rem;color:var(--mute);font-weight:600}
+.kv dd{margin:1px 0 0;font-size:.92rem;font-weight:550;overflow-wrap:anywhere}
+dl{margin:0}
+.h-row{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:12px 14px}
+.h-row .ri-b b{white-space:normal}
+.doc-body{white-space:pre-wrap;font-size:.98rem;line-height:1.6;max-width:68ch;margin-top:16px;color:var(--ink-2)}
+.doc-h{padding:10px 48px 0 0}
+.doc-h h2{font:600 1.45rem/1.2 var(--serif);letter-spacing:-.015em;margin-top:8px}
+.doc-h p{font-size:.86rem;color:var(--mute);margin-top:4px}
+
+/* ---------- aviso ---------- */
+#msg{position:fixed;top:calc(12px + env(safe-area-inset-top));left:50%;transform:translate(-50%,-10px);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:99px;font-size:.9rem;font-weight:550;opacity:0;transition:opacity .2s ease-out,transform .2s var(--ease);pointer-events:none;z-index:50;box-shadow:0 8px 24px -8px rgb(0 0 0/.35);max-width:calc(100% - 32px)}
+#msg.on{opacity:1;transform:translate(-50%,0)}
+
+/* ---------- ingreso ---------- */
+#login{position:fixed;inset:0;background:var(--bg);display:grid;place-items:center;padding:20px 16px;z-index:40;overflow:auto}
+.lg{width:100%;max-width:400px;display:grid}
+.lg-art{display:none}
+#fLogin{gap:14px}
+.lg-head{display:grid;justify-items:center;text-align:center;gap:10px;margin-bottom:10px}
+.lg-head .mark{width:60px;height:60px}
+#lgBrand{font:600 1.85rem/1.15 var(--serif);letter-spacing:-.02em}
+.lg-head p{color:var(--mute);font-size:.94rem;max-width:30ch}
+.lg-card{display:grid;gap:14px;background:var(--surface);border:1px solid var(--card-border);box-shadow:var(--card-shadow);border-radius:18px;padding:20px}
+#lgErr{color:var(--bad);font-size:.88rem;min-height:1.2em;text-align:center}
+#lgErr:empty{display:none}
+.lg-foot{display:flex;gap:6px;align-items:center;justify-content:center;font-size:.8rem;color:var(--mute);margin-top:4px}
+.lg-foot svg.i{width:15px;height:15px}
+
+/* ---------- tablet / escritorio ---------- */
+@media (min-width:900px){
+  body{padding:0 0 0 252px}
+  .rail{top:0;right:auto;width:252px;border-top:0;border-right:1px solid var(--line);background:var(--surface);display:flex;flex-direction:column;padding:22px 14px 18px}
+  .rail-brand{display:flex;align-items:center;gap:11px;padding:0 8px 26px}
+  .rail-brand b{font:600 1.15rem/1.2 var(--serif);letter-spacing:-.01em}
+  .rail-foot{display:block;margin-top:auto;padding:0 10px;font-size:.78rem;color:var(--mute)}
+  nav{flex-direction:column;gap:2px;margin:0;max-width:none}
+  nav button{flex:none;flex-direction:row;justify-content:flex-start;gap:12px;min-height:46px;padding:0 12px;border-radius:12px;font-size:.94rem;font-weight:550;color:var(--ink-2)}
+  nav button .l-s{display:none}nav button .l-l{display:inline}
+  nav button:hover{background:var(--surface-2)}
+  nav button[aria-selected=true]{background:var(--brand-soft);color:var(--brand-soft-ink)}
+  nav button::after{display:none}
+  nav button svg.i{width:20px;height:20px}
+  header.top{padding:28px 32px 6px}
+  header.top .mark{display:none}
+  #brand{font:600 1.05rem/1.2 var(--sans);color:var(--ink-2)}
+  #stats{grid-template-columns:1.5fr 1fr 1fr;padding:12px 32px 4px;gap:12px}
+  .stat-main{grid-column:auto}
+  .stat{display:flex;flex-direction:column;justify-content:space-between;padding:16px}
+  .stat strong{font-size:1.9rem}
+  main{padding:20px 32px 48px}
+  .sh h2{font-size:2rem}
+  #detail{align-items:center;padding:24px}
+  #detail>div{border-radius:22px;max-height:86vh;padding:14px 26px 28px}
+  #detail.on>div{animation:pop .24s var(--ease)}
+  @keyframes pop{from{opacity:0;transform:translateY(14px) scale(.98)}}
+  .grab{display:none}
+  .lg{max-width:940px;grid-template-columns:1.05fr 1fr;background:var(--surface);border-radius:26px;overflow:hidden;box-shadow:0 30px 80px -30px rgb(23 33 30/.35);border:1px solid var(--card-border)}
+  .lg-art{display:flex;flex-direction:column;justify-content:space-between;position:relative;overflow:hidden;background:#1d5c4d;color:#f4efe6;padding:40px;min-height:560px}
+  .lg-art .mark{width:48px;height:48px}
+  .lg-art h3{font:500 2.3rem/1.12 var(--serif);letter-spacing:-.02em;max-width:12ch;position:relative}
+  .lg-art p{color:#cfe3db;margin-top:12px;max-width:32ch;position:relative}
+  .lg-art svg.rings{position:absolute;right:-180px;bottom:-200px;width:560px;height:560px}
+  #fLogin{padding:56px 48px;align-content:center}
+  .lg-head{justify-items:start;text-align:left}
+  .lg-head .mark{display:none}
+  .lg-card{background:none;border:0;box-shadow:none;padding:0}
+  .lg-foot{justify-content:flex-start}
+}
+@media (min-width:900px) and (prefers-color-scheme:dark){.lg-art{background:#123d33}}
+/* =====================================================================
+   Ronda 2: movimiento, profundidad y superficies.
+   Solo transform/opacity (y clip-path/filtros puntuales). Todo se apaga
+   con prefers-reduced-motion (regla final + comprobación en JS).
+   ===================================================================== */
+:root{
+  --ease-out:cubic-bezier(.23,1,.32,1);--ease-io:cubic-bezier(.77,0,.175,1);--ease-drawer:cubic-bezier(.32,.72,0,1);
+  --spring:var(--ease-drawer);--spring-pop:var(--ease-out);
+  --e1:0 1px 1px rgb(23 33 30/.04),0 2px 5px -2px rgb(23 33 30/.06),0 12px 28px -16px rgb(23 33 30/.2);
+  --e2:0 1px 2px rgb(23 33 30/.05),0 8px 16px -6px rgb(23 33 30/.1),0 26px 44px -20px rgb(23 33 30/.3);
+  --card-shadow:var(--e1);
+  --glow-a:rgb(29 92 77/.11);--glow-b:rgb(165 70 31/.07);
+  --hero-a:#23705e;--hero-b:#1d5c4d;--hero-c:#143f35;--hero-ink:#fff;--hero-line:rgb(255 255 255/.34);
+  --shine:rgb(255 255 255/.6);--msg-ck:#8fd1bb;
+  --noise:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .09 0 0 0 0 .13 0 0 0 0 .12 0 0 0 .07 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  --cross:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28'%3E%3Cpath d='M14 10v8M10 14h8' stroke='%23fff' stroke-opacity='.11' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");
+}
+@media (prefers-color-scheme:dark){:root{
+  --e1:inset 0 1px 0 rgb(255 255 255/.035),0 1px 2px rgb(0 0 0/.35),0 14px 30px -18px rgb(0 0 0/.85);
+  --e2:inset 0 1px 0 rgb(255 255 255/.05),0 2px 4px rgb(0 0 0/.4),0 26px 48px -20px rgb(0 0 0/.9);
+  --card-shadow:var(--e1);
+  --glow-a:rgb(127 200 176/.075);--glow-b:rgb(235 158 120/.045);
+  --hero-a:#9ad6c2;--hero-b:#7fc8b0;--hero-c:#62ad95;--hero-ink:#0b2a22;--hero-line:rgb(255 255 255/.45);
+  --shine:rgb(255 255 255/.06);--msg-ck:#1d5c4d;
+  --noise:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  --cross:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28'%3E%3Cpath d='M14 10v8M10 14h8' stroke='%230b2a22' stroke-opacity='.1' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");
+}}
+/* fondo: dos luces muy suaves + grano fijo (no se anima) */
+body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(70rem 42rem at 105% -12%,var(--glow-a),transparent 62%),radial-gradient(56rem 36rem at -15% 112%,var(--glow-b),transparent 60%),var(--noise)}
+.sh h2{background:linear-gradient(100deg,var(--ink) 30%,color-mix(in srgb,var(--ink) 62%,var(--brand)));-webkit-background-clip:text;background-clip:text;color:transparent}
+.sh h2::after{content:"";display:block;width:28px;height:3px;border-radius:99px;margin-top:8px;background:linear-gradient(90deg,var(--brand),var(--clay))}
+
+/* barra de navegación en vidrio */
+@supports ((-webkit-backdrop-filter:blur(1px)) or (backdrop-filter:blur(1px))){
+  .rail{background:color-mix(in srgb,var(--surface) 76%,transparent);-webkit-backdrop-filter:blur(18px) saturate(1.6);backdrop-filter:blur(18px) saturate(1.6)}
+}
+nav{position:relative}
+.tab-ind{position:absolute;left:0;top:0;width:0;height:0;pointer-events:none;border-radius:99px;background:var(--brand-soft);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--brand) 14%,transparent);transition:opacity .2s ease-out}
+html.fx-ind nav button::after{display:none}
+nav button>span{position:relative}
+
+/* tarjeta principal "Hoy": degradado, borde luminoso, patrón de marca, brillo */
+.stat-main{position:relative;overflow:hidden;isolation:isolate;border:1px solid transparent;color:var(--hero-ink);
+  background:linear-gradient(140deg,var(--hero-a),var(--hero-b) 48%,var(--hero-c)) padding-box,linear-gradient(140deg,var(--hero-line),transparent 38%,transparent 62%,color-mix(in srgb,var(--hero-line) 50%,transparent)) border-box;
+  box-shadow:0 1px 2px rgb(20 63 53/.25),0 14px 34px -16px rgb(20 63 53/.65);transition:transform .5s var(--ease-out)}
+.stat-main::before{content:"";position:absolute;inset:0;z-index:-1;background:var(--cross);-webkit-mask:linear-gradient(115deg,transparent 35%,#000 85%);mask:linear-gradient(115deg,transparent 35%,#000 85%)}
+.stat-main::after{content:"";position:absolute;inset:0;z-index:-1;background:radial-gradient(420px circle at var(--mx,50%) var(--my,0%),rgb(255 255 255/.18),transparent 46%);opacity:0;transition:opacity .3s ease-out}
+.stat-main.tilt{transition:transform .12s linear}
+.stat-main.tilt::after{opacity:1}
+.stat{position:relative;transition:transform .2s var(--ease-out)}
+.stat::after,.row-i[role=button]::after{content:"";position:absolute;inset:0;border-radius:inherit;box-shadow:var(--e2);opacity:0;transition:opacity .2s ease-out;pointer-events:none}
+.row-i[role=button]{position:relative}
+.row-i[role=button]::after{box-shadow:none;background:linear-gradient(90deg,color-mix(in srgb,var(--brand) 7%,transparent),transparent 70%)}
+@media (hover:hover) and (pointer:fine){
+  .stat:hover{transform:translateY(-2px)}.stat:hover::after{opacity:1}
+  .row-i[role=button]:hover::after{opacity:1}
+  .row-i[role=button]:hover .chev{transform:translateX(3px);color:var(--mute)}
+  .tl-c.card:hover{transform:translateY(-1px)}
+  button.p:hover{transform:translateY(-1px)}
+}
+.row-i .chev{transition:transform .2s var(--ease-out),color .2s ease-out}
+.tl-c.card{transition:transform .2s var(--ease-out)}
+
+/* botones: relieve, ondas y estados */
+button.p{position:relative;overflow:hidden;background:linear-gradient(180deg,color-mix(in srgb,var(--brand) 88%,#fff),var(--brand));box-shadow:inset 0 1px 0 rgb(255 255 255/.18),0 1px 2px rgb(20 63 53/.2),0 8px 18px -10px color-mix(in srgb,var(--brand) 80%,transparent)}
+button.p:hover{background:linear-gradient(180deg,var(--brand),var(--brand-2))}
+button.p:disabled{opacity:.7;cursor:progress}
+.btn{position:relative;overflow:hidden}
+.rpl{position:absolute;border-radius:50%;background:currentColor;pointer-events:none;opacity:0}
+.btn.busy{opacity:.6;pointer-events:none}
+.btn.ok{background:var(--ok-bg);color:var(--ok)}
+.btn.ok svg.i{animation:icPop .32s var(--spring-pop)}
+@keyframes icPop{from{transform:scale(.6);opacity:0}}
+.cft{position:fixed;width:7px;height:7px;border-radius:2px;pointer-events:none;z-index:60}
+.panel>summary .plus{box-shadow:inset 0 1px 0 rgb(255 255 255/.2),0 4px 10px -4px color-mix(in srgb,var(--brand) 70%,transparent)}
+.panel>summary .plus svg{transition:transform .25s var(--ease-out)}
+.panel[open]>summary .plus[data-ic=plus] svg{transform:rotate(45deg)}
+.panel.plain>summary .plus{box-shadow:none}
+
+/* agenda: color por estado, punto con pulso, "ahora" con latido */
+.s-scheduled{--sc:var(--info)}.s-arrived{--sc:var(--wait)}.s-done{--sc:var(--ok)}.s-cancelled{--sc:var(--off)}.s-no_show{--sc:var(--bad)}
+.tl-c.card{background-image:linear-gradient(100deg,color-mix(in srgb,var(--sc,var(--info)) 8%,transparent),transparent 42%)}
+.tl-i::before{transform-origin:top}
+.tl-c::after{content:"";position:absolute;inset:-1px;border-radius:inherit;box-shadow:0 0 0 2px var(--sc),0 0 0 6px color-mix(in srgb,var(--sc) 18%,transparent);opacity:0;pointer-events:none}
+.tl-pulse{position:absolute;left:-19px;top:17px;width:11px;height:11px;border-radius:50%;background:var(--wait);pointer-events:none;animation:ping 1.9s var(--ease-out) infinite}
+@keyframes ping{0%{transform:scale(1);opacity:.6}70%,100%{transform:scale(2.7);opacity:0}}
+.now i{background:linear-gradient(90deg,var(--clay),color-mix(in srgb,var(--clay) 15%,transparent))}
+.now i::after{content:"";position:absolute;left:-1px;top:-3.5px;width:8px;height:8px;border-radius:50%;background:var(--clay);animation:ping 2.4s var(--ease-out) infinite}
+.st-done::before{width:8px;height:4.5px;border-radius:0;background:none;border:solid currentColor;border-width:0 0 2px 2px;transform:translateY(-1px) rotate(-45deg)}
+.just .tl-c::after{animation:ring .9s ease-out}
+@keyframes ring{18%{opacity:1}to{opacity:0}}
+.just .tl-c::before{animation:dotPop .4s var(--spring-pop)}
+@keyframes dotPop{from{transform:scale(1.9)}}
+.just .st{animation:pillPop .36s var(--spring-pop)}
+@keyframes pillPop{from{transform:scale(.82);opacity:.3}}
+.just .st-done::before{animation:tick .3s .12s var(--ease-out) backwards}
+@keyframes tick{from{clip-path:inset(0 100% 0 0)}}
+
+/* esqueletos de carga */
+.sk{display:block;position:relative;overflow:hidden;background:var(--surface-2);border-radius:7px;height:12px}
+.sk::after{content:"";position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent,var(--shine),transparent);animation:shimmer 1.3s linear infinite}
+@keyframes shimmer{to{transform:translateX(100%)}}
+.sk.c{border-radius:50%}
+.is-sk{display:grid;gap:10px;align-content:start}
+.stat-main.is-sk{background:var(--surface);border-color:var(--card-border);box-shadow:var(--card-shadow)}
+.stat-main.is-sk::before,.stat-main.is-sk::after{display:none}
+.sk-row{display:flex;gap:12px;align-items:center;padding:12px 14px;min-height:64px}
+.sk-row>div{flex:1;display:grid;gap:8px}
+
+/* estados vacíos ilustrados */
+.empty .e-art{position:relative;display:block;width:120px;height:96px;margin:0 auto 10px}
+.empty .e-art svg.e-bg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.e-blob{fill:var(--brand-soft)}
+.e-orbit{fill:none;stroke:color-mix(in srgb,var(--brand) 45%,transparent);stroke-width:1.5;transform-box:view-box;transform-origin:60px 50px;animation:spin 28s linear infinite}
+.e-sp{fill:var(--clay);stroke:var(--clay);stroke-width:2;stroke-linecap:round;animation:twinkle 3.2s ease-in-out infinite alternate}
+.e-sp.s2{fill:none;stroke:var(--brand);animation-delay:-1.1s}.e-sp.s3{fill:var(--wait);stroke:none;animation-delay:-2s}
+@keyframes twinkle{from{opacity:.25}to{opacity:1}}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty .e-art .e-ic{position:absolute;left:50%;top:50%;margin:-28px 0 0 -28px;background:var(--surface);color:var(--brand);box-shadow:var(--e2);animation:float 3.4s ease-in-out infinite alternate}
+@keyframes float{to{transform:translateY(-4px)}}
+
+/* aviso con resorte y check dibujado */
+#msg{display:flex;align-items:center;gap:8px;transform:translate(-50%,-14px) scale(.96);transition:opacity .2s ease-out,transform .38s var(--spring-pop)}
+#msg.on{transform:translate(-50%,0) scale(1)}
+#msg .ck{width:18px;height:18px;flex:none;fill:none;stroke:var(--msg-ck);stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+#msg .ck path{stroke-dasharray:22;stroke-dashoffset:22;animation:draw .3s .1s var(--ease-out) forwards}
+@keyframes draw{to{stroke-dashoffset:0}}
+
+/* hoja inferior: fondo con desenfoque, resorte, salida simétrica */
+#detail{background:transparent}
+#detail::before{content:"";position:absolute;inset:0;background:var(--scrim);-webkit-backdrop-filter:blur(5px);backdrop-filter:blur(5px);opacity:var(--so,1)}
+#detail.on{animation:none}
+#detail.on::before{animation:fade .3s ease-out}
+#detail.on>div{animation:sheet .4s var(--spring)}
+#detail>div{box-shadow:var(--sheet-shadow),0 120px 0 var(--bg)}
+#detail.closing{display:flex;pointer-events:none}
+#detail.closing::before{animation:fadeOut .24s ease-out forwards}
+#detail.closing>div{animation:sheetOut .24s var(--ease-drawer) forwards}
+@keyframes fadeOut{to{opacity:0}}
+@keyframes sheetOut{to{transform:translateY(100%)}}
+.grab{position:relative;cursor:grab;touch-action:none}
+.grab::before{content:"";position:absolute;left:-40px;right:-40px;top:-12px;bottom:-14px}
+
+/* ingreso: panel de marca vivo y campos escalonados */
+#login{background:radial-gradient(48rem 30rem at 110% -10%,var(--glow-a),transparent 60%),radial-gradient(40rem 26rem at -10% 110%,var(--glow-b),transparent 60%),var(--bg)}
+.lg{animation:lgIn .4s var(--ease-out) backwards}
+@keyframes lgIn{from{opacity:0;transform:translateY(12px) scale(.985)}}
+.lg-head>*,.lg-card>*,.lg-foot{animation:rise .4s var(--ease-out) backwards;animation-delay:var(--d,0ms)}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}}
+.lg-head>:nth-child(2){--d:60ms}.lg-head>:nth-child(3){--d:110ms}
+.lg-card>:nth-child(1){--d:160ms}.lg-card>:nth-child(2){--d:210ms}.lg-card>:nth-child(3){--d:260ms}.lg-foot{--d:320ms}
+.lg-art::before{content:"";position:absolute;inset:0;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='28'%3E%3Cpath d='M14 10v8M10 14h8' stroke='%23fff' stroke-opacity='.07' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");-webkit-mask:linear-gradient(160deg,#000,transparent 70%);mask:linear-gradient(160deg,#000,transparent 70%)}
+.lg-art>.mark,.lg-art>div{position:relative;z-index:1}
+.lg-art .blob{position:absolute;border-radius:50%;pointer-events:none}
+.lg-art .b1{width:460px;height:460px;left:-160px;top:-180px;background:radial-gradient(closest-side,rgb(143 209 187/.34),transparent);animation:drift1 19s ease-in-out infinite alternate}
+.lg-art .b2{width:380px;height:380px;right:-140px;top:26%;background:radial-gradient(closest-side,rgb(233 162 124/.26),transparent);animation:drift2 23s ease-in-out infinite alternate}
+.lg-art .b3{width:420px;height:420px;left:12%;bottom:-220px;background:radial-gradient(closest-side,rgb(154 214 194/.22),transparent);animation:drift1 27s ease-in-out -9s infinite alternate-reverse}
+@keyframes drift1{to{transform:translate(70px,50px) scale(1.15)}}
+@keyframes drift2{to{transform:translate(-60px,40px) scale(.9)}}
+.lg-art svg.rings{animation:spin 120s linear infinite}
+.shake{animation:shake .32s var(--ease-out)}
+@keyframes shake{20%{transform:translateX(-6px)}45%{transform:translateX(5px)}70%{transform:translateX(-3px)}}
+
+@media (min-width:900px){
+  .rail{background:color-mix(in srgb,var(--surface) 88%,transparent)}
+  .tab-ind{border-radius:12px}
+  html.fx-ind nav button[aria-selected=true]{background:transparent}
+  #detail>div{box-shadow:var(--e2),0 40px 90px -30px rgb(0 0 0/.45)}
+  #detail.on>div{animation:pop .3s var(--spring-pop)}
+  #detail.closing>div{animation:popOut .18s ease-out forwards}
+  @keyframes popOut{to{opacity:0;transform:translateY(10px) scale(.98)}}
+}
+@media (prefers-reduced-transparency:reduce){.rail{background:var(--surface);-webkit-backdrop-filter:none;backdrop-filter:none}#detail::before{-webkit-backdrop-filter:none;backdrop-filter:none}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="who"><span class="mark" data-mark></span><div><h1 id="brand">Clínica Pro</h1><p id="hello"></p></div></div>
+  <div class="hact"><a class="icon-btn" href="/api/export/appointments.csv" aria-label="Descargar agenda en Excel" title="Descargar agenda (Excel)" data-ic="download"></a><button class="icon-btn" id="btnOut" aria-label="Cerrar sesión" title="Cerrar sesión" data-ic="logout"></button></div>
+</header>
+<div id="stats" aria-label="Resumen del día"></div>
+<main>
+<section id="agenda" aria-labelledby="hAgenda">
+  <div class="sh"><div><h2 id="hAgenda">Agenda</h2><p id="dayLbl"></p></div></div>
+  <form id="fDay" class="daybar"><button type="button" class="icon-btn" id="dPrev" aria-label="Día anterior" data-ic="chevL"></button><input type="date" id="day" aria-label="Fecha de la agenda"><button type="button" class="icon-btn" id="dNext" aria-label="Día siguiente" data-ic="chevR"></button><button type="button" class="btn ghost sm" id="dToday">Hoy</button></form>
+  <details class="panel"><summary><span class="plus" data-ic="plus"></span><span>Nueva cita<small>Agendar a un paciente</small></span><span class="chev" data-ic="chevD"></span></summary>
+  <form id="fAppt">
+    <label class="fld"><span>Paciente</span><select id="aPatient" aria-label="Paciente" required></select></label>
+    <label class="fld"><span>Profesional</span><select id="aPro" aria-label="Profesional" required></select></label>
+    <label class="fld"><span>Fecha y hora</span><input type="datetime-local" id="aStart" aria-label="Fecha y hora" required></label>
+    <div class="grid2"><label class="fld"><span>Sala / Box</span><input id="aRoom" placeholder="Ej.: Box 2" aria-label="Sala / Box"></label><label class="fld"><span>Motivo</span><input id="aReason" placeholder="Ej.: Control" aria-label="Motivo"></label></div>
+    <button class="p">Agendar cita</button>
+  </form></details>
+  <div id="agendaList"></div>
+</section>
+
+<section id="pacientes" hidden aria-labelledby="hPac">
+  <div class="sh"><div><h2 id="hPac">Pacientes</h2><p id="patCount"></p></div></div>
+  <details class="panel"><summary><span class="plus" data-ic="plus"></span><span>Registrar paciente<small>Nombre, RUT, teléfono y alergias</small></span><span class="chev" data-ic="chevD"></span></summary>
+  <form id="fPat">
+    <label class="fld"><span>Nombre completo</span><input id="pName" aria-label="Nombre completo" autocomplete="off" required></label>
+    <div class="grid2"><label class="fld"><span>RUT</span><input id="pRut" placeholder="12345678-5" aria-label="RUT" autocomplete="off"></label><label class="fld"><span>Teléfono</span><input id="pPhone" placeholder="+56 9 …" aria-label="Teléfono" inputmode="tel" autocomplete="off"></label></div>
+    <label class="fld"><span>Alergias</span><input id="pAll" placeholder="Ninguna conocida" aria-label="Alergias"></label>
+    <button class="p">Registrar paciente</button>
+  </form></details>
+  <div class="search" style="margin-bottom:12px"><span data-ic="search"></span><input id="pq" type="search" placeholder="Buscar por nombre, RUT o teléfono" aria-label="Buscar paciente" autocomplete="off"></div>
+  <div id="patList"></div>
+</section>
+
+<section id="atencion" hidden aria-labelledby="hAt">
+  <div class="sh"><div><h2 id="hAt">Atención</h2><p>Registro clínico de cada consulta</p></div></div>
+  <details class="panel"><summary><span class="plus" data-ic="plus"></span><span>Registrar atención<small>Diagnóstico, indicaciones y adjuntos</small></span><span class="chev" data-ic="chevD"></span></summary>
+  <form id="fCons">
+    <div class="grid2"><label class="fld"><span>Paciente</span><select id="cPatient" aria-label="Paciente de la atención" required></select></label><label class="fld"><span>Profesional</span><select id="cPro" aria-label="Profesional de la atención" required></select></label></div>
+    <label class="fld"><span>Diagnóstico</span><input id="cDiag" aria-label="Diagnóstico"></label>
+    <label class="fld"><span>Tratamiento / indicaciones</span><textarea id="cTreat" rows="3" aria-label="Tratamiento / indicaciones"></textarea></label>
+    <label class="fld"><span>Adjunto (foto o PDF, opcional)</span><input type="file" id="cFile" aria-label="Adjunto" accept="image/*,.pdf" capture="environment"></label>
+    <button class="p">Guardar atención</button>
+  </form></details>
+  <h3 class="sub">Atenciones recientes</h3>
+  <div id="consList"></div>
+</section>
+
+<section id="recordatorios" hidden aria-labelledby="hRem">
+  <div class="sh"><div><h2 id="hRem">Recordatorios</h2><p>Mensajes para confirmar las citas de mañana</p></div></div>
+  <div class="info"><span data-ic="info"></span><p>Copie el mensaje y péguelo en WhatsApp. El sistema no envía nada automáticamente.</p></div>
+  <form id="fRem"><label class="fld"><span>Citas del día</span><input type="date" id="remDay" aria-label="Día de las citas a recordar"></label></form>
+  <h3 class="sub" id="remCount"></h3>
+  <div id="remList"></div>
+</section>
+
+<section id="documentos" hidden aria-labelledby="hDoc">
+  <div class="sh"><div><h2 id="hDoc">Documentos</h2><p>Protocolos, consentimientos y tarifas</p></div></div>
+  <div class="search" style="margin-bottom:10px"><span data-ic="search"></span><input id="dq" type="search" placeholder="Buscar documento…" aria-label="Buscar documento" autocomplete="off"></div>
+  <div class="chips" id="dcats"></div>
+  <h3 class="sub" id="docCount"></h3>
+  <div id="docList"></div>
+  <p class="note" style="margin-top:14px">Notas internas de la clínica (protocolos, consentimientos, tarifas). Solo el administrador puede editarlas. No guarde aquí datos de pacientes.</p>
+</section>
+
+<section id="admin" hidden aria-labelledby="hAdm">
+  <div class="sh"><div><h2 id="hAdm">Administración</h2><p>Equipo, acceso y documentos internos</p></div></div>
+  <h3 class="sub" style="margin-top:4px">Usuarios</h3>
+  <div id="userList" style="margin-bottom:14px"></div>
+  <details class="panel"><summary><span class="plus" data-ic="plus"></span><span>Crear usuario<small>Profesional o administrador</small></span><span class="chev" data-ic="chevD"></span></summary>
+  <form id="fUser">
+    <div class="grid2"><label class="fld"><span>Nombre</span><input id="uName" aria-label="Nombre" required></label><label class="fld"><span>Usuario</span><input id="uUser" aria-label="Usuario" autocomplete="off" required></label></div>
+    <label class="fld"><span>Clave (mín. 10 caracteres)</span><input id="uPass" type="password" aria-label="Clave (mín. 10 caracteres)" minlength="10" required autocomplete="new-password"></label>
+    <label class="fld"><span>Rol</span><select id="uRole" aria-label="Rol"><option value="profesional">Profesional</option><option value="admin">Administrador</option></select></label>
+    <button class="p">Crear usuario</button>
+  </form></details>
+  <details class="panel plain"><summary><span class="plus" data-ic="lock"></span><span>Mi clave<small>Cambiar la clave de acceso</small></span><span class="chev" data-ic="chevD"></span></summary>
+  <form id="fPass">
+    <label class="fld"><span>Clave actual</span><input id="pwOld" type="password" aria-label="Clave actual" required autocomplete="current-password"></label>
+    <label class="fld"><span>Nueva clave (mín. 10)</span><input id="pwNew" type="password" aria-label="Nueva clave (mín. 10)" minlength="10" required autocomplete="new-password"></label>
+    <button class="p">Cambiar clave</button>
+  </form></details>
+  <details class="panel plain"><summary><span class="plus" data-ic="file"></span><span>Documentos y protocolos<small>Nuevo documento interno</small></span><span class="chev" data-ic="chevD"></span></summary>
+  <form id="fDoc">
+    <label class="fld"><span>Categoría</span><select id="dCat" aria-label="Categoría"></select></label>
+    <label class="fld"><span>Título</span><input id="dTitle" placeholder="Ej.: Protocolo de limpieza" aria-label="Título" required></label>
+    <label class="fld"><span>Contenido</span><textarea id="dBody" rows="6" aria-label="Contenido"></textarea></label>
+    <button class="p">Guardar documento</button>
+  </form></details>
+</section>
+
+<section id="caja" hidden aria-labelledby="hCaja">
+  <div class="sh"><div><h2 id="hCaja">Caja</h2><p>Pagos recibidos por medio de pago</p></div></div>
+  <div class="chips" id="repTabs"><button class="chip" aria-pressed="true" data-p="day">Hoy</button><button class="chip" aria-pressed="false" data-p="month">Este mes</button></div>
+  <div id="report" class="card" aria-live="polite"></div>
+  <details class="panel"><summary><span class="plus" data-ic="plus"></span><span>Registrar pago<small>Consulta, procedimiento u otro</small></span><span class="chev" data-ic="chevD"></span></summary>
+  <form id="fPay">
+    <label class="fld"><span>Paciente</span><select id="yPatient" aria-label="Paciente que paga" required></select></label>
+    <label class="fld"><span>Concepto</span><input id="yConcept" placeholder="Ej.: Consulta general" aria-label="Concepto" required></label>
+    <div class="grid2"><label class="fld"><span>Monto (CLP)</span><input id="yAmount" type="number" min="0" inputmode="numeric" placeholder="25000" aria-label="Monto CLP" required></label>
+    <label class="fld"><span>Medio de pago</span><select id="yMethod" aria-label="Medio de pago"><option value="cash">Efectivo</option><option value="card">Tarjeta</option><option value="transfer">Transferencia</option><option value="insurance">Seguro / Isapre</option></select></label></div>
+    <button class="p">Registrar pago</button>
+  </form></details>
+  <h3 class="sub">Últimos pagos <a class="btn ghost sm dl" href="/api/export/payments.csv" data-ic="download">Descargar pagos (Excel)</a></h3>
+  <div id="payList"></div>
+</section>
+</main>
+
+<div class="rail">
+  <div class="rail-brand"><span class="mark" data-mark></span><b id="railName">Clínica Pro</b></div>
+  <nav role="tablist" aria-label="Secciones">
+    <button aria-selected="true" data-t="agenda" aria-controls="agenda" data-ic="calendar"><span class="l-s">Agenda</span><span class="l-l">Agenda</span></button>
+    <button aria-selected="false" data-t="pacientes" aria-controls="pacientes" data-ic="users"><span class="l-s">Pacientes</span><span class="l-l">Pacientes</span></button>
+    <button aria-selected="false" data-t="atencion" aria-controls="atencion" data-ic="steth"><span class="l-s">Atención</span><span class="l-l">Atención</span></button>
+    <button aria-selected="false" data-t="recordatorios" aria-controls="recordatorios" data-ic="bell"><span class="l-s">Avisos</span><span class="l-l">Recordatorios</span></button>
+    <button aria-selected="false" data-t="caja" aria-controls="caja" data-ic="wallet"><span class="l-s">Caja</span><span class="l-l">Caja</span></button>
+    <button aria-selected="false" data-t="documentos" aria-controls="documentos" data-ic="file"><span class="l-s">Docs</span><span class="l-l">Documentos</span></button>
+    <button aria-selected="false" data-t="admin" aria-controls="admin" id="tabAdmin" hidden data-ic="shield"><span class="l-s">Admin</span><span class="l-l">Administración</span></button>
+  </nav>
+  <p class="rail-foot" id="railUser"></p>
+</div>
+
+<div id="detail"><div id="detailBody" role="dialog" aria-modal="true" aria-label="Detalle"></div></div>
+
+<div id="login">
+  <div class="lg">
+    <div class="lg-art" aria-hidden="true">
+      <i class="blob b1"></i><i class="blob b2"></i><i class="blob b3"></i>
+      <span class="mark" data-mark></span>
+      <div><h3>La consulta, en orden.</h3><p>Agenda del día, fichas de pacientes y caja en un solo lugar, pensado para el equipo de la clínica.</p></div>
+      <svg class="rings" viewBox="0 0 560 560" fill="none" stroke="#f4efe6"><circle cx="280" cy="280" r="270" stroke-opacity=".07" stroke-width="2"/><circle cx="280" cy="280" r="210" stroke-opacity=".09" stroke-width="2"/><circle cx="280" cy="280" r="150" stroke-opacity=".12" stroke-width="2"/><path d="M280 190v180M190 280h180" stroke-opacity=".14" stroke-width="44" stroke-linecap="round"/></svg>
+    </div>
+    <form id="fLogin">
+      <div class="lg-head"><span class="mark" data-mark></span><h2 id="lgBrand">Clínica Pro</h2><p>Ingrese con su usuario para ver la agenda del día.</p></div>
+      <div class="lg-card">
+        <label class="fld"><span>Usuario</span><input id="lgUser" aria-label="Usuario" autocomplete="username" autocapitalize="none" spellcheck="false" required></label>
+        <label class="fld"><span>Clave</span><input id="lgPass" type="password" aria-label="Clave" autocomplete="current-password" required></label>
+        <button class="p">Ingresar</button>
+        <p class="note" id="lgErr" role="alert"></p>
+      </div>
+      <p class="lg-foot"><span data-ic="lock"></span>Acceso exclusivo para el equipo de la clínica.</p>
+    </form>
+  </div>
+</div>
+<div id="msg" role="status" aria-live="polite"></div>
+<script>
+const $=id=>document.getElementById(id),esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const ST={scheduled:"Agendada",arrived:"En espera",done:"Realizada",cancelled:"Cancelada",no_show:"No asistió"};
+const clp=n=>new Intl.NumberFormat("es-CL",{style:"currency",currency:"CLP",maximumFractionDigits:0}).format(n);
+// Iconos SVG propios (trazo 1.75, 24px). Cadenas estáticas: nunca contienen datos.
+const IC={calendar:'<rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/>',
+users:'<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.2-5.5 6.5-5.5s5.9 1.9 6.5 5.5M16 4.8a3.3 3.3 0 0 1 0 6.4M18.5 14.8c1.7.8 2.8 2.5 3 5.2"/>',
+steth:'<path d="M6.5 3.5H5v5a4.5 4.5 0 0 0 9 0v-5h-1.5"/><path d="M9.5 13v1.5a5 5 0 0 0 10 0V12"/><circle cx="19.5" cy="10" r="2"/>',
+bell:'<path d="M6 16v-5a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2.2 2.2 0 0 0 4 0"/>',
+wallet:'<rect x="3" y="6.5" width="18" height="13.5" rx="3"/><path d="M3 10.5h18M15.5 15h2.5M6.5 6.5l8.5-3 1.4 3"/>',
+file:'<path d="M14 3H7a2.5 2.5 0 0 0-2.5 2.5v13A2.5 2.5 0 0 0 7 21h10a2.5 2.5 0 0 0 2.5-2.5V8.5z"/><path d="M14 3v5.5h5.5M8.5 13h7M8.5 16.5h5"/>',
+shield:'<path d="M12 3l7.5 3v5.5c0 4.6-3.2 8.2-7.5 9.5-4.3-1.3-7.5-4.9-7.5-9.5V6z"/><path d="M9 12l2 2 4-4"/>',
+plus:'<path d="M12 5v14M5 12h14"/>',x:'<path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/>',
+chevR:'<path d="M9.5 5.5l6.5 6.5-6.5 6.5"/>',chevL:'<path d="M14.5 5.5L8 12l6.5 6.5"/>',chevD:'<path d="M6 9.5l6 6 6-6"/>',
+copy:'<rect x="8.5" y="8.5" width="12" height="12" rx="2.5"/><path d="M15.5 8.5V6A2.5 2.5 0 0 0 13 3.5H6A2.5 2.5 0 0 0 3.5 6v7A2.5 2.5 0 0 0 6 15.5h2.5"/>',
+chat:'<path d="M4 20l1.3-3.9A8 8 0 1 1 8.2 19z"/><path d="M9 10.5h6M9 13.5h4"/>',
+download:'<path d="M12 4v11M7 10.5l5 5 5-5M4.5 20h15"/>',
+logout:'<path d="M14 4h3.5A2.5 2.5 0 0 1 20 6.5v11a2.5 2.5 0 0 1-2.5 2.5H14M10 8l-4 4 4 4M6 12h10"/>',
+search:'<circle cx="11" cy="11" r="6.5"/><path d="M16 16l4 4"/>',
+alert:'<path d="M10.3 4.3L2.9 17.5A2 2 0 0 0 4.6 20.5h14.8a2 2 0 0 0 1.7-3L13.7 4.3a2 2 0 0 0-3.4 0z"/><path d="M12 9.5v4M12 17h.01"/>',
+clip:'<path d="M20 11.5l-7.8 7.8a5 5 0 0 1-7.1-7.1l8.2-8.2a3.4 3.4 0 0 1 4.8 4.8l-8.1 8.1a1.7 1.7 0 0 1-2.4-2.4l7.4-7.4"/>',
+lock:'<rect x="4.5" y="10.5" width="15" height="10" rx="2.5"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/>',
+info:'<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5M12 8h.01"/>',
+check:'<path d="M5 12.5l4.5 4.5L19 7.5"/>'};
+const ic=(n,c="")=>`<svg class="i ${c}" viewBox="0 0 24 24" aria-hidden="true">${IC[n]||""}</svg>`;
+const MARK='<svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="17" fill="#1d5c4d"/><path d="M32 17v30M17 32h30" stroke="#f6efe3" stroke-width="9" stroke-linecap="round"/><path d="M48.5 21.5A19.5 19.5 0 1 1 42.5 15.6" fill="none" stroke="#8fd1bb" stroke-width="3" stroke-linecap="round"/><circle cx="47.6" cy="18.6" r="2.6" fill="#e9a27c"/></svg>';
+document.querySelectorAll("[data-ic]").forEach(el=>el.insertAdjacentHTML("afterbegin",ic(el.dataset.ic)));
+document.querySelectorAll("[data-mark]").forEach(el=>el.innerHTML=MARK);
+// Ayudas de presentación
+const localDay=(o=0)=>new Date(Date.now()+o*864e5).toLocaleDateString("sv");
+const fmtDay=d=>{try{const t=new Date(d+"T12:00").toLocaleDateString("es-CL",{weekday:"long",day:"numeric",month:"long"});return t.charAt(0).toUpperCase()+t.slice(1)}catch{return d}};
+const fmtDT=s=>{const d=new Date(String(s||"").replace(" ","T"));return isNaN(d)?String(s||""):d.toLocaleDateString("es-CL",{day:"numeric",month:"short",year:"numeric"})+" · "+d.toLocaleTimeString("es-CL",{hour:"2-digit",minute:"2-digit",hourCycle:"h23"})};
+const ini=n=>String(n||"?").replace(/^dra?\.?\s+/i,"").split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0]).join("").toUpperCase();
+const av=(n,c="")=>`<span class="av a${[...String(n||"")].reduce((a,ch)=>a+ch.charCodeAt(0),0)%6} ${c}" aria-hidden="true">${esc(ini(n))}</span>`;
+const norm=s=>String(s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"");
+const EART='<svg class="e-bg" viewBox="0 0 120 96" aria-hidden="true"><circle class="e-blob" cx="60" cy="50" r="36"/><circle class="e-orbit" cx="60" cy="50" r="45" stroke-dasharray="2 7"/><circle class="e-sp" cx="17" cy="24" r="2.6"/><path class="e-sp s2" d="M104 12v9M99.5 16.5h9"/><circle class="e-sp s3" cx="106" cy="80" r="3"/></svg>';
+const empty=(i,t,h)=>`<div class="empty"><span class="e-art" aria-hidden="true">${EART}<span class="e-ic">${ic(i)}</span></span><b>${t}</b><p>${h}</p></div>`;
+const plural=(n,a,b)=>`${n} ${n===1?a:b}`;
+async function api(u,o){const r=await fetch(u,o);if(r.status===401&&!u.includes("/auth/login")){showLogin();throw new Error("Sesión expirada")}if(!r.ok){let d="Error";try{d=(await r.json()).detail}catch{};throw new Error(typeof d==="string"?d:"Datos inválidos")}return r.status===204?null:r.json()}
+let msgT;function say(t){const m=$("msg");m.innerHTML=(/^(Guardado|Mensaje copiado)/.test(t)?'<svg class="ck" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>':"")+`<span>${esc(t)}</span>`;m.classList.add("on");clearTimeout(msgT);msgT=setTimeout(()=>m.classList.remove("on"),2400)}
+const post=(u,b)=>api(u,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(b)});
+let pats=[],pros=[];
+const opts=(l,f)=>l.map(x=>`<option value="${+x.id}">${esc(f(x))}</option>`).join("");
+async function stats(){const d=await api("/api/dashboard"),t=+d.today_appointments||0,done=+d.today_done||0,pend=+d.today_pending||0,oth=Math.max(0,t-done-pend);
+$("stats").innerHTML=`<div class="stat-main"><div class="sm-top"><span class="lbl">Hoy</span><span>${esc(fmtDay(localDay()))}</span></div><div class="sm-num"><strong data-n="${t}" data-k="t">${t}</strong><span>${t===1?"cita agendada":"citas agendadas"}</span></div><div class="seg" role="img" aria-label="${done} realizadas y ${pend} pendientes de ${t}">${t?`<i class="s-ok" style="flex:${done}"></i><i class="s-pend" style="flex:${pend}"></i><i class="s-oth" style="flex:${oth}"></i>`:""}</div><div class="legend"><span><i class="dot"></i>${plural(done,"realizada","realizadas")}</span><span><i class="dot pend"></i>${plural(pend,"pendiente","pendientes")}</span></div></div>
+<div class="stat"><span class="lbl">Pacientes</span><div><strong data-n="${+d.patients||0}" data-k="pat">${+d.patients||0}</strong><small>${plural(+d.professionals||0,"profesional","profesionales")} en el equipo</small></div></div><div class="stat"><span class="lbl">Ingresos del mes</span><div><strong data-n="${+d.month_revenue||0}" data-k="rev" data-f="clp">${clp(+d.month_revenue||0)}</strong><small>${esc(new Date().toLocaleDateString("es-CL",{month:"long",year:"numeric"}))}</small></div></div>`}
+const NEXT={scheduled:["arrived","Marcar llegada"],arrived:["done","Finalizar atención"]};
+function apptHTML(a){const s=esc(a.status),nx=NEXT[a.status];return`<article class="tl-i s-${s}" data-a="${+a.id}"><div class="tl-t"><b>${esc(a.starts_at.slice(11,16))}</b><span>${a.duration_min?(+a.duration_min)+" min":""}</span></div><div class="tl-c card">${a.status==="arrived"?'<i class="tl-pulse" aria-hidden="true"></i>':""}<div class="tl-h">${av(a.patient_name)}<div class="tl-n"><b>${esc(a.patient_name)}</b><span class="mute">${esc(a.professional_name)} · ${esc(a.specialty)}</span></div></div><div class="meta"><span class="st st-${s}">${ST[a.status]||s}</span>${a.room?`<span class="pill">${esc(a.room)}</span>`:""}${a.reason?`<span class="pill">${esc(a.reason)}</span>`:""}</div>${a.allergies?`<div class="alert">${ic("alert")}<span>Alergias: <b>${esc(a.allergies)}</b></span></div>`:""}<div class="acts">${nx?`<button class="btn tonal sm" data-s="${nx[0]}" data-id="${+a.id}">${ic(nx[0]==="done"?"check":"chevR")}${nx[1]}</button>`:""}<details class="more"><summary>Cambiar estado${ic("chevD")}</summary><div class="menu">${Object.entries(ST).filter(([k])=>k!==a.status&&!(nx&&k===nx[0])).map(([k,v])=>`<button class="btn ghost sm" data-s="${k}" data-id="${+a.id}">${v}</button>`).join("")}</div></details></div></div></article>`}
+async function agenda(){const day=$("day").value,l=await api("/api/agenda?day="+day);
+$("dayLbl").textContent=fmtDay(day)+" · "+plural(l.length,"cita","citas");
+let h="",now=day===localDay()&&l.length?new Date().toTimeString().slice(0,5):null;const line=`<div class="now" aria-hidden="true"><span>${now}</span><i></i></div>`;
+l.forEach(a=>{if(now&&a.starts_at.slice(11,16)>now){h+=line;now=null}h+=apptHTML(a)});if(now)h+=line;
+$("agendaList").innerHTML=l.length?`<div class="tl">${h}</div>`:`<div class="card">${empty("calendar","Día libre","No hay citas para esta fecha. Agende una desde “Nueva cita”.")}</div>`}
+function renderPats(){const q=norm($("pq").value),l=pats.filter(p=>!q||norm(`${p.name} ${p.rut||""} ${p.phone||""}`).includes(q));
+$("patCount").textContent=plural(pats.length,"paciente registrado","pacientes registrados");
+$("patList").innerHTML=l.length?`<div class="list">${l.map(p=>`<div class="card row-i" data-id="${+p.id}" role="button" tabindex="0" aria-label="Abrir ficha de ${esc(p.name)}">${av(p.name)}<div class="ri-b"><b>${esc(p.name)}</b><span class="mute"><span class="nw">${esc(p.rut||"Sin RUT")}</span> · <span class="nw">${esc(p.phone||"Sin teléfono")}</span></span>${p.allergies?`<span class="alert-inline">${ic("alert")}${esc(p.allergies)}</span>`:""}</div>${p.insurance?`<span class="pill">${esc(p.insurance)}</span>`:""}${ic("chevR","chev")}</div>`).join("")}</div>`
+:`<div class="card">${pats.length?empty("search","Sin resultados","Pruebe con otro nombre, RUT o teléfono."):empty("users","Aún no hay pacientes","Registre el primero con “Registrar paciente”.")}</div>`}
+async function lists(){[pats,pros]=await Promise.all([api("/api/patients"),api("/api/professionals")]);const po=opts(pats,p=>p.name+(p.rut?" · "+p.rut:"")),pr=opts(pros,p=>p.name+" · "+p.specialty);["aPatient","cPatient","yPatient"].forEach(i=>$(i).innerHTML=po);["aPro","cPro"].forEach(i=>$(i).innerHTML=pr);renderPats()}
+async function cons(){const l=await api("/api/consultations");$("consList").innerHTML=l.map(c=>`<article class="card cons">${av(c.patient_name)}<div class="cb"><div class="ch"><b>${esc(c.patient_name)}</b><time class="mute">${esc(fmtDT(c.occurred_at))}</time></div>${c.diagnosis?`<p class="dx">${esc(c.diagnosis)}</p>`:""}${c.treatment?`<p class="mute">${esc(c.treatment)}</p>`:""}<p class="by">${esc(c.professional_name)}</p>${c.attachment_path?`<a class="btn ghost sm" href="/api/consultations/${+c.id}/attachment" target="_blank" rel="noopener">${ic("clip")}Ver adjunto</a>`:""}</div></article>`).join("")||`<div class="card">${empty("steth","Sin atenciones registradas","Las atenciones que guarde aparecerán aquí, de la más reciente a la más antigua.")}</div>`}
+const M={cash:"Efectivo",card:"Tarjeta",transfer:"Transferencia",insurance:"Seguro / Isapre"};
+async function pays(){const l=await api("/api/payments");$("payList").innerHTML=l.length?`<div class="list">${l.slice(0,30).map(y=>{const p=pats.find(x=>x.id===y.patient_id);return`<div class="card row-i"><span class="mi m-${esc(y.method)}">${ic("wallet")}</span><div class="ri-b"><b>${esc(y.concept)}</b><span class="mute">${esc(p?p.name:"")} · ${esc(M[y.method]||y.method)} · ${esc(fmtDT(y.paid_at))}</span></div><b class="amt">${clp(y.amount)}</b></div>`}).join("")}</div>`:`<div class="card">${empty("wallet","Sin pagos registrados","Registre el primer pago con el formulario de arriba.")}</div>`}
+const refresh=()=>Promise.all([stats(),agenda(),lists().then(pays),cons(),rem(),report()]).catch(e=>say(e.message));
+const form=(id,fn)=>$(id).addEventListener("submit",async e=>{e.preventDefault();const b=e.target.querySelector("button.p");if(b)b.disabled=true;try{await fn();e.target.reset?.();e.target.closest("details")?.removeAttribute("open");$("day").value=$("day").value||localDay();say("Guardado");await refresh()}catch(x){say(x.message)}finally{if(b)b.disabled=false}});
+form("fAppt",async()=>{const s=$("aStart").value;await post("/api/appointments",{patient_id:+$("aPatient").value,professional_id:+$("aPro").value,starts_at:s,room:$("aRoom").value||null,reason:$("aReason").value||null});$("day").value=s.slice(0,10)});
+form("fPat",()=>post("/api/patients",{name:$("pName").value,rut:$("pRut").value||null,phone:$("pPhone").value||null,allergies:$("pAll").value||null}));
+form("fPay",()=>post("/api/payments",{patient_id:+$("yPatient").value,concept:$("yConcept").value,amount:+$("yAmount").value,method:$("yMethod").value}));
+form("fCons",()=>{const f=new FormData();f.append("patient_id",$("cPatient").value);f.append("professional_id",$("cPro").value);f.append("diagnosis",$("cDiag").value);f.append("treatment",$("cTreat").value);if($("cFile").files[0])f.append("attachment",$("cFile").files[0]);return api("/api/consultations",{method:"POST",body:f})});
+$("day").addEventListener("change",agenda);
+const shiftDay=n=>{const d=new Date(($("day").value||localDay())+"T12:00");d.setDate(d.getDate()+n);$("day").value=d.toLocaleDateString("sv");agenda().catch(x=>say(x.message))};
+$("dPrev").addEventListener("click",()=>shiftDay(-1));$("dNext").addEventListener("click",()=>shiftDay(1));
+$("dToday").addEventListener("click",()=>{$("day").value=localDay();agenda().catch(x=>say(x.message))});
+$("pq").addEventListener("input",renderPats);
+$("agendaList").addEventListener("click",async e=>{const b=e.target.closest("button[data-s]");if(!b)return;try{const f=new FormData();f.append("status",b.dataset.s);await api(`/api/appointments/${b.dataset.id}/status`,{method:"POST",body:f});refresh()}catch(x){say(x.message)}});
+document.querySelector("nav").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;document.querySelectorAll("nav button").forEach(x=>x.setAttribute("aria-selected",x===b));document.querySelectorAll("main section").forEach(s=>s.hidden=s.id!==b.dataset.t);window.scrollTo(0,0)});
+let me=null,dcat="";
+function showLogin(){$("login").style.display="grid"}
+async function start(){try{me=await api("/api/auth/me");$("login").style.display="none";$("tabAdmin").hidden=me.role!=="admin";$("hello").textContent=me.name;{const rl=me.role==="admin"?"Administrador":"Profesional";$("railUser").textContent=me.name+(rl!==me.name?" · "+rl:"")}$("day").value=localDay();await refresh();docMeta();docSearch();rem();report()}catch{showLogin()}}
+$("fLogin").addEventListener("submit",async e=>{e.preventDefault();$("lgErr").textContent="";try{await post("/api/auth/login",{username:$("lgUser").value,password:$("lgPass").value});$("lgPass").value="";start()}catch(x){$("lgErr").textContent=x.message}});
+$("btnOut").addEventListener("click",async()=>{await api("/api/auth/logout",{method:"POST"});location.reload()});
+async function users(){const l=await api("/api/users");$("userList").innerHTML=`<div class="list">${l.map(u=>`<div class="card row-i">${av(u.name)}<div class="ri-b"><b>${esc(u.name)}</b><span class="mute">@${esc(u.username)}</span></div><span class="st ${u.role==="admin"?"st-scheduled":""}">${u.role==="admin"?"Administrador":"Profesional"}${u.active?"":" · inactivo"}</span></div>`).join("")}</div>`}
+document.querySelector("nav").addEventListener("click",e=>{if(e.target.closest("button")?.dataset.t==="admin")users().catch(x=>say(x.message))});
+form("fUser",async()=>{await post("/api/users",{username:$("uUser").value,name:$("uName").value,password:$("uPass").value,role:$("uRole").value});users()});
+form("fPass",async()=>{await post("/api/auth/password",{current:$("pwOld").value,new:$("pwNew").value})});
+const DC={protocolo:"Protocolo",consentimiento:"Consentimiento",tarifas:"Tarifas",otro:"Otro"};
+$("dCat").innerHTML=Object.entries(DC).map(([k,v])=>`<option value="${k}">${v}</option>`).join("");
+function docMeta(){$("dcats").innerHTML=`<button class="chip" aria-pressed="${dcat===""}" data-c="">Todos</button>`+Object.entries(DC).map(([k,v])=>`<button class="chip" aria-pressed="${dcat===k}" data-c="${k}">${v}</button>`).join("")}
+async function docSearch(){const l=await api("/api/documents?"+new URLSearchParams({q:$("dq").value,category:dcat}));$("docCount").textContent=plural(l.length,"documento","documentos");$("docList").innerHTML=l.length?`<div class="list">${l.map(d=>`<div class="card row-i" data-id="${+d.id}" role="button" tabindex="0" aria-label="Abrir ${esc(d.title)}"><span class="doc-ic">${ic("file")}</span><div class="ri-b"><b>${esc(d.title)}</b><span class="mute">${esc(DC[d.category]||d.category)}</span></div>${ic("chevR","chev")}</div>`).join("")}</div>`:`<div class="card">${empty("file",$("dq").value||dcat?"Sin resultados":"Aún no hay documentos",$("dq").value||dcat?"Pruebe con otra búsqueda o categoría.":"Protocolos, consentimientos y tarifas de la clínica."+(me&&me.role==="admin"?" Créelos desde Admin.":""))}</div>`}
+let dt;$("dq").addEventListener("input",()=>{clearTimeout(dt);dt=setTimeout(docSearch,200)});
+$("dcats").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;dcat=b.dataset.c;docMeta();docSearch()});
+const sheetTop=`<div class="grab" aria-hidden="true"></div><div class="sh-top"><button class="icon-btn" id="dClose" aria-label="Cerrar">${ic("x")}</button></div>`;
+$("docList").addEventListener("click",async e=>{const c=e.target.closest(".card");if(!c)return;const d=await api("/api/documents/"+c.dataset.id);$("detailBody").setAttribute("aria-label",d.title);$("detailBody").innerHTML=`${sheetTop}<div class="doc-h"><span class="st st-scheduled">${esc(DC[d.category]||d.category)}</span><h2>${esc(d.title)}</h2><p>Actualizado el ${esc(fmtDT(d.updated_at))}</p></div><div class="doc-body">${esc(d.content||"Sin contenido.")}</div>${me.role==="admin"?`<div class="acts" style="margin-top:24px"><button class="btn danger sm" id="dDel" data-id="${+d.id}">Eliminar documento</button></div>`:""}`;$("detail").classList.add("on")});
+form("fDoc",async()=>{await post("/api/documents",{category:$("dCat").value,title:$("dTitle").value,content:$("dBody").value||null});docSearch()});
+$("detail").addEventListener("click",async e=>{if(e.target.id==="detail"||e.target.id==="dClose")$("detail").classList.remove("on");if(e.target.id==="dDel"&&confirm("¿Eliminar este documento?")){await api("/api/documents/"+e.target.dataset.id,{method:"DELETE"});$("detail").classList.remove("on");docSearch()}});
+// Recordatorios
+async function rem(){const d=$("remDay").value||localDay(1);$("remDay").value=d;const l=await api("/api/reminders?day="+d);$("remCount").textContent=fmtDay(d)+" · "+plural(l.length,"cita","citas");$("remList").innerHTML=l.map(r=>`<article class="card rem"><div class="rem-h">${av(r.patient_name)}<div class="ri-b"><b>${esc(r.patient_name)}</b><span class="mute">${esc(r.starts_at.slice(11,16))} · ${esc(r.professional_name)}</span></div><span class="mute tel">${esc(r.phone||"Sin teléfono")}</span></div><p class="bubble">${esc(r.message)}</p><div class="acts"><button class="btn tonal sm" data-msg="${esc(r.message)}">${ic("copy")}<span>Copiar mensaje</span></button>${r.whatsapp_url?`<a class="btn ghost sm" href="${esc(r.whatsapp_url)}" target="_blank" rel="noopener">${ic("chat")}Abrir WhatsApp</a>`:""}</div></article>`).join("")||`<div class="card">${empty("bell","Nada que recordar","No hay citas pendientes para ese día.")}</div>`}
+$("remDay").addEventListener("change",rem);
+$("remList").addEventListener("click",async e=>{const b=e.target.closest("button[data-msg]");if(!b)return;try{await navigator.clipboard.writeText(b.dataset.msg);say("Mensaje copiado");const s=b.querySelector("span");s.textContent="Copiado";window.fxCopied?.(b);setTimeout(()=>s.textContent="Copiar mensaje",1800)}catch{say("No se pudo copiar; selecciónelo manualmente")}});
+// Reporte de caja
+let repP="day";
+async function report(){const r=await api("/api/reports/cash?period="+repP),max=Math.max(1,...Object.values(r.by_method).map(v=>+v.total||0));
+$("report").innerHTML=`<div class="rep-top"><div><span class="lbl">${repP==="day"?"Caja de hoy":"Caja del mes"} · ${esc(r.date)}</span><strong class="big" data-n="${+r.total||0}" data-k="rep-${repP}" data-f="clp">${clp(+r.total||0)}</strong><span class="mute">${plural(+r.count||0,"pago","pagos")}</span></div></div><ul class="bars">`+Object.keys(M).map(k=>{const v=r.by_method[k]||{count:0,total:0};return`<li class="b-${k}${v.count?"":" zero"}"><div class="bar-l"><span>${M[k]}</span><span class="mute">${plural(+v.count,"pago","pagos")}</span><b>${clp(+v.total)}</b></div><div class="track"><i style="width:${Math.round((+v.total/max)*100)}%"></i></div></li>`}).join("")+`</ul>`}
+$("repTabs").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;repP=b.dataset.p;document.querySelectorAll("#repTabs .chip").forEach(x=>x.setAttribute("aria-pressed",x===b));report().catch(x=>say(x.message))});
+// Ficha de paciente
+const hRow=(l,r)=>`<div class="card h-row"><div class="ri-b">${l}</div>${r}</div>`;
+$("patList").addEventListener("click",async e=>{const c=e.target.closest(".card[data-id]");if(!c)return;const h=await api(`/api/patients/${c.dataset.id}/history`),p=h.patient;$("detailBody").setAttribute("aria-label","Ficha de "+p.name);
+$("detailBody").innerHTML=`${sheetTop}<div class="pf">${av(p.name,"xl")}<div><h2>${esc(p.name)}</h2><p>${esc(p.rut||"Sin RUT")}${p.insurance?" · "+esc(p.insurance):""}</p></div></div>${p.allergies?`<div class="alert">${ic("alert")}<span>Alergias: <b>${esc(p.allergies)}</b></span></div>`:""}
+<dl class="kv"><div><dt>Teléfono</dt><dd>${esc(p.phone||"—")}</dd></div><div><dt>Correo</dt><dd>${esc(p.email||"—")}</dd></div><div><dt>Previsión</dt><dd>${esc(p.insurance||"—")}</dd></div><div><dt>Total pagado</dt><dd>${clp(+h.total_paid||0)}</dd></div></dl>
+<h3 class="sub">Citas <span>${h.appointments.length}</span></h3>${h.appointments.length?`<div class="list">${h.appointments.map(a=>hRow(`<b>${esc(fmtDT(a.starts_at))}</b><span class="mute">${esc(a.professional_name)}${a.reason?" · "+esc(a.reason):""}</span>`,`<span class="st st-${esc(a.status)}">${ST[a.status]||esc(a.status)}</span>`)).join("")}</div>`:`<div class="card">${empty("calendar","Sin citas","Este paciente aún no tiene citas.")}</div>`}
+<h3 class="sub">Atenciones <span>${h.consultations.length}</span></h3>${h.consultations.length?`<div class="list">${h.consultations.map(c=>hRow(`<b>${esc(c.diagnosis||"Atención")}</b>${c.treatment?`<span class="mute" style="white-space:normal">${esc(c.treatment)}</span>`:""}<span class="mute">${esc(fmtDT(c.occurred_at))} · ${esc(c.professional_name)}</span>`,c.attachment_path?`<a class="btn ghost sm" href="/api/consultations/${+c.id}/attachment" target="_blank" rel="noopener">${ic("clip")}Adjunto</a>`:"")).join("")}</div>`:`<div class="card">${empty("steth","Sin atenciones","Aún no hay registros clínicos.")}</div>`}
+<h3 class="sub">Pagos <span>${clp(+h.total_paid||0)}</span></h3>${h.payments.length?`<div class="list">${h.payments.map(y=>hRow(`<b>${esc(y.concept)}</b><span class="mute">${esc(fmtDT(y.paid_at))}</span>`,`<b class="amt">${clp(y.amount)}</b>`)).join("")}</div>`:`<div class="card">${empty("wallet","Sin pagos","No hay pagos registrados.")}</div>`}`;$("detail").classList.add("on")});
+fetch("/api/meta").then(r=>r.json()).then(m=>{document.title=m.name;["brand","lgBrand","railName"].forEach(i=>$(i).textContent=m.name)}).catch(()=>{});
+// Accesibilidad: etiquetas desde placeholder, pestañas con rol, Escape cierra el detalle
+document.querySelectorAll("input,select,textarea").forEach(el=>{if(!el.getAttribute("aria-label"))el.setAttribute("aria-label",el.placeholder||el.id)});
+document.querySelectorAll("nav button").forEach(b=>b.setAttribute("role","tab"));
+document.addEventListener("keydown",e=>{if(e.key==="Escape")$("detail").classList.remove("on")});
+// Filas activables con teclado (Enter / Espacio)
+document.addEventListener("keydown",e=>{const r=e.target.closest?.('[role="button"][data-id]');if(r&&(e.key==="Enter"||e.key===" ")){e.preventDefault();r.click()}});
+// Hoja de detalle: foco al abrir, foco atrapado dentro y retorno al cerrar
+let lastFocus=null;new MutationObserver(()=>{if($("detail").classList.contains("on")){if(!$("detailBody").contains(document.activeElement)){lastFocus=document.activeElement;$("dClose")?.focus()}}else if(lastFocus){lastFocus.focus?.();lastFocus=null}}).observe($("detail"),{attributes:true,attributeFilter:["class"]});
+$("detailBody").addEventListener("keydown",e=>{if(e.key!=="Tab")return;const f=[...$("detailBody").querySelectorAll("button,a[href],summary")];if(!f.length)return;const a=f[0],z=f[f.length-1];if(e.shiftKey&&document.activeElement===a){e.preventDefault();z.focus()}else if(!e.shiftKey&&document.activeElement===z){e.preventDefault();a.focus()}});
+if("serviceWorker" in navigator)navigator.serviceWorker.register("/sw.js").catch(()=>{});
+start();
+</script>
+<script>
+// ===== Capa de movimiento (ronda 2). Solo presentación: no cambia datos ni lógica.
+(()=>{
+const RMq=matchMedia("(prefers-reduced-motion: reduce)"),RM=()=>RMq.matches;
+const EO="cubic-bezier(.23,1,.32,1)",EIO="cubic-bezier(.77,0,.175,1)",ED="cubic-bezier(.32,.72,0,1)";
+const desk=()=>innerWidth>=900;
+document.documentElement.classList.add("fx");
+// Resorte amortiguado (bounce 0–0.3) muestreado como easing linear(); se usa solo si el navegador lo soporta.
+function spring(b){const z=1-b,w=2*Math.PI,wd=w*Math.sqrt(1-z*z),p=[];for(let i=0;i<=40;i++){const t=i/40,x=1-Math.exp(-z*w*t)*(Math.cos(wd*t)+(z*w/wd)*Math.sin(wd*t));p.push(i===40?1:+x.toFixed(4))}return`linear(${p.join(",")})`}
+const SP=CSS.supports("transition-timing-function","linear(0,1)")?spring(.14):ED,SPP=CSS.supports("transition-timing-function","linear(0,1)")?spring(.26):EO;
+if(SP!==ED){document.documentElement.style.setProperty("--spring",SP);document.documentElement.style.setProperty("--spring-pop",SPP)}
+
+// --- Esqueletos mientras llegan los datos
+const L=(w,h=12,x="")=>`<span class="sk${x}" style="width:${w};height:${h}px"></span>`;
+const skRow=()=>`<div class="sk-row">${L("40px",40," c")}<div>${L("55%",13)}${L("35%",10)}</div></div>`;
+const skList=n=>`<div class="list">${Array.from({length:n},skRow).join("")}</div>`;
+const SK={stats:`<div class="stat-main is-sk">${L("28%",11)}${L("42%",40)}${L("100%",8)}</div><div class="stat is-sk">${L("50%",11)}${L("40%",26)}</div><div class="stat is-sk">${L("60%",11)}${L("70%",26)}</div>`,
+agendaList:`<div class="tl">${[0,1,2].map(()=>`<div class="tl-i"><div class="tl-t">${L("38px",16)}</div><div class="tl-c card is-sk"><div class="sk-row" style="padding:0;min-height:0">${L("40px",40," c")}<div>${L("50%",13)}${L("70%",10)}</div></div>${L("30%",22)}</div></div>`).join("")}</div>`,
+patList:skList(5),consList:skList(3),payList:skList(4),remList:skList(2),docList:skList(3)};
+for(const id in SK){const c=$(id);if(c&&!c.children.length){c.innerHTML=SK[id];c.setAttribute("aria-busy","true")}}
+
+// --- Entrada escalonada de contenido nuevo
+function reveal(items,{y=10,step=45,dur=300,max=10,delay=0}={}){if(RM())return;[...items].slice(0,max).forEach((el,i)=>el.animate([{opacity:0,transform:`translateY(${y}px)`},{opacity:1,transform:"none"}],{duration:dur,delay:delay+i*step,easing:EO,fill:"backwards"}))}
+const drawTL=(arts,step)=>{if(RM())return;arts.forEach((a,i)=>{try{a.animate([{transform:"translateX(6px) scaleY(0)"},{transform:"translateX(6px) scaleY(1)"}],{duration:360,delay:80+i*step,easing:EO,fill:"backwards",pseudoElement:"::before"})}catch{}})};
+
+// --- Contadores que suben hasta su valor (desde el valor anterior)
+const prevN={};
+function countUp(el,delay=0){const to=+el.dataset.n,k=el.dataset.k,from=prevN[k]??0,f=el.dataset.f==="clp"?n=>clp(Math.round(n)):n=>String(Math.round(n));prevN[k]=to;
+if(RM()||from===to||!isFinite(to)){el.textContent=f(to);return}el.textContent=f(from);const D=400;let t0=null;
+const step=t=>{if(!el.isConnected)return;if(t0===null)t0=t+delay;const p=Math.max(0,Math.min(1,(t-t0)/D)),e=1-Math.pow(1-p,3);el.textContent=f(from+(to-from)*e);if(p<1)requestAnimationFrame(step)};requestAnimationFrame(step)}
+
+// --- FLIP + realce cuando cambia el estado de una cita
+let flip=null;
+$("agendaList").addEventListener("click",e=>{const b=e.target.closest("button[data-s]");if(!b)return;b.classList.add("busy");setTimeout(()=>b.classList.remove("busy"),5000);const m=new Map();$("agendaList").querySelectorAll("[data-a]").forEach(el=>m.set(el.dataset.a,el.getBoundingClientRect().top));flip={m,id:b.dataset.id,t:performance.now()}},true);
+
+const visible=c=>c.offsetParent!==null&&$("login").style.display==="none";
+const typing=c=>{const a=document.activeElement;return a&&(a.id==="pq"||a.id==="dq")&&c.closest("section")?.contains(a)};
+const itemsOf=c=>c.querySelectorAll(":scope>.tl>*,:scope>.list>*,:scope>.card,:scope>article");
+function onRender(c){
+  if(!c.querySelector(".sk"))c.removeAttribute("aria-busy");
+  if(c.id==="stats"){const first=!("t" in prevN);c.querySelectorAll("[data-n]").forEach((el,i)=>countUp(el,visible(c)?i*70:0));if(first&&visible(c)){reveal(c.children,{step:70,y:12});const sg=c.querySelector(".seg");if(sg&&!RM())sg.animate([{clipPath:"inset(0 100% 0 0 round 99px)"},{clipPath:"inset(0 0 0 0 round 99px)"}],{duration:400,delay:160,easing:EO,fill:"backwards"})}return}
+  if(c.id==="report"){c.querySelectorAll("[data-n]").forEach(el=>countUp(el));return}
+  if(c.id==="agendaList"&&flip&&performance.now()-flip.t<5000){const f=flip;flip=null;if(RM())return;
+    c.querySelectorAll("[data-a]").forEach(el=>{const o=f.m.get(el.dataset.a);if(o==null)return;const d=o-el.getBoundingClientRect().top;if(Math.abs(d)>1)el.animate([{transform:`translateY(${d}px)`},{transform:"none"}],{duration:320,easing:EO});if(el.dataset.a===f.id){el.classList.add("just");setTimeout(()=>el.classList.remove("just"),1000)}});return}
+  if(!visible(c)||typing(c))return;
+  const it=itemsOf(c);reveal(it,{step:c.id==="agendaList"?55:40});
+  if(c.id==="agendaList")drawTL([...c.querySelectorAll(".tl-i")].slice(0,10),55);
+}
+const mo=new MutationObserver(rs=>{const seen=new Set();rs.forEach(r=>{if(!seen.has(r.target)){seen.add(r.target);onRender(r.target)}})});
+["stats","agendaList","patList","consList","payList","remList","docList","userList","report"].forEach(id=>$(id)&&mo.observe($(id),{childList:true}));
+
+// --- Pestañas: indicador deslizante, transición de vista y micro-animación del icono
+const nav=document.querySelector("nav"),ind=document.createElement("span");ind.className="tab-ind";ind.setAttribute("aria-hidden","true");nav.prepend(ind);document.documentElement.classList.add("fx-ind");
+let ix=null,iy=null,curTab="agenda";
+function placeInd(anim){const b=nav.querySelector('button[aria-selected="true"]');if(!b||b.hidden||!nav.offsetParent){ind.style.opacity=0;return}ind.style.opacity=1;
+  const nr=nav.getBoundingClientRect(),br=b.getBoundingClientRect(),D=desk();let w,h,x,y;
+  if(D){w=br.width;h=br.height;x=br.left-nr.left;y=br.top-nr.top}else{const sr=b.querySelector("svg").getBoundingClientRect();w=Math.min(58,br.width-6);h=30;x=br.left-nr.left+(br.width-w)/2;y=sr.top-nr.top+sr.height/2-h/2}
+  ind.style.width=w+"px";ind.style.height=h+"px";const to=`translate(${x}px,${y}px)`;
+  if(anim&&!RM()&&ix!==null&&(ix!==x||iy!==y)){const mx=(ix+x)/2,my=(iy+y)/2;ind.animate([{transform:`translate(${ix}px,${iy}px)`},{transform:`translate(${mx}px,${my}px) ${D?"scale(.98,1.06)":"scale(1.22,.9)"}`,offset:.45},{transform:to}],{duration:340,easing:EO})}
+  ind.style.transform=to;ix=x;iy=y}
+nav.addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;placeInd(true);if(b.dataset.t===curTab)return;
+  const order=[...nav.querySelectorAll("button")].map(x=>x.dataset.t),dir=Math.sign(order.indexOf(b.dataset.t)-order.indexOf(curTab))||1;curTab=b.dataset.t;if(RM())return;
+  const sec=$(b.dataset.t),from=desk()?`translateY(${dir*10}px)`:`translateX(${dir*16}px)`;
+  sec.animate([{opacity:0,transform:from},{opacity:1,transform:"none"}],{duration:280,easing:EO});
+  if(b.dataset.t==="agenda")$("stats").animate([{opacity:0},{opacity:1}],{duration:240,easing:"ease-out"});
+  b.querySelector("svg")?.animate([{transform:"scale(1)"},{transform:"scale(1.18) translateY(-1px) rotate(-6deg)",offset:.4},{transform:"scale(1)"}],{duration:380,easing:EO})});
+new ResizeObserver(()=>placeInd(false)).observe(nav);
+new MutationObserver(()=>placeInd(false)).observe($("tabAdmin"),{attributes:true,attributeFilter:["hidden"]});
+addEventListener("resize",()=>placeInd(false));placeInd(false);
+
+// --- Entrada de la app después del ingreso
+let loginShown=getComputedStyle($("login")).display!=="none";
+new MutationObserver(()=>{const vis=$("login").style.display!=="none";if(loginShown&&!vis){requestAnimationFrame(()=>placeInd(false));if(!RM())[document.querySelector("header.top"),document.querySelector("main"),document.querySelector(".rail")].forEach((el,i)=>el.animate([{opacity:0,transform:i===2?"none":"translateY(10px)"},{opacity:1,transform:"none"}],{duration:380,delay:i*70,easing:EO,fill:"backwards"}))}loginShown=vis}).observe($("login"),{attributes:true,attributeFilter:["style"]});
+new MutationObserver(()=>{if($("lgErr").textContent&&!RM()){const c=document.querySelector(".lg-card");c.classList.remove("shake");void c.offsetWidth;c.classList.add("shake")}}).observe($("lgErr"),{childList:true,characterData:true,subtree:true});
+
+// --- Ondas en botones (pulsación)
+document.addEventListener("pointerdown",e=>{const b=e.target.closest("button.p,.btn");if(!b||RM()||b.disabled)return;const r=b.getBoundingClientRect(),s=Math.max(r.width,r.height)*2.2,el=document.createElement("i");el.className="rpl";el.setAttribute("aria-hidden","true");el.style.cssText=`width:${s}px;height:${s}px;left:${e.clientX-r.left-s/2}px;top:${e.clientY-r.top-s/2}px`;b.prepend(el);
+  el.animate([{transform:"scale(.08)",opacity:.22},{transform:"scale(1)",opacity:0}],{duration:400,easing:EO}).onfinish=()=>el.remove()});
+
+// --- Copiar: morph a "Copiado" con check y confeti mínimo
+const CC=["var(--brand)","var(--clay)","var(--ok)","var(--wait)","var(--info)"];
+window.fxCopied=b=>{const sv=b.querySelector("svg"),old=sv?.innerHTML;b.classList.add("ok");if(sv)sv.innerHTML=IC.check;setTimeout(()=>{b.classList.remove("ok");if(sv)sv.innerHTML=old},1800);if(RM())return;
+  const r=b.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;for(let i=0;i<12;i++){const p=document.createElement("i");p.className="cft";p.setAttribute("aria-hidden","true");p.style.cssText=`left:${cx-3}px;top:${cy-3}px;background:${CC[i%5]}`;document.body.append(p);
+    const a=(i/12)*Math.PI*2+Math.random()*.4,d=34+Math.random()*30,x=Math.cos(a)*d,y=Math.sin(a)*d*.75-14,rot=Math.random()*240-120;
+    p.animate([{transform:"translate(0,0) scale(.4) rotate(0)",opacity:1},{transform:`translate(${x}px,${y}px) scale(1) rotate(${rot}deg)`,opacity:1,offset:.6},{transform:`translate(${x*1.1}px,${y+16}px) scale(.8) rotate(${rot*1.4}deg)`,opacity:0}],{duration:400+Math.random()*120,easing:EO}).onfinish=()=>p.remove()}};
+
+// --- Formularios plegables: altura animada (única excepción a transform/opacity, propia de acordeones)
+document.addEventListener("click",e=>{const s=e.target.closest("details.panel>summary");if(!s||RM())return;const d=s.parentElement;e.preventDefault();
+  const cur=d.getBoundingClientRect().height,closing=d._closing;d._a?.cancel();d.style.overflow="hidden";
+  const done=()=>{d.style.overflow="";d._a=null;d._closing=false};
+  if(d.open&&!closing){const end=s.offsetHeight+parseFloat(getComputedStyle(d).borderTopWidth)*2;d._closing=true;d._a=d.animate({height:[cur+"px",end+"px"]},{duration:240,easing:EIO});d._a.onfinish=()=>{d.open=false;done()}}
+  else{d._closing=false;d.open=true;const end=d.offsetHeight;d._a=d.animate({height:[cur+"px",end+"px"]},{duration:300,easing:EO});d._a.onfinish=done}});
+
+// --- Tarjeta "Hoy": inclinación muy sutil y brillo que sigue al puntero (solo escritorio con mouse)
+if(matchMedia("(hover:hover) and (pointer:fine)").matches){let raf=0;
+  $("stats").addEventListener("pointermove",e=>{const h=e.target.closest(".stat-main:not(.is-sk)");if(!h||RM()||!desk())return;const r=h.getBoundingClientRect(),x=(e.clientX-r.left)/r.width-.5,y=(e.clientY-r.top)/r.height-.5;cancelAnimationFrame(raf);
+    raf=requestAnimationFrame(()=>{h.classList.add("tilt");h.style.transform=`perspective(900px) rotateX(${(-y*3.5).toFixed(2)}deg) rotateY(${(x*4.5).toFixed(2)}deg) translateY(-2px)`;h.style.setProperty("--mx",((x+.5)*100).toFixed(1)+"%");h.style.setProperty("--my",((y+.5)*100).toFixed(1)+"%")})});
+  $("stats").addEventListener("pointerout",e=>{const h=e.target.closest(".stat-main");if(!h||h.contains(e.relatedTarget))return;cancelAnimationFrame(raf);h.classList.remove("tilt");h.style.transform=""})}
+
+// --- Hoja inferior: salida animada y arrastre para cerrar (con velocidad)
+const det=$("detail"),sheet=$("detailBody");let skipClose=false,wasOn=false;
+new MutationObserver(()=>{const on=det.classList.contains("on");
+  if(on&&!wasOn){det.classList.remove("closing");sheet.style.transform="";det.style.removeProperty("--so");sheet.scrollTop=0}
+  if(!on&&wasOn){if(skipClose||RM()){skipClose=false}else{det.classList.add("closing");const t=setTimeout(()=>det.classList.remove("closing"),400);sheet.addEventListener("animationend",function f(ev){if(ev.target!==sheet)return;clearTimeout(t);det.classList.remove("closing");sheet.removeEventListener("animationend",f)})}}
+  wasOn=on}).observe(det,{attributes:true,attributeFilter:["class"]});
+let drag=null;
+function dStart(y,t){if(desk()||!det.classList.contains("on")||det.classList.contains("closing"))return false;if(t.closest("button,a,input,select,textarea,summary"))return false;if(!t.closest(".grab")&&sheet.scrollTop>0)return false;drag={y0:y,dy:0,h:sheet.offsetHeight,hist:[[performance.now(),y]],on:false};return true}
+function dMove(y,e){if(!drag)return;const raw=y-drag.y0;if(!drag.on){if(raw<-4){drag=null;return}if(raw<5)return;drag.on=true;sheet.getAnimations().forEach(a=>a.finish())}
+  e.cancelable&&e.preventDefault();const dy=raw<0?-Math.sqrt(-raw)*2:raw;drag.dy=dy;drag.hist.push([performance.now(),y]);if(drag.hist.length>5)drag.hist.shift();
+  sheet.style.transform=`translateY(${dy}px)`;det.style.setProperty("--so",Math.max(0,1-Math.max(0,dy)/drag.h*1.1).toFixed(3))}
+function dEnd(){if(!drag)return;const d=drag;drag=null;if(!d.on)return;const[a,b]=[d.hist[0],d.hist[d.hist.length-1]],v=(b[1]-a[1])/Math.max(16,b[0]-a[0]);
+  const so=+(det.style.getPropertyValue("--so")||1);
+  if(d.dy>d.h*.3||(v>.5&&d.dy>20)){const dur=RM()?0:Math.round(Math.min(300,Math.max(160,(d.h-d.dy)/Math.max(v,1.2))));
+    const an=sheet.animate([{transform:`translateY(${d.dy}px)`},{transform:"translateY(100%)"}],{duration:dur,easing:ED,fill:"forwards"});
+    try{det.animate([{opacity:so},{opacity:0}],{duration:dur,easing:"ease-out",fill:"forwards",pseudoElement:"::before"})}catch{}
+    an.onfinish=()=>{skipClose=true;det.classList.remove("on");det.getAnimations({subtree:true}).forEach(x=>x.cancel());sheet.style.transform="";det.style.removeProperty("--so")}}
+  else{sheet.style.transform="";det.style.removeProperty("--so");if(RM())return;sheet.animate([{transform:`translateY(${d.dy}px)`},{transform:"none"}],{duration:400,easing:SP});try{det.animate([{opacity:so},{opacity:1}],{duration:260,easing:"ease-out",pseudoElement:"::before"})}catch{}}}
+sheet.addEventListener("touchstart",e=>{if(e.touches.length===1)dStart(e.touches[0].clientY,e.target)},{passive:true});
+sheet.addEventListener("touchmove",e=>{if(drag)dMove(e.touches[0].clientY,e)},{passive:false});
+sheet.addEventListener("touchend",dEnd);sheet.addEventListener("touchcancel",dEnd);
+sheet.addEventListener("pointerdown",e=>{if(e.pointerType!=="mouse"||e.button!==0)return;if(dStart(e.clientY,e.target)){e.preventDefault();const mv=ev=>dMove(ev.clientY,ev),up=()=>{removeEventListener("pointermove",mv);removeEventListener("pointerup",up);dEnd()};addEventListener("pointermove",mv);addEventListener("pointerup",up)}});
+})();
+</script>
+</body>
+</html>
+
+
+==================== ClinicaPro/app/static/manifest.webmanifest ====================
+{"name":"Clínica Pro","short_name":"Clínica Pro","description":"Gestión de clínicas y consultas médicas","start_url":"/","scope":"/","display":"standalone","background_color":"#f6f4ef","theme_color":"#1d5c4d","lang":"es","icons":[{"src":"/static/icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any"}]}
+
+
+==================== ClinicaPro/app/static/sw.js ====================
+// Service worker mínimo: permite instalar la app. No guarda en caché datos de la API (información clínica).
+const SHELL = "clinicapro-shell-v2";
+self.addEventListener("install", e => e.waitUntil(caches.open(SHELL).then(c => c.addAll(["/static/icon.svg"]))));
+self.addEventListener("activate", e => e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== SHELL).map(k => caches.delete(k)))).then(() => self.clients.claim())));
+self.addEventListener("fetch", e => {
+  if (e.request.method !== "GET" || new URL(e.request.url).pathname.startsWith("/api")) return;
+});
+
+
+==================== ClinicaPro/backup_clinica_pro.bat ====================
+@echo off
+cd /d "%~dp0"
+set STAMP=%date:~-4%%date:~3,2%%date:~0,2%_%time:~0,2%%time:~3,2%
+set STAMP=%STAMP: =0%
+mkdir backups\%STAMP%
+xcopy /E /I /Y data backups\%STAMP%\data >nul
+echo Respaldo creado en backups\%STAMP%
+pause
+
+
+==================== ClinicaPro/demo_clinica_pro.bat ====================
+@echo off
+cd /d "%~dp0"
+if not exist ".venv\Scripts\python.exe" (echo Primero ejecute install_clinica_pro.ps1 & pause & exit /b 1)
+".venv\Scripts\python.exe" seed_demo.py
+start "" http://127.0.0.1:8000
+".venv\Scripts\python.exe" -m uvicorn app.main:app --host 0.0.0.0 --port 8000
+
+
+==================== ClinicaPro/install_clinica_pro.ps1 ====================
+# Instalación de Clínica Pro (requiere Python 3.11+)
+Set-Location $PSScriptRoot
+py -3 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install --upgrade pip
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+if (-not (Test-Path .env)) { Copy-Item .env.example .env }
+Write-Host "Listo. Ejecute run_clinica_pro.bat"
+
+
+==================== ClinicaPro/requirements.txt ====================
+fastapi>=0.115
+uvicorn>=0.34
+python-multipart>=0.0.20
+pytest>=8.3
+httpx>=0.28
+python-dotenv>=1.0
+
+
+==================== ClinicaPro/run_clinica_pro.bat ====================
+@echo off
+cd /d "%~dp0"
+if not exist ".venv\Scripts\python.exe" (
+  echo Primero ejecute install_clinica_pro.ps1
+  pause & exit /b 1
+)
+start "" http://127.0.0.1:8000
+".venv\Scripts\python.exe" -m uvicorn app.main:app --host 0.0.0.0 --port 8000
+
+
+==================== ClinicaPro/seed_demo.py ====================
+"""Carga datos de ejemplo para una demostración. No borra datos existentes."""
+from datetime import datetime, timedelta
+
+from app.db import get_connection, init_db
+
+init_db()
+db = get_connection()
+if db.execute("SELECT COUNT(*) FROM patients").fetchone()[0]:
+    print("Ya existen datos; no se carga la demo.")
+    raise SystemExit
+
+pacientes = [
+    ("María González", "12345678-5", "+56 9 5555 0001", "Fonasa", "Penicilina"),
+    ("Pedro Araya", "9876543-2", "+56 9 5555 0002", "Isapre", None),
+    ("Camila Fuentes", "20111222-3", "+56 9 5555 0003", "Fonasa", None),
+    ("José Morales", "7654321-K", "+56 9 5555 0004", "Particular", "Látex"),
+]
+for n, r, t, s, a in pacientes:
+    db.execute("INSERT INTO patients (name, rut, phone, insurance, allergies) VALUES (?,?,?,?,?)", (n, r, t, s, a))
+for n, e in (("Dra. Valentina Rojas", "Medicina general"), ("Dr. Andrés Vega", "Cardiología"), ("Dra. Paula Núñez", "Pediatría")):
+    db.execute("INSERT INTO professionals (name, specialty) VALUES (?,?)", (n, e))
+
+base = datetime.now().replace(hour=9, minute=0, second=0, microsecond=0)
+citas = [(1, 1, 0, "Box 1", "Control anual", "done"), (2, 2, 1, "Box 2", "Dolor torácico", "arrived"),
+         (3, 3, 2, "Box 3", "Control niño sano", "scheduled"), (4, 1, 3, "Box 1", "Resfrío", "scheduled")]
+for pa, pr, k, sala, motivo, estado in citas:
+    inicio = (base + timedelta(minutes=30 * k)).strftime("%Y-%m-%dT%H:%M")
+    db.execute("INSERT INTO appointments (patient_id, professional_id, starts_at, room, reason, status) VALUES (?,?,?,?,?,?)",
+               (pa, pr, inicio, sala, motivo, estado))
+db.execute("INSERT INTO consultations (patient_id, professional_id, appointment_id, diagnosis, treatment) VALUES (1,1,1,'Sin hallazgos','Control en 12 meses')")
+db.execute("INSERT INTO payments (patient_id, appointment_id, concept, amount, method) VALUES (1,1,'Consulta general',25000,'card')")
+db.commit()
+print("Datos de demostración cargados.")
+
+
+==================== ClinicaPro/tests/__init__.py ====================
+
+
+==================== ClinicaPro/tests/conftest.py ====================
+import os
+import tempfile
+
+_TMP = tempfile.mkdtemp(prefix="clinicapro-test-")
+os.environ["CLINICAPRO_DATA_DIR"] = _TMP
+os.environ["CLINICAPRO_ADMIN_PASSWORD"] = "clave-de-prueba-123"
+
+import pytest  # noqa: E402
+from fastapi.testclient import TestClient  # noqa: E402
+
+from app.db import get_connection  # noqa: E402
+from app.main import app  # noqa: E402
+
+
+@pytest.fixture()
+def client():
+    with TestClient(app) as c:
+        assert c.post("/api/auth/login", json={"username": "admin", "password": "clave-de-prueba-123"}).status_code == 200
+        yield c
+        conn = get_connection()
+        for table in ("payments", "consultations", "appointments", "professionals", "patients", "documents"):
+            conn.execute(f"DELETE FROM {table}")
+        conn.commit()
+        conn.close()
+
+
+@pytest.fixture()
+def base(client):
+    patient = client.post("/api/patients", json={"name": "Ana Soto", "rut": "12.345.678-5"}).json()
+    other = client.post("/api/patients", json={"name": "Luis Pérez"}).json()
+    doctor = client.post("/api/professionals", json={"name": "Dra. Rojas", "specialty": "Medicina general"}).json()
+    return patient, other, doctor
+
+
+==================== ClinicaPro/tests/test_auth_docs.py ====================
+from fastapi.testclient import TestClient
+
+from app.main import app
+
+
+def anon():
+    return TestClient(app)
+
+
+def test_api_exige_sesion(client):
+    with anon() as c:
+        assert c.get("/api/patients").status_code == 401
+        assert c.get("/api/documents").status_code == 401
+        assert c.get("/docs").status_code == 401
+        assert c.get("/api/health").status_code == 200
+
+
+def test_login_incorrecto_y_bloqueo(client):
+    with anon() as c:
+        for _ in range(5):
+            assert c.post("/api/auth/login", json={"username": "admin", "password": "mala"}).status_code == 401
+        assert c.post("/api/auth/login", json={"username": "admin", "password": "clave-de-prueba-123"}).status_code == 429
+    from app.auth import throttle
+    throttle.fails.clear()
+
+
+def test_cookie_manipulada_rechazada(client):
+    with anon() as c:
+        c.cookies.set("clinicapro_session", client.cookies.get("clinicapro_session")[:-3] + "xxx")
+        assert c.get("/api/auth/me").status_code == 401
+
+
+def test_usuarios_y_roles(client):
+    r = client.post("/api/users", json={"username": "pro0", "name": "Pro Cero", "password": "clave-larga-123", "role": "profesional"})
+    assert r.status_code == 201
+    with anon() as c:
+        assert c.post("/api/auth/login", json={"username": "pro0", "password": "clave-larga-123"}).status_code == 200
+        assert c.get("/api/documents").status_code == 200
+        assert c.post("/api/documents", json={"category": "otro", "title": "x"}).status_code == 403
+        assert c.get("/api/users").status_code == 403
+    client.delete(f"/api/users/{r.json()['id']}")
+
+
+def test_no_se_puede_dejar_sin_admin(client):
+    me = client.get("/api/auth/me").json()
+    assert client.delete(f"/api/users/{me['id']}").status_code == 409
+    assert client.put(f"/api/users/{me['id']}", json={"username": "admin", "name": "A", "role": "profesional"}).status_code == 409
+
+
+def test_documentos_sin_contenido_precargado(client):
+    assert client.get("/api/documents").json() == []
+
+
+def test_admin_gestiona_documentos_y_profesional_no(client):
+    r = client.post("/api/documents", json={"category": "protocolo", "title": "Limpieza de boxes", "content": "Cada día"})
+    assert r.status_code == 201
+    doc_id = r.json()["id"]
+    assert client.post("/api/documents", json={"category": "protocolo", "title": "Limpieza de boxes"}).status_code == 409
+    assert client.post("/api/documents", json={"category": "otra", "title": "y"}).status_code == 422
+    assert client.put(f"/api/documents/{doc_id}", json={"category": "tarifas", "title": "Limpieza de boxes", "content": "nuevo"}).json()["content"] == "nuevo"
+    assert [d["title"] for d in client.get("/api/documents", params={"q": "limpieza"}).json()] == ["Limpieza de boxes"]
+    assert client.get("/api/documents", params={"q": "zzzz"}).json() == []
+    u = client.post("/api/users", json={"username": "pro1", "name": "Pro Uno", "password": "clave-larga-123", "role": "profesional"}).json()
+    with anon() as c:
+        c.post("/api/auth/login", json={"username": "pro1", "password": "clave-larga-123"})
+        assert c.get(f"/api/documents/{doc_id}").status_code == 200
+        assert c.put(f"/api/documents/{doc_id}", json={"title": "x"}).status_code == 403
+        assert c.delete(f"/api/documents/{doc_id}").status_code == 403
+    client.delete(f"/api/users/{u['id']}")
+    assert client.delete(f"/api/documents/{doc_id}").status_code == 204
+    assert client.get(f"/api/documents/{doc_id}").status_code == 404
+
+
+def test_sin_rastro_de_kinesiologia(client):
+    html = client.get("/").text
+    assert "KinePro" not in html and "iblioteca" not in html
+    assert client.get("/api/library").status_code == 404
+    assert client.post("/api/library/ask", json={"question": "hola mundo"}).status_code == 404
+    assert "ask_enabled" not in client.get("/api/meta").json()
+
+
+==================== ClinicaPro/tests/test_clinica.py ====================
+def appt(patient, doctor, start="2030-05-10T09:00", **extra):
+    return {"patient_id": patient["id"], "professional_id": doctor["id"], "starts_at": start, "duration_min": 30, **extra}
+
+
+def test_rut_normalizado_y_unico(client):
+    p = client.post("/api/patients", json={"name": "Ana", "rut": "12.345.678-5"}).json()
+    assert p["rut"] == "12345678-5"
+    assert client.post("/api/patients", json={"name": "Otra", "rut": "12345678-5"}).status_code == 409
+
+
+def test_cita_ok_y_agenda(client, base):
+    patient, _, doctor = base
+    assert client.post("/api/appointments", json=appt(patient, doctor)).status_code == 201
+    items = client.get("/api/agenda", params={"day": "2030-05-10"}).json()
+    assert len(items) == 1 and items[0]["patient_name"] == "Ana Soto"
+
+
+def test_choque_de_profesional(client, base):
+    patient, other, doctor = base
+    client.post("/api/appointments", json=appt(patient, doctor))
+    r = client.post("/api/appointments", json=appt(other, doctor, "2030-05-10T09:15"))
+    assert r.status_code == 409 and "profesional" in r.json()["detail"]
+
+
+def test_choque_de_paciente_y_sala(client, base):
+    patient, other, doctor = base
+    doctor2 = client.post("/api/professionals", json={"name": "Dr. Vega", "specialty": "Cardiología"}).json()
+    client.post("/api/appointments", json=appt(patient, doctor, room="Box 1"))
+    assert "paciente" in client.post("/api/appointments", json=appt(patient, doctor2)).json()["detail"]
+    assert "sala" in client.post("/api/appointments", json=appt(other, doctor2, room="Box 1")).json()["detail"]
+
+
+def test_cita_contigua_no_choca_y_cancelada_libera(client, base):
+    patient, other, doctor = base
+    first = client.post("/api/appointments", json=appt(patient, doctor)).json()
+    assert client.post("/api/appointments", json=appt(other, doctor, "2030-05-10T09:30")).status_code == 201
+    client.post(f"/api/appointments/{first['id']}/status", data={"status": "cancelled"})
+    assert client.post("/api/appointments", json=appt(other, doctor, "2030-05-10T09:00")).status_code == 201
+
+
+def test_fecha_invalida_y_estado_invalido(client, base):
+    patient, _, doctor = base
+    assert client.post("/api/appointments", json=appt(patient, doctor, "no-es-fecha-valida")).status_code == 422
+    assert client.post("/api/appointments", json=appt(patient, doctor, status="x")).status_code == 422
+
+
+def test_consulta_con_adjunto_marca_cita_realizada(client, base):
+    patient, _, doctor = base
+    cita = client.post("/api/appointments", json=appt(patient, doctor)).json()
+    r = client.post(
+        "/api/consultations",
+        data={"patient_id": patient["id"], "professional_id": doctor["id"], "appointment_id": cita["id"], "diagnosis": "Resfrío"},
+        files={"attachment": ("examen.pdf", b"%PDF-1.4 demo", "application/pdf")},
+    )
+    assert r.status_code == 201
+    assert client.get(f"/api/consultations/{r.json()['id']}/attachment").content.startswith(b"%PDF")
+    assert client.get(f"/api/appointments/{cita['id']}").json()["status"] == "done"
+
+
+def test_adjunto_con_extension_peligrosa_rechazado(client, base):
+    patient, _, doctor = base
+    r = client.post(
+        "/api/consultations",
+        data={"patient_id": patient["id"], "professional_id": doctor["id"]},
+        files={"attachment": ("virus.exe", b"MZ", "application/octet-stream")},
+    )
+    assert r.status_code == 415
+
+
+def test_pagos_dashboard_y_exportacion(client, base):
+    patient, _, doctor = base
+    assert client.post("/api/payments", json={"patient_id": patient["id"], "concept": "Consulta", "amount": 25000, "method": "card"}).status_code == 201
+    assert client.post("/api/payments", json={"patient_id": patient["id"], "concept": "x", "amount": 1, "method": "bitcoin"}).status_code == 422
+    assert client.get("/api/dashboard").json()["month_revenue"] == 25000
+    csv = client.get("/api/export/payments.csv")
+    assert csv.status_code == 200 and "Consulta" in csv.text and csv.text.startswith("﻿")
+
+
+def test_no_se_borra_paciente_con_historial(client, base):
+    patient, _, doctor = base
+    client.post("/api/appointments", json=appt(patient, doctor))
+    assert client.delete(f"/api/patients/{patient['id']}").status_code == 409
+
+
+==================== ClinicaPro/tests/test_clinica_general.py ====================
+from datetime import datetime, timedelta
+
+
+def _when(days, hour=10):
+    return (datetime.now() + timedelta(days=days)).replace(hour=hour, minute=0).strftime("%Y-%m-%dT%H:%M")
+
+
+def test_recordatorios_citas_de_manana(client, base):
+    patient, other, doctor = base
+    client.put(f"/api/patients/{patient['id']}", json={"name": "Ana Soto", "rut": "12.345.678-5", "phone": "9 5555 0001"})
+    manana = client.post("/api/appointments", json={"patient_id": patient["id"], "professional_id": doctor["id"], "starts_at": _when(1)}).json()
+    client.post("/api/appointments", json={"patient_id": other["id"], "professional_id": doctor["id"], "starts_at": _when(1, 12), "status": "cancelled"})
+    client.post("/api/appointments", json={"patient_id": other["id"], "professional_id": doctor["id"], "starts_at": _when(3)})
+    r = client.get("/api/reminders").json()
+    assert [x["id"] for x in r] == [manana["id"]]  # ni canceladas ni otros días
+    assert "Ana" in r[0]["message"] and "Dra. Rojas" in r[0]["message"] and "10:00" in r[0]["message"]
+    assert r[0]["whatsapp_url"] == "https://wa.me/56955550001"
+    assert client.get("/api/reminders", params={"day": _when(3)[:10]}).json()[0]["patient_name"] == "Luis Pérez"
+
+
+def test_ficha_paciente_con_historial(client, base):
+    patient, other, doctor = base
+    appt = client.post("/api/appointments", json={"patient_id": patient["id"], "professional_id": doctor["id"], "starts_at": _when(0)}).json()
+    client.post("/api/consultations", data={"patient_id": patient["id"], "professional_id": doctor["id"], "appointment_id": appt["id"], "diagnosis": "Control"})
+    client.post("/api/payments", json={"patient_id": patient["id"], "concept": "Consulta", "amount": 25000, "method": "card"})
+    client.post("/api/payments", json={"patient_id": other["id"], "concept": "Otra", "amount": 9999})
+    h = client.get(f"/api/patients/{patient['id']}/history").json()
+    assert h["patient"]["name"] == "Ana Soto"
+    assert len(h["appointments"]) == 1 and h["appointments"][0]["status"] == "done"
+    assert len(h["consultations"]) == 1 and len(h["payments"]) == 1 and h["total_paid"] == 25000
+    assert client.get("/api/patients/99999/history").status_code == 404
+
+
+def test_reporte_de_caja_diario_y_mensual(client, base):
+    patient, _, _ = base
+    client.post("/api/payments", json={"patient_id": patient["id"], "concept": "A", "amount": 10000, "method": "cash"})
+    client.post("/api/payments", json={"patient_id": patient["id"], "concept": "B", "amount": 5000, "method": "card"})
+    client.post("/api/payments", json={"patient_id": patient["id"], "concept": "C", "amount": 2500, "method": "cash"})
+    day = client.get("/api/reports/cash").json()
+    assert day["total"] == 17500 and day["count"] == 3
+    assert day["by_method"]["cash"] == {"count": 2, "total": 12500}
+    month = client.get("/api/reports/cash", params={"period": "month"}).json()
+    assert month["total"] == 17500 and len(month["payments"]) == 3
+    assert client.get("/api/reports/cash", params={"date": "2000-01-01"}).json()["total"] == 0
+    assert client.get("/api/reports/cash", params={"date": "basura"}).status_code == 422
+    assert client.get("/api/reports/cash", params={"period": "year"}).status_code == 422
+
+
+def test_nuevos_endpoints_exigen_sesion(client):
+    from fastapi.testclient import TestClient
+    from app.main import app
+    with TestClient(app) as c:
+        for url in ("/api/reminders", "/api/reports/cash", "/api/documents", "/api/patients/1/history", "/api/export/payments.csv"):
+            assert c.get(url).status_code == 401, url
+
+
+def test_solo_admin_borra_registros(client, base):
+    from fastapi.testclient import TestClient
+    from app.main import app
+    patient, _, _ = base
+    u = client.post("/api/users", json={"username": "pro2", "name": "Pro Dos", "password": "clave-larga-123", "role": "profesional"}).json()
+    with TestClient(app) as c:
+        c.post("/api/auth/login", json={"username": "pro2", "password": "clave-larga-123"})
+        assert c.delete(f"/api/patients/{patient['id']}").status_code == 403
+        assert c.get(f"/api/patients/{patient['id']}").status_code == 200
+    client.delete(f"/api/users/{u['id']}")
+    assert client.delete(f"/api/patients/{patient['id']}").status_code == 204
+
+
+def test_adjunto_con_contenido_falso_rechazado(client, base):
+    patient, _, doctor = base
+    r = client.post("/api/consultations", data={"patient_id": patient["id"], "professional_id": doctor["id"]},
+                    files={"attachment": ("falso.pdf", b"MZ\x90\x00 no soy pdf", "application/pdf")})
+    assert r.status_code == 415
+
+
+def test_csv_neutraliza_formulas(client):
+    client.post("/api/patients", json={"name": "=HYPERLINK(\"http://x\")"})
+    p = client.post("/api/patients", json={"name": "Normal"}).json()
+    client.post("/api/payments", json={"patient_id": p["id"], "concept": "+cmd|' /C calc'!A0", "amount": 1})
+    csv_text = client.get("/api/export/payments.csv").text
+    assert "'+cmd" in csv_text and ";+cmd" not in csv_text
+
+
+def test_cabeceras_de_seguridad(client):
+    home = client.get("/")
+    assert "default-src 'self'" in home.headers["content-security-policy"]
+    api = client.get("/api/patients")
+    assert api.headers["cache-control"] == "no-store" and api.headers["x-content-type-options"] == "nosniff"
