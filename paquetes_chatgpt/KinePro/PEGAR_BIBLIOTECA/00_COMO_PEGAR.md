@@ -1,0 +1,1 @@
+Pega `PEGAR_BIBLIOTECA_01_de_03.txt` en una conversación nueva de ChatGPT y luego las siguientes en orden. ChatGPT revisará cada entrada. Sus observaciones son sospechas por verificar, no verdades: confírmalas con un kinesiólogo y las guías vigentes antes de cambiar el contenido.

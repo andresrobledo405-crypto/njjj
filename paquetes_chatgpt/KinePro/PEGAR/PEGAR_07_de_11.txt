@@ -1,0 +1,143 @@
+[PARTE 7 de 11] — responde solo: Recibido 7/11
+
+  const W = 320, H = 150, L = 30, R = 14, T = 20, B = 26, id = "g" + ++chartN, vs = pts.map(p => p.value);
+  let lo = min ?? Math.min(...vs), hi = max ?? Math.max(...vs); if (lo === hi) { lo -= 1; hi += 1; }
+  if (min == null) { const pad = (hi - lo) * .2; lo -= pad; hi += pad; }
+  const x = i => pts.length === 1 ? (L + W - R) / 2 : L + i * (W - L - R) / (pts.length - 1), y = v => T + (hi - v) * (H - T - B) / (hi - lo);
+  const grid = [lo, (lo + hi) / 2, hi].map(v => `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="${L - 5}" y="${y(v) + 3.5}" text-anchor="end" font-size="9" fill="var(--ink2)">${Math.round(v * 10) / 10}</text>`).join("");
+  const line = pts.map((p, i) => `${i ? "L" : "M"}${x(i)},${y(p.value)}`).join(" "), area = `${line} L${x(pts.length - 1)},${H - B} L${x(0)},${H - B} Z`;
+  const dots = pts.map((p, i) => `<circle cx="${x(i)}" cy="${y(p.value)}" r="4" fill="var(--surface)" stroke="var(--brand)" stroke-width="2.2"/><text x="${x(i)}" y="${y(p.value) - 9}" text-anchor="middle" font-size="10.5" font-weight="700" fill="var(--ink)">${p.value}</text><text x="${x(i)}" y="${H - 8}" text-anchor="middle" font-size="9" fill="var(--ink2)">${dm(p.date)}</text>`).join("");
+  const f = pts[0].value, l = pts[pts.length - 1].value, d = Math.round((l - f) * 10) / 10;
+  const delta = pts.length > 1 ? `<div class="delta"><b>${f} → ${l}${esc(unit === "0–10" ? "" : unit)}</b><span class="${judge ? (d < 0 ? "t-ok" : d > 0 ? "t-bad" : "") : ""}">${d > 0 ? "+" : ""}${d}</span></div>` : "";
+  return `<div class="chartwrap"><h3 style="margin:1.2rem 0 .1rem;font-size:1rem">${esc(title)} <span class="muted" style="font-family:var(--text);font-weight:400">${esc(unit)}</span></h3>${delta}
+  <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(title)}: ${pts.map(p => dm(p.date) + " " + p.value).join(", ")}"><defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--brand)" stop-opacity=".28"/><stop offset="1" stop-color="var(--brand)" stop-opacity="0"/></linearGradient></defs>${grid}<path d="${area}" fill="url(#${id})"/><path d="${line}" fill="none" stroke="var(--brand)" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>${dots}</svg></div>`;
+}
+async function openPlan(id) {
+  try {
+    const p = await api("/api/plans/" + id), ev = p.evolution, tpls = await api("/api/templates");
+    const charts = chart("EVA (dolor)", ev.eva, { min: 0, max: 10, unit: "0–10", judge: true }) + Object.entries(ev.measures).map(([n, pts]) => chart(n, pts, { unit: pts[0].unit })).join("");
+    const next = p.appointments.filter(a => ["scheduled", "arrived"].includes(a.status));
+    sheet(`${sheetTop({ act: "patient", id: p.patient_id, label: "Ficha" })}<h2>${esc(p.title)}</h2><p class="muted" style="margin:.2rem 0 .6rem">${esc(p.patient_name)} · ${PST[p.status]}</p>
+    <div>${pips(p.sessions_done, p.sessions_scheduled, p.total_sessions).replace('class="pips"', 'class="pips lg"')}</div><p class="muted">${p.sessions_done} de ${p.total_sessions} sesiones realizadas</p>
+    ${p.reason ? `<p><span class="muted">Motivo:</span> ${esc(p.reason)}</p>` : ""}${p.kine_diagnosis ? `<p><span class="muted">Dx kinésico:</span> ${esc(p.kine_diagnosis)}</p>` : ""}
+    <div class="charts">${charts || empty("Aún no hay datos para graficar", "Registre EVA y mediciones al guardar las atenciones de este plan.")}</div>
+    <h3>Sesiones realizadas</h3>${p.consultations.map(consRow).join("") || `<p class="muted">Sin sesiones registradas.</p>`}
+    <h3>Próximas sesiones</h3>${next.map(a => `<div class="muted" style="padding:.2rem 0">${esc(longDate(parseDay(a.starts_at.slice(0, 10))))} · ${a.starts_at.slice(11)}${a.room ? " · " + esc(a.room) : ""}</div>`).join("") || `<p class="muted">Sin sesiones agendadas.</p>`}
+    <h3>Ejercicios para el hogar</h3><div class="cols"><select id="homeTpl" aria-label="Plantilla">${opts(tpls, t => `${t.name} (${t.item_count})`) || '<option value="">No hay plantillas aún</option>'}</select><button class="btn sm" data-act="homePrint" data-pt="${p.patient_id}">${ic("print")}Imprimir / PDF</button></div>
+    <p class="muted">Se abre una hoja con el nombre del paciente; use Imprimir o Guardar como PDF del navegador.</p>
+    <div class="pick" style="margin-top:1.4rem"><button class="btn soft sm" data-act="planReport" data-id="${p.id}">${ic("print")}Informe de evolución</button><button class="btn ghost sm" data-act="planEdit" data-id="${p.id}">${ic("edit")}Editar plan</button>${p.status === "active" ? `<button class="btn ghost sm" data-act="planStatus" data-id="${p.id}" data-s="completed">Marcar como completado</button><button class="btn ghost sm" data-act="planStatus" data-id="${p.id}" data-s="cancelled">Cancelar plan</button>` : `<button class="btn ghost sm" data-act="planStatus" data-id="${p.id}" data-s="active">Reabrir plan</button>`}</div>`);
+  } catch (x) { fail(x); }
+}
+async function planStatus(id, status) {
+  try { const p = await api("/api/plans/" + id); await send("PUT", "/api/plans/" + id, { patient_id: p.patient_id, professional_id: p.professional_id, title: p.title, reason: p.reason, kine_diagnosis: p.kine_diagnosis, total_sessions: p.total_sessions, status }); say("Plan actualizado"); await load(); openPlan(id); } catch (x) { fail(x); }
+}
+async function planEditForm(id) {
+  try {
+    const p = await api("/api/plans/" + id);
+    sheet(`${sheetTop({ act: "plan", id, label: "Plan" })}<h2>Editar plan</h2><form class="stack" data-form="planedit" data-id="${id}" style="margin-top:1rem"><label class="field"><span>Nombre del plan</span><input name="title" value="${esc(p.title)}" required maxlength="120"></label>
+    <label class="field"><span>Motivo de consulta</span><textarea name="reason" rows="2" maxlength="500">${esc(p.reason)}</textarea></label>
+    <div class="cols"><label class="field"><span>Diagnóstico kinésico</span><input name="dx" value="${esc(p.kine_diagnosis)}" maxlength="300"></label><label class="field"><span>Cantidad de sesiones</span><input name="n" type="number" min="1" max="100" value="${p.total_sessions}" inputmode="numeric" required></label></div><button class="btn block">Guardar cambios</button></form>`);
+  } catch (x) { fail(x); }
+}
+function schedForm(id) {
+  const box = document.querySelector(`[data-schedbox="${id}"]`), d = new Date(); d.setDate(d.getDate() + 1); d.setHours(9, 0, 0, 0);
+  box.innerHTML = `<form class="stack" data-form="series" data-id="${id}" style="margin-top:.8rem;padding-top:.8rem;border-top:1px solid var(--line)"><label class="field"><span>Primera sesión</span><input type="datetime-local" name="s" value="${new Date(d - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 16)}" required></label>
+  <div class="cols"><label class="field"><span>Sesiones</span><input type="number" name="n" min="1" max="100" value="5" required inputmode="numeric"></label><label class="field"><span>Cada (días)</span><input type="number" name="i" min="1" max="30" value="2" required inputmode="numeric"></label><label class="field"><span>Minutos</span><input type="number" name="d" min="5" max="480" value="45" required inputmode="numeric"></label></div>
+  <div class="cols"><label class="field"><span>Profesional</span><select name="p">${opts(pros, p => p.name)}</select></label><label class="field"><span>Sala / box</span><input name="r"></label></div><button class="btn block">Agendar serie</button></form>`;
+  box.querySelector("input").focus();
+}
+
+/* ---------- citas, pagos (hojas) ---------- */
+function apptForm(pre = {}) {
+  const ed = pre.edit, day = pre.day || $("day").value, pid = ed ? ed.patient_id : pre.patient || pats.find(p => p.active)?.id;
+  if (!pats.some(p => p.active)) { sheet(`${sheetTop()}<h2>Agendar sesión</h2>${empty("Primero registre un paciente", "Necesita al menos un paciente para agendar.", `<br><button class="btn" data-act="newPatient">${ic("plus")}Nuevo paciente</button>`)}`); return; }
+  sheet(`${sheetTop()}<h2>${ed ? "Reprogramar sesión" : "Agendar sesión"}</h2><form class="stack" data-form="appt" data-id="${ed ? ed.id : ""}" style="margin-top:1rem">
+  <label class="field"><span>Paciente</span><select name="patient" id="apPat" required>${opts(pats.filter(p => p.active), p => p.name)}</select></label>
+  <label class="field"><span>Plan de tratamiento</span><select name="plan" id="apPlan"></select></label>
+  <label class="field"><span>Profesional</span><select name="pro" required>${opts(pros, p => p.name + " · " + p.specialty)}</select></label>
+  <div class="cols"><label class="field"><span>Fecha y hora</span><input type="datetime-local" name="start" value="${ed ? ed.starts_at : day + "T09:00"}" required></label><label class="field"><span>Duración (min)</span><input type="number" name="dur" value="${ed ? ed.duration_min : 45}" min="5" max="480" inputmode="numeric"></label></div>
+  <div class="cols"><label class="field"><span>Sala / box</span><input name="room" maxlength="40" value="${esc(ed?.room)}"></label><label class="field"><span>Motivo</span><input name="reason" maxlength="200" value="${esc(ed?.reason)}"></label></div><button class="btn block">${ed ? "Guardar cambios" : "Agendar"}</button></form>`);
+  $("apPat").value = pid; fillApPlans(); if (ed) { $("apPlan").value = ed.plan_id || ""; document.querySelector("[data-form=appt] [name=pro]").value = ed.professional_id; }
+}
+function fillApPlans() { $("apPlan").innerHTML = '<option value="">Cita suelta (sin plan)</option>' + opts(activePlans($("apPat").value), p => `${p.title} · ${p.sessions_done}/${p.total_sessions}`); }
+function payForm() {
+  sheet(`${sheetTop()}<h2>Registrar pago</h2><form class="stack" data-form="pay" style="margin-top:1rem"><label class="field"><span>Paciente</span><select name="patient" required>${opts(pats.filter(p => p.active), p => p.name)}</select></label>
+  <label class="field"><span>Concepto</span><input name="concept" required maxlength="160" placeholder="Sesión de kinesiología"></label>
+  <div class="cols"><label class="field"><span>Monto (CLP)</span><input name="amount" type="number" min="0" required inputmode="numeric"></label><label class="field"><span>Medio</span><select name="method"><option value="cash">Efectivo</option><option value="card">Tarjeta</option><option value="transfer">Transferencia</option><option value="insurance">Seguro / Isapre</option></select></label></div><button class="btn block">Guardar pago</button></form>`);
+}
+async function pays() {
+  const [d, l] = await Promise.all([api("/api/dashboard"), api("/api/payments")]);
+  $("money").textContent = clp(d.month_revenue); $("monthSess").textContent = d.month_sessions + (d.month_sessions === 1 ? " sesión realizada este mes" : " sesiones realizadas este mes");
+  $("payList").innerHTML = l.slice(0, 40).map(y => { const p = patient(y.patient_id); return `<div class="pay"><span>${esc(y.concept)}<br><span class="muted">${esc(p ? p.name : "")} · ${y.paid_at.slice(0, 10).split("-").reverse().join("/")}</span></span><b>${clp(y.amount)}</b></div>`; }).join("") || empty("Sin pagos registrados", "Los pagos del mes aparecerán aquí.");
+}
+
+/* ---------- atención ---------- */
+let eva = null, links = new Map();
+$("evaRow").innerHTML = [...Array(11).keys()].map(n => `<button type="button" aria-pressed="false" data-v="${n}" aria-label="EVA ${n}">${n}</button>`).join("");
+$("evaRow").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; eva = eva === +b.dataset.v ? null : +b.dataset.v; document.querySelectorAll("#evaRow button").forEach(x => x.setAttribute("aria-pressed", +x.dataset.v === eva)); });
+function addMeas(v = {}) {
+  const d = document.createElement("div"); d.className = "meas";
+  d.innerHTML = `<input list="measNames" placeholder="Movimiento" aria-label="Movimiento" value="${esc(v.name || "")}"><input type="number" step="any" inputmode="decimal" placeholder="Valor" aria-label="Valor" value="${v.value ?? ""}"><select aria-label="Unidad"><option>°</option><option ${v.unit === "cm" ? "selected" : ""}>cm</option></select><button type="button" class="iconbtn" aria-label="Quitar medición">${ic("x", "sm")}</button>`;
+  $("measRows").append(d);
+}
+$("addMeas").addEventListener("click", () => addMeas());
+$("measRows").addEventListener("click", e => { if (e.target.closest("button")) e.target.closest(".meas").remove(); });
+$("repeatMeas").addEventListener("click", async () => {
+  try {
+    if (!$("cPlan").value) return say("Elija un plan para repetir sus mediciones");
+    const p = await api("/api/plans/" + $("cPlan").value), last = [...p.consultations].reverse().find(c => c.measurements.length);
+    if (!last) return say("Ese plan aún no tiene mediciones");
+    const have = new Set([...document.querySelectorAll("#measRows .meas input:first-child")].map(i => i.value));
+    last.measurements.filter(m => !have.has(m.name)).forEach(m => addMeas({ name: m.name, unit: m.unit }));
+    $("measRows").querySelector(".meas:last-child input:nth-child(2)")?.focus();
+  } catch (x) { fail(x); }
+});
+const measData = () => [...document.querySelectorAll("#measRows .meas")].map(r => { const [i, v, u] = r.querySelectorAll("input,select"); return { name: i.value.trim(), value: v.value, unit: u.value }; }).filter(m => m.name && m.value !== "").map(m => ({ ...m, value: +m.value }));
+function drawLinks() { $("linkSel").innerHTML = [...links].map(([id, t]) => `<button type="button" class="chip" aria-pressed="true" data-rm="${id}">${esc(t)} ✕</button>`).join(""); }
+let lt; $("linkQ").addEventListener("input", () => { clearTimeout(lt); lt = setTimeout(async () => { const q = $("linkQ").value.trim(); if (q.length < 2) { $("linkRes").innerHTML = ""; return; } const l = (await api("/api/library?q=" + encodeURIComponent(q)).catch(() => [])).slice(0, 6); $("linkRes").innerHTML = l.map(i => `<button type="button" class="chip" aria-pressed="false" data-add="${i.id}" data-t="${esc(i.title)}">+ ${esc(i.title)}</button>`).join("") || '<span class="muted">Sin resultados</span>'; }, 200); });
+$("linkRes").addEventListener("click", e => { const b = e.target.closest("[data-add]"); if (!b) return; links.set(+b.dataset.add, b.dataset.t); drawLinks(); $("linkQ").value = ""; $("linkRes").innerHTML = ""; });
+$("linkSel").addEventListener("click", e => { const b = e.target.closest("[data-rm]"); if (b) { links.delete(+b.dataset.rm); drawLinks(); } });
+async function loadPlans(selected) {
+  const pid = $("cPatient").value; if (!pid) { $("cPlan").innerHTML = ""; return; }
+  const l = await api("/api/plans?patient_id=" + pid + "&status=active");
+  $("cPlan").innerHTML = '<option value="">Sin plan (atención suelta)</option>' + l.map(p => `<option value="${p.id}">${esc(p.title)} · ${p.sessions_done}/${p.total_sessions}</option>`).join("");
+  if (selected) $("cPlan").value = selected;
+}
+$("cPatient").addEventListener("change", () => { $("cAppt").value = ""; $("cApptNote").hidden = true; loadPlans().catch(fail); });
+async function startAttention(apptId, opt = {}) {
+  try {
+    closeSheet(); go("atencion"); await load();
+    if (apptId) { const a = await api("/api/appointments/" + apptId); $("cPatient").value = a.patient_id; $("cPro").value = a.professional_id; $("cAppt").value = a.id; $("cApptNote").hidden = false; $("cApptNote").textContent = "Atención de la cita del " + a.starts_at.replace("T", " a las "); await loadPlans(a.plan_id); }
+    else { if (opt.patient) $("cPatient").value = opt.patient; $("cAppt").value = ""; $("cApptNote").hidden = true; await loadPlans(opt.plan); }
+    $("cDiag").focus({ preventScroll: true });
+  } catch (x) { fail(x); }
+}
+$("fCons").addEventListener("submit", async e => {
+  e.preventDefault();
+  try {
+    const f = new FormData(); f.append("patient_id", $("cPatient").value); f.append("professional_id", $("cPro").value);
+    if ($("cAppt").value) f.append("appointment_id", $("cAppt").value); if ($("cPlan").value) f.append("plan_id", $("cPlan").value); if (eva !== null) f.append("eva", eva);
+    const m = measData(); if (m.length) f.append("measurements", JSON.stringify(m)); if (links.size) f.append("library_ids", [...links.keys()].join(","));
+    f.append("diagnosis", $("cDiag").value); f.append("treatment", $("cTreat").value); f.append("notes", $("cNotes").value); if ($("cFile").files[0]) f.append("attachment", $("cFile").files[0]);
+    await api("/api/consultations", { method: "POST", body: f });
+    const keep = [$("cPatient").value, $("cPro").value, $("cPlan").value]; e.target.reset(); eva = null; links = new Map(); drawLinks(); $("measRows").innerHTML = "";
+    document.querySelectorAll("#evaRow button").forEach(x => x.setAttribute("aria-pressed", "false")); $("cAppt").value = ""; $("cApptNote").hidden = true;
+    $("cPatient").value = keep[0]; $("cPro").value = keep[1]; await refresh(); await loadPlans(keep[2]); say("Atención guardada");
+  } catch (x) { fail(x); }
+});
+async function cons() { const l = await api("/api/consultations?limit=15"); $("consList").innerHTML = l.map(c => `<div class="panel" style="padding:.8rem 1rem"><div style="display:flex;justify-content:space-between;gap:1rem"><b>${esc(c.patient_name)}</b><span class="muted">${c.occurred_at.slice(0, 16).replace("T", " ")}</span></div>${consRow(c).replace('<div class="rowl">', '<div class="rowl" style="border:0;padding:.4rem 0 0">')}</div>`).join("") || empty("Aún no hay atenciones", "Las que registre aparecerán aquí."); }
+
+/* ---------- biblioteca y plantillas ---------- */
+const CATS = {};
+async function libMeta() { const m = await api("/api/library/meta"); m.categories.forEach(c => CATS[c.id] = c.label); $("libCount").textContent = m.total + " entradas";
+  $("cats").innerHTML = `<button class="chip" aria-pressed="${cat === ""}" data-c="">Todo</button>` + m.categories.map(c => `<button class="chip" aria-pressed="${cat === c.id}" data-c="${esc(c.id)}">${esc(c.label)} · ${+c.count}</button>`).join("");
+  $("regSel").innerHTML = '<option value="">Todas las regiones</option>' + m.regions.map(r => `<option>${esc(r)}</option>`).join(""); $("lCat").innerHTML = m.categories.map(c => `<option value="${esc(c.id)}">${esc(c.label)}</option>`).join(""); }
+let t; async function libSearch() { const l = await api("/api/library?" + new URLSearchParams({ q: $("q").value, category: cat, region: $("regSel").value }));
+  $("libList").innerHTML = l.map(i => `<div class="lrow" data-act="lib" data-id="${i.id}" tabindex="0" role="button"><div class="ti">${esc(i.title)}<span>${esc(CATS[i.category] || i.category)}${i.region ? " · " + esc(i.region) : ""}</span></div>${i.summary ? `<p>${esc(i.summary)}</p>` : ""}</div>`).join("") || empty("Sin resultados", "Pruebe con otras palabras o quite los filtros."); }
+$("q").addEventListener("input", () => { clearTimeout(t); t = setTimeout(() => libSearch().catch(fail), 200); }); $("regSel").addEventListener("change", () => libSearch().catch(fail));
+$("cats").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; cat = b.dataset.c; document.querySelectorAll("#cats .chip").forEach(x => x.setAttribute("aria-pressed", x === b)); libSearch().catch(fail); });
+async function libDetail(id) {
+  const i = await api("/api/library/" + id), tpls = i.category === "ejercicio" ? await api("/api/templates") : [];
+  sheet(`${sheetTop()}<div class="article"><p class="muted" style="margin:0 0 .3rem">${CATS[i.category] || ""}${i.region ? " · " + esc(i.region) : ""}</p><h2>${esc(i.title)}</h2>
+  <div class="notice">${ic("alert")}<span>Contenido redactado con apoyo de IA, sin validación de un kinesiólogo.</span></div>${i.summary ? `<p style="font-weight:600">${esc(i.summary)}</p>` : ""}<div class="body">${esc(i.content || "")}</div>
+  ${i.precautions ? `<div class="prec"><b>Precauciones</b><br>${esc(i.precautions)}</div>` : ""}${i.tags ? `<p class="muted">${esc(i.tags)}</p>` : ""}</div>

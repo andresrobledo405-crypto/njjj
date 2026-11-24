@@ -1,0 +1,280 @@
+[PARTE 5 de 11] — responde solo: Recibido 5/11
+
+    return enrich_consultations(db, [row_dict(db.execute(CONSULTATION_SELECT + " WHERE c.id = ?", (cursor.lastrowid,)).fetchone())])[0]
+
+
+@app.get("/api/consultations/{consultation_id}/attachment")
+def get_attachment(consultation_id: int, db: sqlite3.Connection = Depends(get_db)) -> FileResponse:
+    row = db.execute("SELECT attachment_path FROM consultations WHERE id = ?", (consultation_id,)).fetchone()
+    if row is None or not row["attachment_path"]:
+        raise HTTPException(404, "Adjunto no encontrado")
+    path = (UPLOAD_DIR / row["attachment_path"]).resolve()
+    if path.parent != UPLOAD_DIR.resolve() or not path.is_file():
+        raise HTTPException(404, "Adjunto no encontrado")
+    return FileResponse(path, media_type=mimetypes.guess_type(path.name)[0] or "application/octet-stream")
+
+
+@app.get("/api/dashboard")
+def dashboard(db: sqlite3.Connection = Depends(get_db)) -> dict[str, Any]:
+    def count(sql: str) -> int:
+        return db.execute(sql).fetchone()[0]
+
+    today = "date(starts_at) = date('now','localtime')"
+    return {
+        "patients": count("SELECT COUNT(*) FROM patients WHERE active = 1"),
+        "professionals": count("SELECT COUNT(*) FROM professionals WHERE active = 1"),
+        "today_appointments": count(f"SELECT COUNT(*) FROM appointments WHERE {today} AND status NOT IN ('cancelled','no_show')"),
+        "today_done": count(f"SELECT COUNT(*) FROM appointments WHERE {today} AND status = 'done'"),
+        "today_pending": count(f"SELECT COUNT(*) FROM appointments WHERE {today} AND status IN ('scheduled','arrived')"),
+        "month_sessions": count("SELECT COUNT(*) FROM consultations WHERE strftime('%Y-%m', occurred_at) = strftime('%Y-%m','now','localtime')"),
+        "month_revenue": count(
+            "SELECT COALESCE(SUM(amount),0) FROM payments WHERE strftime('%Y-%m', paid_at) = strftime('%Y-%m','now','localtime')"
+        ),
+    }
+
+
+def csv_response(db: sqlite3.Connection, sql: str, filename: str) -> StreamingResponse:
+    stream = CsvExporter().export(db.execute(sql))
+    return StreamingResponse(
+        iter([stream.getvalue()]),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
+    )
+
+
+@app.get("/api/export/appointments.csv")
+def export_appointments(db: sqlite3.Connection = Depends(get_db)) -> StreamingResponse:
+    return csv_response(
+        db,
+        """SELECT a.id, a.starts_at, a.duration_min, p.name AS paciente, p.rut, pr.name AS profesional,
+                  pr.specialty AS especialidad, a.room AS sala, a.reason AS motivo, a.status AS estado
+           FROM appointments a JOIN patients p ON p.id = a.patient_id
+           JOIN professionals pr ON pr.id = a.professional_id ORDER BY a.starts_at DESC""",
+        "citas.csv",
+    )
+
+
+@app.get("/api/export/payments.csv")
+def export_payments(db: sqlite3.Connection = Depends(get_db)) -> StreamingResponse:
+    return csv_response(
+        db,
+        """SELECT y.id, y.paid_at, p.name AS paciente, y.concept AS concepto, y.amount AS monto, y.method AS medio
+           FROM payments y JOIN patients p ON p.id = y.patient_id ORDER BY y.paid_at DESC""",
+        "pagos.csv",
+    )
+
+
+@app.get("/api/admin/audit")
+def audit_list(request: Request, limit: int = Query(default=100, ge=1, le=500), db: sqlite3.Connection = Depends(get_db)) -> list[dict[str, Any]]:
+    admin_only(request)
+    return [dict(r) for r in db.execute("SELECT at, username, method, path, status FROM audit_log ORDER BY id DESC LIMIT ?", (limit,))]
+
+
+@app.get("/api/admin/backup")
+def backup(request: Request) -> StreamingResponse:
+    """Respaldo descargable (base + adjuntos) en .zip. Solo administrador."""
+    admin_only(request)
+    import io
+    import zipfile
+    import tempfile
+    buffer = io.BytesIO()
+    with tempfile.TemporaryDirectory() as tmp, zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as archive:
+        copy = Path(tmp) / "kinepro.db"
+        source, target = get_connection(), sqlite3.connect(copy)
+        try:
+            source.backup(target)  # copia consistente aunque haya escrituras
+        finally:
+            target.close()
+            source.close()
+        archive.write(copy, "kinepro.db")
+        for path in UPLOAD_DIR.iterdir():
+            if path.is_file() and path.name != ".gitkeep":
+                archive.write(path, f"uploads/{path.name}")
+    buffer.seek(0)
+    name = f"respaldo-kinepro-{datetime.now():%Y%m%d-%H%M}.zip"
+    return StreamingResponse(buffer, media_type="application/zip", headers={"Content-Disposition": f"attachment; filename={name}", "Cache-Control": "no-store"})
+
+
+@app.get("/sw.js", include_in_schema=False)
+def service_worker() -> FileResponse:
+    return FileResponse(STATIC_DIR / "sw.js", media_type="application/javascript", headers={"Service-Worker-Allowed": "/"})
+
+
+@app.get("/", response_class=HTMLResponse)
+def index() -> FileResponse:
+    return FileResponse(STATIC_DIR / "index.html")
+
+
+==================== KinePro/app/static/app.css ====================
+@font-face{font-family:"Fraunces";src:url(/static/fonts/fraunces-latin-wght-normal.woff2) format("woff2");font-weight:100 900;font-display:swap}
+@font-face{font-family:"Figtree";src:url(/static/fonts/figtree-latin-wght-normal.woff2) format("woff2");font-weight:300 900;font-display:swap}
+:root{
+  --paper:#f5f0e8;--surface:#fffdf9;--sunk:#efe8dc;--ink:#17332e;--ink2:#4b625d;--line:#e2d9ca;
+  --brand:#1f5c52;--brand-ink:#fffdf9;--brand-soft:#dcebe5;--accent:#b83d17;--on-accent:#fff;--accent-soft:#fbe6dc;
+  --ok:#276d43;--ok-soft:#dff0e5;--warn:#8f5200;--warn-soft:#fbefd6;--bad:#b3261e;
+  --av0:#dcebe5;--av1:#fbe6dc;--av2:#e6e3f4;--av3:#f5ecc8;--av4:#dbe9f3;
+  --shadow:0 1px 2px #17332e12,0 8px 24px -12px #17332e30;
+  --display:"Fraunces",Georgia,"Times New Roman",serif;--text:"Figtree",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --ease:cubic-bezier(.16,1,.3,1);color-scheme:light dark}
+@media (prefers-color-scheme:dark){:root{
+  --paper:#0e1a18;--surface:#15272400;--surface:#152824;--sunk:#101f1c;--ink:#ebf4f1;--ink2:#a2bbb5;--line:#27403b;
+  --brand:#63d2ba;--brand-ink:#06201b;--brand-soft:#1c3b35;--accent:#ff9567;--on-accent:#1a0d06;--accent-soft:#3b2318;
+  --ok:#6fd199;--ok-soft:#173326;--warn:#f1b24a;--warn-soft:#352a12;--bad:#ff8a80;
+  --av0:#1c3b35;--av1:#3b2318;--av2:#2a2840;--av3:#3a3416;--av4:#1b3345;--shadow:0 1px 2px #0005,0 8px 24px -12px #0008}}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;font:16px/1.5 var(--text);background:var(--paper);color:var(--ink);padding-bottom:calc(76px + env(safe-area-inset-bottom));font-feature-settings:"tnum" 1}
+::selection{background:var(--brand);color:var(--brand-ink)}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:6px}
+input,select,textarea{caret-color:var(--accent)}
+.ic{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.ic.sm{width:18px;height:18px}
+h1,h2,h3{font-family:var(--display);font-weight:600;letter-spacing:-.02em;margin:0;text-wrap:balance}
+h2{font-size:1.5rem;line-height:1.15}h3{font-size:1.1rem;margin:1.6rem 0 .6rem}
+.muted{color:var(--ink2);font-size:.875rem}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+/* shell */
+.top{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:1rem 1.1rem .4rem;max-width:880px;margin:auto}
+.brand{display:flex;align-items:center;gap:.55rem;font-family:var(--display);font-weight:700;font-size:1.3rem;letter-spacing:-.02em}
+.brand img{width:30px;height:30px;border-radius:8px}
+.top .who{display:flex;align-items:center;gap:.4rem}
+main{padding:.4rem 1.1rem 2rem;max-width:880px;margin:auto}
+section[hidden]{display:none}
+nav.tabs{position:fixed;bottom:0;left:0;right:0;display:flex;background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom);z-index:10}
+nav.tabs button{flex:1;display:grid;justify-items:center;gap:2px;padding:.55rem .1rem .45rem;border:0;background:none;color:var(--ink2);font:inherit;font-size:.72rem;font-weight:500;min-height:56px}
+nav.tabs button[aria-current=page]{color:var(--brand);font-weight:700}
+nav.tabs button[aria-current=page] .ic{stroke-width:2.3}
+@media (min-width:960px){
+  body{padding:0 0 0 232px}
+  .top{max-width:none;padding:1.4rem 2.4rem .4rem}.top .brand{display:none}.top{justify-content:flex-end}
+  main{max-width:920px;padding:.4rem 2.4rem 3rem;margin:0}
+  nav.tabs{top:0;bottom:auto;right:auto;width:232px;height:100vh;flex-direction:column;justify-content:flex-start;gap:.2rem;padding:5.2rem .8rem 1rem;border-top:0;border-right:1px solid var(--line)}
+  nav.tabs::before{content:"KinePro";position:absolute;top:1.3rem;left:1.4rem;font:700 1.4rem var(--display);letter-spacing:-.02em;color:var(--ink)}
+  nav.tabs button{display:flex;align-items:center;gap:.75rem;justify-items:unset;font-size:.95rem;padding:.7rem .9rem;border-radius:12px;flex:none;min-height:46px;text-align:left}
+  nav.tabs button[aria-current=page]{background:var(--brand-soft)}
+  .fab{right:2.4rem;bottom:2rem}
+}
+
+/* controls */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:.45rem;font:600 .95rem var(--text);padding:.7rem 1.1rem;min-height:46px;border-radius:12px;border:1px solid transparent;background:var(--brand);color:var(--brand-ink);cursor:pointer;transition:transform .15s var(--ease),background .15s;text-decoration:none}
+.btn:active{transform:scale(.97)}
+.btn.ghost{background:transparent;color:var(--ink);border-color:var(--line)}
+.btn.soft{background:var(--brand-soft);color:var(--ink)}
+.btn.accent{background:var(--accent);color:var(--on-accent)}
+.btn.sm{min-height:44px;padding:.45rem .85rem;font-size:.85rem;border-radius:10px}
+.btn.block{width:100%}
+.iconbtn{display:inline-grid;place-items:center;width:44px;height:44px;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}
+.field{display:grid;gap:.3rem;font-size:.8rem;font-weight:600;color:var(--ink2)}
+input,select,textarea{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:.72rem .85rem;min-height:46px;width:100%;font-weight:400}
+textarea{resize:vertical}
+input::placeholder,textarea::placeholder{color:var(--ink2);opacity:1}
+input:focus,select:focus,textarea:focus{border-color:var(--brand);outline:3px solid color-mix(in srgb,var(--brand) 30%,transparent);outline-offset:0}
+form.stack{display:grid;gap:.8rem}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.7rem}
+.search{position:relative}.search .ic{position:absolute;left:.85rem;top:50%;transform:translateY(-50%);color:var(--ink2)}.search input{padding-left:2.6rem}
+.chips{display:flex;gap:.45rem;overflow-x:auto;padding:.2rem 0 .5rem;scrollbar-width:none}.chips::-webkit-scrollbar{display:none}
+.chip{white-space:nowrap;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:99px;padding:.5rem .95rem;font:500 .85rem var(--text);min-height:44px;cursor:pointer}
+.chip[aria-pressed=true]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;background:var(--sunk);border-radius:14px;padding:4px;gap:4px}
+.seg button{border:0;background:transparent;border-radius:11px;padding:.6rem;font:600 .9rem var(--text);color:var(--ink2);min-height:44px;cursor:pointer}
+.seg button[aria-pressed=true]{background:var(--surface);color:var(--ink);box-shadow:var(--shadow)}
+
+/* page headers */
+.head{display:flex;align-items:flex-end;justify-content:space-between;gap:1rem;margin:.6rem 0 1rem}
+.head h2{font-size:1.9rem}
+.head .muted{margin-top:.15rem}
+.empty{border:1px dashed var(--line);border-radius:16px;padding:1.6rem 1.2rem;text-align:center;color:var(--ink2)}
+.empty b{display:block;color:var(--ink);font:600 1.1rem var(--display);margin-bottom:.3rem}
+.empty .btn{margin-top:.9rem}
+
+/* agenda */
+.days{display:flex;gap:.4rem;align-items:stretch;margin-bottom:1rem}
+.days .strip{display:grid;grid-template-columns:repeat(7,1fr);gap:.3rem;flex:1;min-width:0}
+.days button.d{display:grid;justify-items:center;gap:1px;padding:.5rem 0;border-radius:14px;border:1px solid transparent;background:transparent;color:var(--ink2);font:500 .72rem var(--text);min-height:60px;cursor:pointer}
+.days button.d b{font:600 1.2rem var(--display);color:var(--ink)}
+.days button.d[aria-pressed=true]{background:var(--ink);color:var(--paper)}.days button.d[aria-pressed=true] b{color:var(--paper)}
+.days button.d.today:not([aria-pressed=true]) b{color:var(--accent)}
+.timeline{display:grid;gap:.15rem}
+.slot{display:grid;grid-template-columns:3.6rem 1fr;gap:.7rem;padding:.15rem 0}
+.slot .t{font:600 1.15rem var(--display);padding-top:.85rem;text-align:right;color:var(--ink)}
+.slot .t small{display:block;font:500 .7rem var(--text);color:var(--ink2)}
+.ap{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:.85rem .95rem;box-shadow:var(--shadow);animation:rise .38s var(--ease) both}
+.ap.next{background:var(--brand-soft);border-color:transparent}
+.ap.off{opacity:.85}.ap.off .name{text-decoration:line-through}
+.ap .top2{display:flex;justify-content:space-between;gap:.6rem;align-items:flex-start}
+.ap .name{font-weight:700;font-size:1.05rem;line-height:1.25}
+.ap .meta{color:var(--ink2);font-size:.85rem;margin-top:.15rem}
+.ap .plan{display:flex;flex-wrap:wrap;align-items:center;gap:.3rem .55rem;margin-top:.55rem;font-size:.85rem;color:var(--ink2)}
+.ap .acts{display:flex;gap:.45rem;margin-top:.75rem;flex-wrap:wrap;align-items:center}
+.ap .acts select{width:auto;min-height:44px;padding:.4rem .6rem;font-size:.85rem;border-radius:10px;margin-left:auto}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.tag{display:inline-flex;align-items:center;gap:.3rem;font:600 .72rem var(--text);padding:.2rem .6rem;border-radius:99px;background:var(--sunk);color:var(--ink2);white-space:nowrap}
+.tag.now{background:var(--accent);color:var(--on-accent)}.tag.ok{background:var(--ok-soft);color:var(--ok)}.tag.wait{background:var(--warn-soft);color:var(--warn)}
+.alert{display:flex;gap:.5rem;align-items:flex-start;color:var(--warn);background:var(--warn-soft);border-radius:10px;padding:.45rem .7rem;font-size:.85rem;margin-top:.55rem}
+
+.fab{position:fixed;right:1.1rem;bottom:calc(76px + env(safe-area-inset-bottom));z-index:9;width:58px;height:58px;border-radius:18px;border:0;background:var(--accent);color:var(--on-accent);display:grid;place-items:center;box-shadow:0 10px 24px -8px #b83d1799;cursor:pointer;transition:transform .15s var(--ease)}
+.fab[hidden]{display:none}.fab:active{transform:scale(.94)}.fab .ic{width:26px;height:26px;stroke-width:2.2}
+@media (min-width:960px){.fab{bottom:2rem}}
+
+/* pips: sesiones del plan */
+.pips{display:inline-flex;gap:3px;flex-wrap:nowrap;vertical-align:middle;flex:none}
+.pips i{width:9px;height:9px;border-radius:50%;border:1.5px solid color-mix(in srgb,var(--ink2) 70%,var(--surface));background:transparent}
+.pips i.s{border-color:var(--brand)}.pips i.d{background:var(--brand);border-color:var(--brand)}
+.pips.lg i{width:13px;height:13px}
+
+/* pacientes */
+.plist{display:grid;gap:.1rem;margin-top:.8rem}
+.prow{display:grid;grid-template-columns:48px 1fr auto;gap:.8rem;align-items:center;padding:.75rem .3rem;border-bottom:1px solid var(--line);cursor:pointer;border-radius:12px}
+.prow:hover{background:var(--surface)}
+.prow .nm{font-weight:700}.prow .sub{font-size:.85rem;color:var(--ink2);display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}
+.avatar{width:48px;height:48px;border-radius:16px;display:grid;place-items:center;font:600 1.05rem var(--display);color:var(--ink);background:var(--av0)}
+.avatar.a1{background:var(--av1)}.avatar.a2{background:var(--av2)}.avatar.a3{background:var(--av3)}.avatar.a4{background:var(--av4)}
+.avatar.big{width:64px;height:64px;border-radius:20px;font-size:1.4rem}
+
+/* atención */
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:1.1rem;margin-bottom:1rem}
+.panel>h3:first-child{margin-top:0}
+.eva{display:grid;grid-template-columns:repeat(11,1fr);gap:4px}
+.eva button{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:10px;min-height:46px;font:600 .95rem var(--display);cursor:pointer;padding:0}
+.eva button[aria-pressed=true]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.eva-scale{display:flex;justify-content:space-between;font-size:.72rem;color:var(--ink2);margin-top:.3rem}
+.meas{display:grid;grid-template-columns:1fr 84px 70px 44px;gap:.4rem;margin-bottom:.45rem}
+.pick{display:flex;gap:.4rem;flex-wrap:wrap;margin:.4rem 0}
+.rowl{display:flex;gap:.7rem;align-items:flex-start;padding:.9rem .1rem;border-bottom:1px solid var(--line)}
+.rowl:last-child{border-bottom:0}.rowl .d{min-width:3.4rem;font:600 .95rem var(--display);color:var(--ink2)}
+.rowl .grow{flex:1;min-width:0}
+
+/* biblioteca */
+.notice{display:flex;gap:.6rem;align-items:flex-start;background:var(--warn-soft);color:var(--warn);border-radius:12px;padding:.65rem .8rem;font-size:.82rem;margin:.8rem 0}
+.notice b{font-weight:700}
+.lib{display:grid;margin-top:.4rem}
+.lrow{padding:.85rem .2rem;border-bottom:1px solid var(--line);cursor:pointer;border-radius:10px}
+.lrow:hover{background:var(--surface)}
+.lrow .ti{font-weight:700;display:flex;justify-content:space-between;gap:.6rem;align-items:baseline}
+.lrow .ti span{font:500 .72rem var(--text);color:var(--ink2);white-space:nowrap}
+.lrow p{margin:.15rem 0 0;color:var(--ink2);font-size:.88rem;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.article .body{white-space:pre-wrap;font-size:1rem;max-width:68ch;line-height:1.6}
+.prec{background:var(--warn-soft);color:var(--ink);border-radius:12px;padding:.7rem .85rem;margin:1rem 0;font-size:.92rem}
+.prec b{color:var(--warn)}
+
+/* ficha / hoja lateral */
+#detail{position:fixed;inset:0;z-index:30;background:#0a1512a8;display:flex;align-items:flex-end;justify-content:center;visibility:hidden;opacity:0;transition:opacity .25s var(--ease),visibility 0s .25s}
+#detail.on{visibility:visible;opacity:1;transition:opacity .25s var(--ease)}
+#detail>div{background:var(--paper);width:100%;max-width:640px;max-height:94vh;overflow:auto;border-radius:24px 24px 0 0;padding:1.1rem 1.2rem calc(1.4rem + env(safe-area-inset-bottom));transform:translateY(40px);transition:transform .35s var(--ease);outline:0;overscroll-behavior:contain}
+#detail.on>div{transform:none}
+@media (min-width:960px){#detail{align-items:stretch;justify-content:flex-end}#detail>div{max-width:560px;max-height:none;height:100%;border-radius:24px 0 0 24px;transform:translateX(40px)}#detail.on>div{transform:none}}
+.sheet-top{display:flex;justify-content:space-between;align-items:center;gap:.5rem;margin-bottom:.8rem;position:sticky;top:-1.1rem;background:var(--paper);padding:.2rem 0 .5rem;z-index:2}
+.person{display:flex;gap:.9rem;align-items:center;margin-bottom:.6rem}
+.info{display:grid;grid-template-columns:auto 1fr;gap:.35rem 1rem;font-size:.92rem;margin:.6rem 0}.info dt{color:var(--ink2)}.info dd{margin:0}
+.plancard{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:.95rem;margin-bottom:.7rem}
+.plancard h4{margin:0;font:600 1.1rem var(--display)}
+.delta{display:flex;align-items:baseline;gap:.5rem;margin:.2rem 0 .3rem}.delta b{font:600 1.3rem var(--display)}
+.charts svg{width:100%;height:auto;display:block;margin-bottom:1rem}
+.chartwrap{margin-bottom:.6rem}
+.t-ok{color:var(--ok)}.t-bad{color:var(--accent)}
+.item{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:.75rem;margin-bottom:.6rem;display:grid;gap:.45rem}
+
+/* caja */
+.money{font:600 2.6rem/1 var(--display);letter-spacing:-.03em}
+.pay{display:flex;justify-content:space-between;gap:1rem;padding:.8rem .1rem;border-bottom:1px solid var(--line)}

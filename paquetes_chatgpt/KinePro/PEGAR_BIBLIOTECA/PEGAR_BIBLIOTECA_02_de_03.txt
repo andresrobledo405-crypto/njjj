@@ -1,0 +1,262 @@
+[PARTE 2 de 3]
+
+### [patologia] Síndrome de la banda iliotibial (Cadera)
+Resumen: Dolor lateral de rodilla en corredores y ciclistas.
+Corrija carga de entrenamiento y fortalezca abductores de cadera y rotadores externos. El "estiramiento" de la banda tiene poco efecto sobre la estructura; priorice el control y la carga.
+
+### [patologia] Desgarro de isquiotibiales (Cadera)
+Resumen: Lesión muscular frecuente en deportes de velocidad.
+Fase inicial: control del dolor y movilización temprana sin dolor; luego fuerza excéntrica (nórdicos, peso muerto rumano), trabajo de velocidad progresiva y carrera.
+Retorno cuando haya fuerza simétrica, ausencia de dolor y capacidad de sprint sin molestias.
+
+### [patologia] Escoliosis idiopática del adolescente (Columna)
+Resumen: Desviación tridimensional de la columna (ángulo de Cobb ≥10°).
+Observación en curvas leves; ortesis en curvas moderadas durante el crecimiento según indicación médica; ejercicios específicos (p. ej., enfoque Schroth) como complemento.
+Precauciones: La derivación al traumatólogo/ortopedista es obligatoria si la curva progresa o hay dolor atípico o alteraciones neurológicas.
+
+### [patologia] Rehabilitación del ACV (Neurológica)
+Resumen: Reeducación motora tras un accidente cerebrovascular.
+Principios: inicio temprano y práctica intensiva, repetitiva y específica de la tarea; entrenamiento de marcha y equilibrio; fortalecimiento; control de espasticidad; prevención de subluxación del hombro hemipléjico.
+Involucre a la familia y planifique el entorno del hogar. Controle presión arterial y signos de nuevo evento.
+Precauciones: Evite tracción del miembro superior hemipléjico y sobrecargas durante transferencias.
+
+### [patologia] Parálisis facial periférica (Neurológica)
+Resumen: Debilidad facial unilateral; la más común es la parálisis de Bell.
+Educación, protección ocular (lubricantes, oclusión nocturna), ejercicios faciales suaves y simétricos frente a espejo; evite sobreesfuerzo y masajes agresivos para reducir sincinesias.
+Precauciones: Si hay debilidad de la frente conservada, déficit en extremidades o inicio en contexto de trauma, derive a urgencias: puede ser central.
+
+### [patologia] Bronquiolitis y síndrome bronquial obstructivo del lactante (Respiratoria)
+Resumen: Cuadro respiratorio viral frecuente en lactantes en invierno.
+La kinesiología respiratoria se centra en higiene bronquial (desobstrucción nasal, posiciones, técnicas pasivas y espiratorias lentas en casos seleccionados) y educación a cuidadores: fraccionar la alimentación, lavado nasal, signos de alarma.
+Aplique el score de Tal modificado y la saturación antes y después.
+Precauciones: Las técnicas forzadas deben evitarse en menores de 2 años por riesgo de efectos adversos; siga el protocolo local y las indicaciones del médico.
+
+### [patologia] EPOC y rehabilitación pulmonar (Respiratoria)
+Resumen: Entrenamiento y educación para mejorar tolerancia al esfuerzo y calidad de vida.
+Programa de 8–12 semanas: entrenamiento aeróbico, fuerza de extremidades, entrenamiento muscular inspiratorio en casos seleccionados, educación en autocuidado, respiración con labios fruncidos y técnicas de ahorro de energía.
+Monitorice saturación y disnea (Borg).
+Precauciones: Suspenda si hay dolor torácico, desaturación significativa o síntomas de descompensación.
+
+### [patologia] Rehabilitación cardíaca (Cardíaca)
+Resumen: Programa multidisciplinario tras infarto, cirugía cardíaca o insuficiencia cardíaca.
+Fases: hospitalaria, ambulatoria supervisada y de mantenimiento. Prescripción de ejercicio aeróbico y de fuerza según prueba de esfuerzo y estratificación del riesgo; control de signos vitales y percepción del esfuerzo.
+Precauciones: Requiere evaluación y autorización médica; suspenda ante dolor torácico, arritmias, síncope o disnea desproporcionada.
+
+### [patologia] Prevención de caídas y sarcopenia (Geriatría)
+Resumen: Intervención multicomponente en adultos mayores.
+Ejercicio de fuerza de extremidades inferiores, equilibrio, marcha y funcionalidad (levantarse de la silla). Revise calzado, medicación (con el médico), visión y riesgos del hogar.
+Dosis orientativa: 2–3 sesiones semanales de fuerza y equilibrio, con progresión gradual.
+
+### [patologia] Disfunción del piso pélvico (Pelvis)
+Resumen: Incontinencia urinaria de esfuerzo, urgencia y prolapso leve.
+Valoración de la función muscular del piso pélvico y de hábitos. Entrenamiento muscular del piso pélvico (ejercicios de Kegel con conciencia y progresión), manejo de la presión intraabdominal, hábitos vesicales y educación.
+Puede complementarse con biofeedback o electroestimulación según indicación y formación del profesional.
+Precauciones: Sangrado inusual, dolor pélvico intenso o retención urinaria requieren evaluación médica.
+
+### [patologia] Fibromialgia (General)
+Resumen: Dolor crónico generalizado con fatiga y alteraciones del sueño.
+El ejercicio aeróbico de baja intensidad y la fuerza progresiva tienen la mejor evidencia. Educación sobre dolor, higiene del sueño y pacing (dosificación de la actividad).
+Inicie con dosis bajas para evitar brotes de dolor y avance lentamente.
+
+### [patologia] Rehabilitación posfractura de radio distal (Muñeca)
+Resumen: Recuperación tras inmovilización.
+Durante la inmovilización: movilidad de dedos, codo y hombro, y control del edema. Tras el retiro: movilidad activa, luego pasiva, fortalecimiento de prensión y propiocepción.
+Vigile signos de síndrome doloroso regional complejo (dolor desproporcionado, cambios de color, temperatura y edema).
+
+### [patologia] Osteoporosis (General)
+Resumen: Pérdida de masa ósea con mayor riesgo de fractura.
+Ejercicio de carga y de fuerza progresiva, equilibrio y postura; educación en prevención de caídas.
+Precauciones: Evite flexión de columna bajo carga, torsiones forzadas y técnicas manuales de alta velocidad.
+
+### [ejercicio] Puente de glúteo (Core)
+Resumen: Activa glúteo mayor e isquiotibiales con baja carga lumbar.
+Supino, rodillas flexionadas, pies apoyados al ancho de las caderas. Eleve la pelvis hasta alinear hombros-caderas-rodillas, mantenga 2 s y descienda controlado.
+Dosis inicial: 2–3 series de 10–15 repeticiones. Progresión: unipodal, con banda o carga externa.
+Precauciones: No hiperextienda la zona lumbar al final del movimiento.
+
+### [ejercicio] Bird-dog (cuadrupedia con elevación alterna) (Core)
+Resumen: Control motor de columna y cadera.
+Desde cuadrupedia, extienda un brazo y la pierna contraria manteniendo la columna neutra y la pelvis estable. Mantenga 5–10 s y alterne.
+Dosis: 2–3 series de 6–10 repeticiones por lado.
+
+### [ejercicio] Plancha frontal y lateral (Core)
+Resumen: Resistencia isométrica del tronco.
+Apoyo sobre antebrazos y puntas de los pies, cuerpo alineado sin hundir la zona lumbar. Lateral: apoyo en un antebrazo y el borde del pie.
+Dosis: 3 repeticiones de 10–30 s; progrese aumentando tiempo o palanca.
+
+### [ejercicio] Dead bug (Core)
+Resumen: Entrena control lumbopélvico con movimiento de extremidades.
+En supino con caderas y rodillas a 90°, baje de forma alterna brazo y pierna contrarios sin que la zona lumbar pierda contacto con la camilla.
+Dosis: 2–3 series de 8–10 por lado.
+
+### [ejercicio] Almeja (clamshell) y abducción de cadera (Cadera)
+Resumen: Activación de glúteo medio y rotadores externos.
+Decúbito lateral con caderas flexionadas ~45° y rodillas a 90°; abra la rodilla de arriba sin rotar la pelvis. Progrese con banda elástica o abducción en lateral con rodilla extendida.
+Dosis: 2–3 series de 12–15.
+
+### [ejercicio] Sentadilla (squat) y sentadilla a caja (Miembro inferior)
+Resumen: Patrón básico de fuerza para cuádriceps, glúteos y core.
+Pies al ancho de los hombros, rodillas alineadas con los pies, tronco estable; descienda hasta el rango tolerado y suba empujando el suelo. Use una caja como referencia de profundidad.
+Progresión: aumentar profundidad, carga o pasar a monopodal.
+Precauciones: Ajuste profundidad según dolor patelofemoral o prótesis.
+
+### [ejercicio] Peso muerto rumano (Miembro inferior)
+Resumen: Fortalece cadena posterior (isquiotibiales, glúteos).
+Bisagra de cadera con columna neutra y rodillas semiflexionadas, la carga cerca de las piernas; descienda hasta sentir tensión en isquiotibiales y vuelva extendiendo la cadera.
+Dosis: 3 series de 6–10 con carga progresiva.
+Precauciones: Evite flexionar la columna lumbar bajo carga.
+
+### [ejercicio] Ejercicios nórdicos de isquiotibiales (Miembro inferior)
+Resumen: Prevención y rehabilitación de lesiones de isquiotibiales (excéntrico).
+De rodillas, con los tobillos sujetos, incline el cuerpo hacia delante controlando la caída con los isquiotibiales y apóyese con las manos al final.
+Dosis de inicio: 2 series de 3–5 repeticiones; progrese según tolerancia y dolor muscular tardío.
+Precauciones: Puede provocar agujetas intensas; progrese con cautela.
+
+### [ejercicio] Elevación de talones (excéntrica / Alfredson) (Miembro inferior)
+Resumen: Carga progresiva del complejo tríceps sural y tendón de Aquiles.
+Suba con ambos pies y baje lentamente con la pierna afectada (≈3 s). Progrese a rodilla extendida y flexionada, y añada peso.
+Dosis clásica: 3 series de 15 repeticiones, 1–2 veces al día en el protocolo original; hoy se dosifica según tolerancia y fase.
+
+### [ejercicio] Step-up y estocada (Miembro inferior)
+Resumen: Fuerza funcional unilateral y control de rodilla.
+Step-up: suba un cajón controlando la rodilla sin colapso en valgo. Estocada: paso largo hacia delante o atrás con descenso vertical.
+Dosis: 2–3 series de 8–12 por lado.
+
+### [ejercicio] Isométricos de cuádriceps (Miembro inferior)
+Resumen: Activación y analgesia en rodilla (posoperatorio y tendinopatía rotuliana).
+Contracción máxima tolerada con la rodilla a 60° (sentado, máquina o pared), 30–45 s, 4–5 repeticiones.
+Útil como primera fase de carga en dolor tendinoso.
+
+### [ejercicio] Apoyo unipodal y propiocepción (Equilibrio)
+Resumen: Entrenamiento neuromuscular de tobillo, rodilla y cadera.
+Progresión: ojos abiertos en suelo → ojos cerrados → superficie inestable → tareas duales (lanzar una pelota) → perturbaciones.
+Dosis: 3 series de 30–60 s por pierna, diariamente en fases iniciales.
+
+### [ejercicio] Péndulo de Codman (Hombro)
+Resumen: Movimiento pasivo inicial de hombro con alivio del dolor.
+Inclinado con apoyo del brazo sano, deje colgar el brazo afectado y realice pequeños círculos o balanceos con el movimiento del cuerpo.
+Útil en fase aguda, capsulitis y posoperatorio temprano (según protocolo).
+
+### [ejercicio] Rotación externa e interna con banda elástica (Hombro)
+Resumen: Fortalecimiento del manguito rotador.
+Codo pegado al cuerpo con una toalla enrollada, codo a 90°; rote contra la banda llevando la mano hacia fuera (externa) o hacia dentro (interna).
+Dosis: 2–3 series de 10–15; aumente resistencia gradualmente.
+
+### [ejercicio] Remo con banda y deslizamientos en pared (wall slides) (Hombro)
+Resumen: Fortalecimiento y control escapular.
+Remo: tracción de la banda llevando codos atrás y juntando escápulas sin elevar los hombros. Wall slides: antebrazos en la pared, deslice hacia arriba manteniendo el serrato activo.
+Dosis: 2–3 series de 10–15.
+
+### [ejercicio] Retracción cervical (chin tuck) (Columna cervical)
+Resumen: Activa flexores profundos y mejora la postura cervical.
+Sentado o en supino, lleve la barbilla suavemente hacia atrás como "haciendo papada" sin flexionar el cuello. Mantenga 5–10 s.
+Dosis: 10 repeticiones, varias veces al día.
+
+### [ejercicio] Gato-camello y extensión en prono (McKenzie) (Columna lumbar)
+Resumen: Movilidad lumbar y preferencia direccional.
+Gato-camello: en cuadrupedia, alterne flexión y extensión de columna suavemente. Extensión en prono: apoyado en antebrazos, o con las manos, y empuje progresivo manteniendo la pelvis apoyada.
+Use en función de la respuesta al movimiento repetido (centralización de síntomas).
+Precauciones: Suspenda ante periferalización del dolor hacia la pierna.
+
+### [ejercicio] Estiramientos de isquiotibiales, psoas y piriforme (Flexibilidad)
+Resumen: Mejora la flexibilidad de la cadena posterior y de cadera.
+Mantenga cada estiramiento 30 s, 2–4 repeticiones, hasta tensión moderada sin dolor. Isquiotibiales: pierna elevada con rodilla extendida. Psoas: posición de caballero con pelvis en retroversión. Piriforme: tobillo sobre rodilla contraria y abrace el muslo.
+
+### [ejercicio] Deslizamientos neurales (mediano y ciático) (Neural)
+Resumen: Movilización suave del tejido nervioso.
+Mediano: combine extensión de muñeca y codo con inclinación contralateral del cuello, alternando tensión y alivio. Ciático: sentado, extensión de rodilla con flexión cervical alterna.
+Hágalos sin provocar síntomas mayores a molestia leve.
+Precauciones: Evite estiramientos nerviosos agresivos en cuadros muy irritables.
+
+### [ejercicio] Ejercicios de piso pélvico (Kegel) y respiración diafragmática (Pelvis)
+Resumen: Conciencia y fuerza del suelo pélvico con coordinación respiratoria.
+Contraiga suavemente como para detener la orina, sostenga 3–5 s y relaje por completo; coordine con la espiración. Evite contener la respiración o empujar hacia abajo.
+Dosis orientativa: 3 series de 8–12, con progresión en posición y duración.
+
+### [ejercicio] Respiración con labios fruncidos y diafragmática (Respiratoria)
+Resumen: Reduce la disnea y mejora la ventilación.
+Inspire por la nariz y espire lentamente por los labios semicerrados (2–3 veces el tiempo de la inspiración). En diafragmática, una mano sobre el abdomen debe elevarse al inspirar.
+Útil en EPOC, ansiedad y tras cirugías abdominales.
+
+### [ejercicio] Entrenamiento de marcha con ayudas técnicas (Amputados y marcha)
+Resumen: Uso seguro de bastón, andador y muletas.
+Altura de la ayuda a la altura de la muñeca con el brazo caído (codo ~20–30° de flexión). Bastón en el lado contrario a la pierna afectada. Secuencia en muletas: carga parcial según indicación médica.
+Revise calzado, superficie y entorno del hogar.
+
+### [tecnica] TENS (estimulación nerviosa eléctrica transcutánea) (Electroterapia)
+Resumen: Analgesia mediante estimulación de fibras sensitivas.
+Convencional: alta frecuencia (80–100 Hz), baja intensidad con parestesia confortable, 20–40 min. Acupuntura-like: baja frecuencia (2–4 Hz), mayor intensidad.
+Precauciones: Contraindicaciones: marcapasos y dispositivos implantados, embarazo (zona abdomino-lumbar), epilepsia (región cefálica), piel dañada, zona carotídea.
+
+### [tecnica] Electroestimulación neuromuscular (NMES) (Electroterapia)
+Resumen: Refuerza la contracción muscular en atrofia o debilidad.
+Corrientes de frecuencia ~35–80 Hz, ciclos de contracción y reposo, intensidad suficiente para generar contracción visible, progresión semanal.
+Útil tras cirugía de rodilla para recuperar cuádriceps.
+Precauciones: Mismas precauciones que TENS; evitar sobre tumores, trombosis venosa o heridas abiertas.
+
+### [tecnica] Ultrasonido terapéutico (Agentes físicos)
+Resumen: Energía mecánica y térmica en tejidos profundos.
+Modo continuo (térmico) o pulsado (no térmico). Mueva el cabezal constantemente con gel; dosis pequeña y tiempos breves en áreas óseas superficiales.
+La evidencia de efectos clínicos relevantes es limitada; úselo como complemento, no como terapia única.
+Precauciones: Evite sobre tumor, hemorragia activa, embarazo, placas epifisarias, gónadas y marcapasos.
+
+### [tecnica] Crioterapia y termoterapia (Agentes físicos)
+Resumen: Frío para el dolor agudo; calor para rigidez y dolor crónico.
+Frío: 10–15 min con una toalla de por medio; vigile la piel. Calor: 15–20 min, compresa húmeda o bolsa térmica.
+No es un tratamiento aislado: se usa para facilitar el ejercicio.
+Precauciones: Evite frío en Raynaud, hipersensibilidad al frío, alteración sensitiva; evite calor en inflamación aguda, zonas insensibles o con arterias comprometidas, infecciones y tumores.
+
+### [tecnica] Ondas de choque extracorpóreas (Agentes físicos)
+Resumen: Estímulo mecánico para tendinopatías crónicas y fascitis plantar.
+Aplicación focal o radial, 3–5 sesiones semanales o quincenales según protocolo del equipo, con gel y energía tolerable.
+Precauciones: No aplicar sobre pulmón, cerebro, gónadas, tumores, epífisis abiertas ni en pacientes con marcapasos o trastornos de coagulación.
+
+### [tecnica] Láser de baja potencia y fotobiomodulación (Agentes físicos)
+Resumen: Efecto analgésico y de reparación tisular según dosis.
+Respete la dosis en J/cm² del fabricante y las normas de seguridad: gafas protectoras para el operador y el paciente.
+Precauciones: Evite sobre tumores, tiroides, ojos y zona fetal en embarazo.
+
+### [tecnica] Movilización articular de Maitland (Terapia manual)
+Resumen: Gradación de oscilaciones pasivas.
+Grados I–II: pequeña y gran amplitud sin llegar al límite (efecto analgésico). Grados III–IV: hacia el límite del rango o dentro de la resistencia, para aumentar movilidad.
+Reevalúe siempre síntomas y rango antes y después.
+Precauciones: No aplique ante inestabilidad, fractura, infección, tumor, hipermovilidad severa ni signos neurológicos progresivos.
+
+### [tecnica] Masoterapia y liberación miofascial (Terapia manual)
+Resumen: Modula dolor, tono y circulación.
+Maniobras de deslizamiento, amasamiento y fricción, con presión adaptada a tolerancia; efecto principalmente analgésico y de relajación a corto plazo.
+Precauciones: Evite sobre trombosis venosa profunda, infección, heridas, tumores, fracturas recientes y alteraciones graves de coagulación.
+
+### [tecnica] Punción seca (Terapia manual)
+Resumen: Estimulación de puntos gatillo miofasciales con aguja.
+Requiere formación y cumplimiento de la normativa local; técnica estéril y consentimiento informado.
+Precauciones: Contraindicaciones: anticoagulación no controlada, infección local, linfedema del miembro, embarazo en zonas de riesgo, fobia a agujas.
+
+### [tecnica] Vendaje neuromuscular (kinesiotape) (Terapia manual)
+Resumen: Cinta elástica adhesiva con efecto sensitivo y de apoyo.
+Valore la piel antes de colocarla; retire si hay picazón, enrojecimiento o dolor. Dejar 3–5 días como máximo.
+La evidencia de efectos sobre el dolor es discreta; úselo como complemento.
+Precauciones: Evite sobre heridas, piel frágil, trombosis o alergia al adhesivo.
+
+### [tecnica] Drenaje linfático manual (Terapia manual)
+Resumen: Maniobras suaves para el flujo linfático en linfedema.
+Se inicia proximal (zonas de drenaje) y luego distal; se complementa con compresión y ejercicio.
+Precauciones: Contraindicado en infección activa, insuficiencia cardíaca descompensada, trombosis aguda o cáncer activo sin autorización médica.
+
+### [tecnica] Técnicas de higiene bronquial (Respiratoria)
+Resumen: Drenaje postural, vibración, aumento del flujo espiratorio y tos asistida.
+Elija según edad, cooperación y cuadro. En adultos: ciclo activo de la respiración, espiración lenta prolongada, dispositivos de presión espiratoria positiva. En lactantes: técnicas pasivas suaves y desobstrucción nasal.
+Precauciones: Evite drenajes en Trendelenburg si hay reflujo, hipertensión intracraneal o inestabilidad hemodinámica; vigile saturación.
+
+### [tecnica] Principios PEACE & LOVE (Principios)
+Resumen: Guía actual para lesiones de tejidos blandos (reemplaza al clásico RICE).
+Inmediato (PEACE): Protección, Elevación, evitar Antiinflamatorios sistemáticos (según indicación médica), Compresión, Educación.
+Después (LOVE): Load (carga temprana según tolerancia), Optimismo, Vascularización (ejercicio aeróbico), Ejercicio.
+Evita la inmovilización prolongada y el reposo excesivo.
+
+### [tecnica] Prescripción del ejercicio (FITT) y progresión (Principios)
+Resumen: Frecuencia, Intensidad, Tiempo y Tipo.
+Fuerza: 2–3 sesiones/semana, 6–15 repeticiones a 60–80 % de 1RM, 1–3 series (iniciar con dosis menores si hay dolor).
+Aeróbico: 150 min semanales de intensidad moderada como meta general.
+Progresión: aumente solo una variable a la vez y use la regla del 10 % semanal en carga de carrera. Un dolor ≤4/10 que se resuelve en 24 h es aceptable en la mayoría de casos.
+

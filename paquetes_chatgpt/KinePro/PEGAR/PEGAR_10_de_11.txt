@@ -1,0 +1,411 @@
+[PARTE 10 de 11] — responde solo: Recibido 10/11
+
+<form id="fLogin" class="card stack"><h2 style="font-size:1.4rem">Ingresar</h2><label class="field"><span>Usuario</span><input id="lgUser" autocomplete="username" required></label><label class="field"><span>Clave</span><input id="lgPass" type="password" autocomplete="current-password" required></label><p id="lgErr" role="alert"></p><button class="btn block">Entrar</button></form></div>
+<div id="msg" role="status"></div>
+<script src="/static/app.js"></script>
+</body>
+</html>
+
+
+==================== KinePro/app/static/manifest.webmanifest ====================
+{"name":"KinePro","short_name":"KinePro","description":"Agenda, fichas y biblioteca para kinesiólogos","start_url":"/","scope":"/","display":"standalone","background_color":"#f5f0e8","theme_color":"#1f5c52","lang":"es","icons":[{"src":"/static/icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]}
+
+
+==================== KinePro/app/static/sw.js ====================
+// Service worker mínimo: permite instalar la app. No guarda en caché datos de la API (información clínica).
+const SHELL = "kinepro-shell-v1";
+self.addEventListener("install", e => e.waitUntil(caches.open(SHELL).then(c => c.addAll(["/static/icon.svg"]))));
+self.addEventListener("activate", e => e.waitUntil(self.clients.claim()));
+self.addEventListener("fetch", e => {
+  if (e.request.method !== "GET" || new URL(e.request.url).pathname.startsWith("/api")) return;
+});
+
+
+==================== KinePro/backup_kinepro.bat ====================
+@echo off
+cd /d "%~dp0"
+set STAMP=%date:~-4%%date:~3,2%%date:~0,2%_%time:~0,2%%time:~3,2%
+set STAMP=%STAMP: =0%
+mkdir backups\%STAMP%
+xcopy /E /I /Y data backups\%STAMP%\data >nul
+echo Respaldo creado en backups\%STAMP%
+pause
+
+
+==================== KinePro/demo_kinepro.bat ====================
+@echo off
+cd /d "%~dp0"
+if not exist ".venv\Scripts\python.exe" (echo Primero ejecute install_kinepro.ps1 & pause & exit /b 1)
+".venv\Scripts\python.exe" seed_demo.py
+start "" http://127.0.0.1:8000
+".venv\Scripts\python.exe" -m uvicorn app.main:app --host 0.0.0.0 --port 8000
+
+
+==================== KinePro/install_kinepro.ps1 ====================
+# Instalación de KinePro (requiere Python 3.11+)
+Set-Location $PSScriptRoot
+py -3 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install --upgrade pip
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+if (-not (Test-Path .env)) { Copy-Item .env.example .env }
+Write-Host "Listo. Ejecute run_kinepro.bat"
+
+
+==================== KinePro/requirements.txt ====================
+fastapi>=0.115
+uvicorn>=0.34
+python-multipart>=0.0.20
+pytest>=8.3
+httpx>=0.28
+python-dotenv>=1.0
+
+
+==================== KinePro/run_kinepro.bat ====================
+@echo off
+cd /d "%~dp0"
+if not exist ".venv\Scripts\python.exe" (
+  echo Primero ejecute install_kinepro.ps1
+  pause & exit /b 1
+)
+start "" http://127.0.0.1:8000
+".venv\Scripts\python.exe" -m uvicorn app.main:app --host 0.0.0.0 --port 8000
+
+
+==================== KinePro/scripts/build_review_bundle.py ====================
+"""Genera revision_app_gpt/codigo_kinepro.txt: el código de la app en un solo archivo para que un revisor externo (p. ej. ChatGPT) lo lea.
+No incluye datos de pacientes, bases de datos, claves ni la biblioteca clínica (esa se revisa con revision_gpt/)."""
+import re
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+FILES = ["README.md", "DEPLOY.md", "requirements.txt", "app/config.py", "app/db.py", "app/auth.py", "app/main.py", "app/kine.py",
+         "app/library.py", "app/exporters.py", "app/static/index.html", "app/static/app.css", "app/static/app.js", "app/static/sw.js",
+         "tests/conftest.py", "tests/test_kinepro.py", "tests/test_kine.py", "tests/test_auth_library.py", "tests/test_ask.py", "../render.yaml"]
+SECRET = re.compile(r"(sk-[A-Za-z0-9]{20,}|gh[pousr]_[A-Za-z0-9]{20,}|BEGIN (RSA |EC )?PRIVATE KEY)")
+
+out = ["# KinePro — código para revisión\n(Cada archivo empieza con una línea `===== ruta =====`.)\n"]
+for rel in FILES:
+    text = (ROOT / rel).read_text(encoding="utf-8")
+    if SECRET.search(text):
+        raise SystemExit(f"Posible secreto en {rel}; no se genera el paquete.")
+    out.append(f"\n===== {Path(rel).as_posix().lstrip('./')} =====\n{text}")
+target = ROOT / "revision_app_gpt" / "codigo_kinepro.txt"
+target.write_text("".join(out), encoding="utf-8")
+print(f"{target} · {target.stat().st_size // 1024} KB")
+
+
+==================== KinePro/seed_demo.py ====================
+"""Carga datos FICTICIOS de demostración (kinesiología). No borra datos existentes."""
+from datetime import datetime, timedelta
+
+from app.db import get_connection, init_db
+from app.library import seed_library
+
+init_db()
+db = get_connection()
+seed_library(db)
+if db.execute("SELECT COUNT(*) FROM patients").fetchone()[0]:
+    print("Ya existen datos; no se carga la demo.")
+    raise SystemExit
+
+pacientes = [
+    ("María González", "12345678-5", "+56 9 5555 0001", "Fonasa", "Hipertensión (en control)"),
+    ("Pedro Araya", "9876543-2", "+56 9 5555 0002", "Isapre", None),
+    ("Camila Fuentes", "20111222-3", "+56 9 5555 0003", "Fonasa", None),
+]
+for n, r, t, s, a in pacientes:
+    db.execute("INSERT INTO patients (name, rut, phone, insurance, allergies) VALUES (?,?,?,?,?)", (n, r, t, s, a))
+for n, e in (("Kgo. Valentina Rojas", "Kinesiología"), ("Kgo. Andrés Vega", "Kinesiología deportiva")):
+    db.execute("INSERT INTO professionals (name, specialty) VALUES (?,?)", (n, e))
+
+db.execute("""INSERT INTO treatment_plans (patient_id, professional_id, title, reason, kine_diagnosis, total_sessions)
+              VALUES (1, 1, 'Lumbalgia mecánica', 'Dolor lumbar al agacharse y al estar sentada', 'Dolor lumbar de origen mecánico', 10)""")
+today = datetime.now().replace(hour=9, minute=0, second=0, microsecond=0)
+# Tres sesiones ya realizadas (valores ficticios solo para mostrar el gráfico)
+for k, (eva, flex) in enumerate(((7, 20), (6, 26), (4, 31))):
+    when = (today - timedelta(days=(3 - k) * 3)).strftime("%Y-%m-%d %H:%M:%S")
+    cur = db.execute("""INSERT INTO consultations (patient_id, professional_id, plan_id, eva, diagnosis, treatment, occurred_at)
+                        VALUES (1, 1, 1, ?, 'Evolución según plan', 'Ejercicios y movilidad', ?)""", (eva, when))
+    db.execute("INSERT INTO measurements (consultation_id, name, value, unit) VALUES (?, 'Flexión lumbar (dedos-suelo)', ?, 'cm')", (cur.lastrowid, flex))
+for k in range(3):  # sesiones futuras del plan
+    inicio = (today + timedelta(days=2 * (k + 1))).strftime("%Y-%m-%dT%H:%M")
+    db.execute("INSERT INTO appointments (patient_id, professional_id, starts_at, duration_min, room, reason, plan_id) VALUES (1,1,?,45,'Box 1','Lumbalgia mecánica',1)", (inicio,))
+db.execute("INSERT INTO appointments (patient_id, professional_id, starts_at, duration_min, room, reason, plan_id) VALUES (1,1,?,45,'Box 1','Lumbalgia mecánica',1)",
+           (today.strftime("%Y-%m-%dT%H:%M"),))
+db.execute("INSERT INTO appointments (patient_id, professional_id, starts_at, duration_min, room, reason) VALUES (2,2,?,45,'Box 2','Evaluación hombro')",
+           ((today + timedelta(hours=1)).strftime("%Y-%m-%dT%H:%M"),))
+db.execute("INSERT INTO payments (patient_id, concept, amount, method) VALUES (1,'Sesión kinesiología',20000,'card')")
+
+# Plantilla de ejemplo con los primeros ejercicios de la biblioteca (dosis las define el profesional)
+db.execute("INSERT INTO exercise_templates (name, notes) VALUES ('Ejemplo – programa para el hogar', 'Plantilla de demostración: complete la dosificación según el paciente.')")
+for pos, row in enumerate(db.execute("SELECT id FROM library_items WHERE category='ejercicio' ORDER BY title LIMIT 3").fetchall()):
+    db.execute("INSERT INTO exercise_template_items (template_id, library_item_id, position) VALUES (1, ?, ?)", (row["id"], pos))
+db.commit()
+print("Datos de demostración (ficticios) cargados.")
+
+
+==================== KinePro/tests/__init__.py ====================
+
+
+==================== KinePro/tests/conftest.py ====================
+import os
+import tempfile
+
+_TMP = tempfile.mkdtemp(prefix="kinepro-test-")
+os.environ["KINEPRO_DATA_DIR"] = _TMP
+os.environ["KINEPRO_ADMIN_PASSWORD"] = "clave-de-prueba-123"
+
+import pytest  # noqa: E402
+from fastapi.testclient import TestClient  # noqa: E402
+
+from app.db import get_connection  # noqa: E402
+from app.main import app  # noqa: E402
+
+
+@pytest.fixture()
+def client():
+    with TestClient(app) as c:
+        assert c.post("/api/auth/login", json={"username": "admin", "password": "clave-de-prueba-123"}).status_code == 200
+        yield c
+        conn = get_connection()
+        for table in ("audit_log", "exercise_templates", "payments", "consultations", "appointments", "treatment_plans", "professionals", "patients"):
+            conn.execute(f"DELETE FROM {table}")
+        conn.commit()
+        conn.close()
+
+
+@pytest.fixture()
+def base(client):
+    patient = client.post("/api/patients", json={"name": "Ana Soto", "rut": "12.345.678-5"}).json()
+    other = client.post("/api/patients", json={"name": "Luis Pérez"}).json()
+    doctor = client.post("/api/professionals", json={"name": "Dra. Rojas", "specialty": "Medicina general"}).json()
+    return patient, other, doctor
+
+
+==================== KinePro/tests/test_ask.py ====================
+import httpx
+import pytest
+
+from app import main
+
+
+class FakeResponse:
+    def raise_for_status(self): pass
+    def json(self): return {"choices": [{"message": {"content": "Respuesta de prueba [Test de Lachman]"}}]}
+
+
+def test_sin_clave_responde_503(client, monkeypatch):
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    assert client.post("/api/library/ask", json={"question": "¿Qué es Lachman?"}).status_code == 503
+    assert client.get("/api/meta").json()["ask_enabled"] is False
+
+
+def test_con_clave_envia_solo_biblioteca(client, monkeypatch):
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-test")
+    sent = {}
+    def fake_post(url, headers, json, timeout):
+        sent.update(url=url, body=json, auth=headers["Authorization"])
+        return FakeResponse()
+    monkeypatch.setattr(main.httpx, "post", fake_post)
+    client.post("/api/patients", json={"name": "Paciente Secreto Gómez"})
+    r = client.post("/api/library/ask", json={"question": "¿Cómo se hace la prueba de Lachman?"})
+    assert r.status_code == 200 and r.json()["answer"].startswith("Respuesta")
+    assert any("Lachman" in s["title"] for s in r.json()["sources"])
+    assert "Paciente Secreto" not in str(sent["body"])
+    assert sent["url"].startswith("https://api.openai.com/")
+
+
+def test_sin_resultados_no_llama_a_openai(client, monkeypatch):
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-test")
+    monkeypatch.setattr(main.httpx, "post", lambda *a, **k: pytest.fail("no debía llamar"))
+    r = client.post("/api/library/ask", json={"question": "xyzqwerty plmokn"})
+    assert r.status_code == 200 and r.json()["sources"] == []
+
+
+def test_error_upstream_da_502_y_limite(client, monkeypatch):
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-test")
+    def boom(*a, **k): raise httpx.ConnectError("x")
+    monkeypatch.setattr(main.httpx, "post", boom)
+    assert client.post("/api/library/ask", json={"question": "¿Qué es Lachman?"}).status_code == 502
+    monkeypatch.setattr(main, "ASK_LIMIT_PER_HOUR", 1)
+    assert client.post("/api/library/ask", json={"question": "¿Qué es Lachman?"}).status_code == 429
+    main.ask_log.clear()
+
+
+def test_requiere_sesion():
+    from fastapi.testclient import TestClient
+    with TestClient(main.app) as c:
+        assert c.post("/api/library/ask", json={"question": "¿Qué es Lachman?"}).status_code == 401
+
+
+==================== KinePro/tests/test_auth_library.py ====================
+from fastapi.testclient import TestClient
+
+from app.main import app
+
+
+def anon():
+    return TestClient(app)
+
+
+def test_api_exige_sesion(client):
+    with anon() as c:
+        assert c.get("/api/patients").status_code == 401
+        assert c.get("/api/library").status_code == 401
+        assert c.get("/docs").status_code == 401
+        assert c.get("/api/health").status_code == 200
+
+
+def test_login_incorrecto_y_bloqueo(client):
+    with anon() as c:
+        for _ in range(5):
+            assert c.post("/api/auth/login", json={"username": "admin", "password": "mala"}).status_code == 401
+        assert c.post("/api/auth/login", json={"username": "admin", "password": "clave-de-prueba-123"}).status_code == 429
+    from app.auth import throttle
+    throttle.fails.clear()
+
+
+def test_cookie_manipulada_rechazada(client):
+    with anon() as c:
+        c.cookies.set("kinepro_session", client.cookies.get("kinepro_session")[:-3] + "xxx")
+        assert c.get("/api/auth/me").status_code == 401
+
+
+def test_usuarios_y_roles(client):
+    r = client.post("/api/users", json={"username": "kine1", "name": "Kine Uno", "password": "clave-larga-123", "role": "profesional"})
+    assert r.status_code == 201
+    with anon() as c:
+        assert c.post("/api/auth/login", json={"username": "kine1", "password": "clave-larga-123"}).status_code == 200
+        assert c.get("/api/library").status_code == 200
+        assert c.post("/api/library", json={"category": "glosario", "title": "x"}).status_code == 403
+        assert c.get("/api/users").status_code == 403
+    client.delete(f"/api/users/{r.json()['id']}")
+
+
+def test_no_se_puede_dejar_sin_admin(client):
+    me = client.get("/api/auth/me").json()
+    assert client.delete(f"/api/users/{me['id']}").status_code == 409
+    assert client.put(f"/api/users/{me['id']}", json={"username": "admin", "name": "A", "role": "profesional"}).status_code == 409
+
+
+def test_biblioteca_completa_y_busqueda(client):
+    meta = client.get("/api/library/meta").json()
+    assert meta["total"] >= 100
+    assert all(c["count"] > 0 for c in meta["categories"])
+    # búsqueda sin tildes y por sinónimo/tag
+    titulos = [i["title"] for i in client.get("/api/library", params={"q": "ciatica"}).json()]
+    assert any("Hernia discal" in t or "Lasègue" in t for t in titulos)
+    assert client.get("/api/library", params={"category": "ejercicio", "region": "Hombro"}).json()
+    assert client.get("/api/library", params={"q": "zzzz-no-existe"}).json() == []
+
+
+def test_admin_edita_biblioteca(client):
+    r = client.post("/api/library", json={"category": "glosario", "title": "Término de prueba", "content": "x"})
+    assert r.status_code == 201
+    assert client.post("/api/library", json={"category": "glosario", "title": "Término de prueba"}).status_code == 409
+    assert client.post("/api/library", json={"category": "otra", "title": "y"}).status_code == 422
+    assert client.put(f"/api/library/{r.json()['id']}", json={"category": "glosario", "title": "Término de prueba", "content": "nuevo"}).json()["content"] == "nuevo"
+    assert client.delete(f"/api/library/{r.json()['id']}").status_code == 204
+
+
+def test_seed_no_pisa_ediciones(client):
+    from app.db import get_connection
+    from app.library import seed_library
+    item = client.get("/api/library", params={"q": "Lachman"}).json()[0]
+    client.put(f"/api/library/{item['id']}", json={**item, "summary": "EDITADO"})
+    conn = get_connection()
+    assert seed_library(conn) == 0
+    conn.close()
+    assert client.get(f"/api/library/{item['id']}").json()["summary"] == "EDITADO"
+
+
+==================== KinePro/tests/test_kine.py ====================
+import json
+
+from tests.test_kinepro import appt
+
+
+def make_plan(client, patient, doctor, total=3, **extra):
+    r = client.post("/api/plans", json={"patient_id": patient["id"], "professional_id": doctor["id"], "title": "Lumbalgia mecánica",
+                                         "reason": "Dolor lumbar al agacharse", "total_sessions": total, **extra})
+    assert r.status_code == 201, r.text
+    return r.json()
+
+
+def consult(client, patient, doctor, plan=None, **data):
+    form = {"patient_id": patient["id"], "professional_id": doctor["id"], **data}
+    if plan:
+        form["plan_id"] = plan["id"]
+    return client.post("/api/consultations", data=form)
+
+
+def test_plan_progreso_y_estado(client, base):
+    patient, _, doctor = base
+    plan = make_plan(client, patient, doctor, total=2)
+    assert plan["sessions_done"] == 0 and plan["status"] == "active" and plan["patient_name"] == "Ana Soto"
+    consult(client, patient, doctor, plan, diagnosis="s1")
+    mid = client.get(f"/api/plans/{plan['id']}").json()
+    assert mid["sessions_done"] == 1 and mid["status"] == "active"
+    consult(client, patient, doctor, plan, diagnosis="s2")
+    assert client.get(f"/api/plans/{plan['id']}").json()["status"] == "completed"
+    assert [p["id"] for p in client.get("/api/plans", params={"patient_id": patient["id"]}).json()] == [plan["id"]]
+
+
+def test_plan_validaciones(client, base):
+    patient, other, doctor = base
+    bad = client.post("/api/plans", json={"patient_id": 9999, "title": "x", "total_sessions": 5})
+    assert bad.status_code == 422
+    assert client.post("/api/plans", json={"patient_id": patient["id"], "title": "x", "total_sessions": 0}).status_code == 422
+    assert client.post("/api/plans", json={"patient_id": patient["id"], "title": "x", "status": "otro"}).status_code == 422
+    plan = make_plan(client, patient, doctor)
+    # el plan de un paciente no se usa con otro
+    r = consult(client, other, doctor, plan)
+    assert r.status_code == 422
+    assert client.get("/api/plans/9999").status_code == 404
+
+
+def test_serie_de_sesiones_omite_choques_y_respeta_el_tope(client, base):
+    patient, other, doctor = base
+    plan = make_plan(client, patient, doctor, total=4)
+    client.post("/api/appointments", json=appt(other, doctor, "2030-05-12T09:00"))  # ocupa la 2.ª sesión
+    r = client.post(f"/api/plans/{plan['id']}/schedule", json={"professional_id": doctor["id"], "starts_at": "2030-05-10T09:00",
+                                                              "count": 10, "interval_days": 2, "duration_min": 30}).json()
+    assert [c["starts_at"] for c in r["created"]] == ["2030-05-10T09:00", "2030-05-14T09:00", "2030-05-16T09:00"]
+    assert len(r["skipped"]) == 1 and "profesional" in r["skipped"][0]["reason"]
+    assert r["capped"] is True
+    day = client.get("/api/agenda", params={"day": "2030-05-14"}).json()
+    assert day[0]["plan_title"] == "Lumbalgia mecánica" and day[0]["plan_total"] == 4 and day[0]["session_no"] == 2
+    assert client.get(f"/api/plans/{plan['id']}").json()["sessions_scheduled"] == 3
+
+
+def test_serie_en_plan_cerrado(client, base):
+    patient, _, doctor = base
+    plan = make_plan(client, patient, doctor, total=1)
+    consult(client, patient, doctor, plan)
+    r = client.post(f"/api/plans/{plan['id']}/schedule", json={"professional_id": doctor["id"], "starts_at": "2030-05-10T09:00", "count": 1})
+    assert r.status_code == 409
+
+
+def test_cita_con_plan_hereda_en_la_atencion(client, base):
+    patient, _, doctor = base
+    plan = make_plan(client, patient, doctor)
+    a = client.post("/api/appointments", json=appt(patient, doctor, plan_id=plan["id"])).json()
+    c = client.post("/api/consultations", data={"patient_id": patient["id"], "professional_id": doctor["id"], "appointment_id": a["id"], "eva": 6}).json()
+    assert c["plan_id"] == plan["id"] and c["eva"] == 6
+    assert client.get(f"/api/plans/{plan['id']}").json()["sessions_done"] == 1
+
+
+def test_cita_con_plan_ajeno_se_rechaza(client, base):
+    patient, other, doctor = base
+    plan = make_plan(client, patient, doctor)
+    assert client.post("/api/appointments", json=appt(other, doctor, plan_id=plan["id"])).status_code == 422
+
+
+def test_eva_mediciones_y_evolucion(client, base):
+    patient, _, doctor = base
+    plan = make_plan(client, patient, doctor, total=5)
+    for eva, flex in ((7, 80), (5, 95), (3, 110)):
+        r = consult(client, patient, doctor, plan, eva=eva, measurements=json.dumps([{"name": "Flexión de rodilla", "value": flex}]))
+        assert r.status_code == 201, r.text
+    ev = client.get(f"/api/plans/{plan['id']}").json()["evolution"]
+    assert [p["value"] for p in ev["eva"]] == [7, 5, 3]

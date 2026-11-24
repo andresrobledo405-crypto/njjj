@@ -1,0 +1,124 @@
+[PARTE 6 de 9] — responde solo: Recibido 6/9
+
+    <button aria-selected="false" data-t="atencion" aria-controls="atencion" data-ic="steth"><span class="l-s">Atención</span><span class="l-l">Atención</span></button>
+    <button aria-selected="false" data-t="recordatorios" aria-controls="recordatorios" data-ic="bell"><span class="l-s">Avisos</span><span class="l-l">Recordatorios</span></button>
+    <button aria-selected="false" data-t="caja" aria-controls="caja" data-ic="wallet"><span class="l-s">Caja</span><span class="l-l">Caja</span></button>
+    <button aria-selected="false" data-t="documentos" aria-controls="documentos" data-ic="file"><span class="l-s">Docs</span><span class="l-l">Documentos</span></button>
+    <button aria-selected="false" data-t="admin" aria-controls="admin" id="tabAdmin" hidden data-ic="shield"><span class="l-s">Admin</span><span class="l-l">Administración</span></button>
+  </nav>
+  <p class="rail-foot" id="railUser"></p>
+</div>
+
+<div id="detail"><div id="detailBody" role="dialog" aria-modal="true" aria-label="Detalle"></div></div>
+
+<div id="login">
+  <div class="lg">
+    <div class="lg-art" aria-hidden="true">
+      <i class="blob b1"></i><i class="blob b2"></i><i class="blob b3"></i>
+      <span class="mark" data-mark></span>
+      <div><h3>La consulta, en orden.</h3><p>Agenda del día, fichas de pacientes y caja en un solo lugar, pensado para el equipo de la clínica.</p></div>
+      <svg class="rings" viewBox="0 0 560 560" fill="none" stroke="#f4efe6"><circle cx="280" cy="280" r="270" stroke-opacity=".07" stroke-width="2"/><circle cx="280" cy="280" r="210" stroke-opacity=".09" stroke-width="2"/><circle cx="280" cy="280" r="150" stroke-opacity=".12" stroke-width="2"/><path d="M280 190v180M190 280h180" stroke-opacity=".14" stroke-width="44" stroke-linecap="round"/></svg>
+    </div>
+    <form id="fLogin">
+      <div class="lg-head"><span class="mark" data-mark></span><h2 id="lgBrand">Clínica Pro</h2><p>Ingrese con su usuario para ver la agenda del día.</p></div>
+      <div class="lg-card">
+        <label class="fld"><span>Usuario</span><input id="lgUser" aria-label="Usuario" autocomplete="username" autocapitalize="none" spellcheck="false" required></label>
+        <label class="fld"><span>Clave</span><input id="lgPass" type="password" aria-label="Clave" autocomplete="current-password" required></label>
+        <button class="p">Ingresar</button>
+        <p class="note" id="lgErr" role="alert"></p>
+      </div>
+      <p class="lg-foot"><span data-ic="lock"></span>Acceso exclusivo para el equipo de la clínica.</p>
+    </form>
+  </div>
+</div>
+<div id="msg" role="status" aria-live="polite"></div>
+<script>
+const $=id=>document.getElementById(id),esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const ST={scheduled:"Agendada",arrived:"En espera",done:"Realizada",cancelled:"Cancelada",no_show:"No asistió"};
+const clp=n=>new Intl.NumberFormat("es-CL",{style:"currency",currency:"CLP",maximumFractionDigits:0}).format(n);
+// Iconos SVG propios (trazo 1.75, 24px). Cadenas estáticas: nunca contienen datos.
+const IC={calendar:'<rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/>',
+users:'<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.2-5.5 6.5-5.5s5.9 1.9 6.5 5.5M16 4.8a3.3 3.3 0 0 1 0 6.4M18.5 14.8c1.7.8 2.8 2.5 3 5.2"/>',
+steth:'<path d="M6.5 3.5H5v5a4.5 4.5 0 0 0 9 0v-5h-1.5"/><path d="M9.5 13v1.5a5 5 0 0 0 10 0V12"/><circle cx="19.5" cy="10" r="2"/>',
+bell:'<path d="M6 16v-5a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2.2 2.2 0 0 0 4 0"/>',
+wallet:'<rect x="3" y="6.5" width="18" height="13.5" rx="3"/><path d="M3 10.5h18M15.5 15h2.5M6.5 6.5l8.5-3 1.4 3"/>',
+file:'<path d="M14 3H7a2.5 2.5 0 0 0-2.5 2.5v13A2.5 2.5 0 0 0 7 21h10a2.5 2.5 0 0 0 2.5-2.5V8.5z"/><path d="M14 3v5.5h5.5M8.5 13h7M8.5 16.5h5"/>',
+shield:'<path d="M12 3l7.5 3v5.5c0 4.6-3.2 8.2-7.5 9.5-4.3-1.3-7.5-4.9-7.5-9.5V6z"/><path d="M9 12l2 2 4-4"/>',
+plus:'<path d="M12 5v14M5 12h14"/>',x:'<path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/>',
+chevR:'<path d="M9.5 5.5l6.5 6.5-6.5 6.5"/>',chevL:'<path d="M14.5 5.5L8 12l6.5 6.5"/>',chevD:'<path d="M6 9.5l6 6 6-6"/>',
+copy:'<rect x="8.5" y="8.5" width="12" height="12" rx="2.5"/><path d="M15.5 8.5V6A2.5 2.5 0 0 0 13 3.5H6A2.5 2.5 0 0 0 3.5 6v7A2.5 2.5 0 0 0 6 15.5h2.5"/>',
+chat:'<path d="M4 20l1.3-3.9A8 8 0 1 1 8.2 19z"/><path d="M9 10.5h6M9 13.5h4"/>',
+download:'<path d="M12 4v11M7 10.5l5 5 5-5M4.5 20h15"/>',
+logout:'<path d="M14 4h3.5A2.5 2.5 0 0 1 20 6.5v11a2.5 2.5 0 0 1-2.5 2.5H14M10 8l-4 4 4 4M6 12h10"/>',
+search:'<circle cx="11" cy="11" r="6.5"/><path d="M16 16l4 4"/>',
+alert:'<path d="M10.3 4.3L2.9 17.5A2 2 0 0 0 4.6 20.5h14.8a2 2 0 0 0 1.7-3L13.7 4.3a2 2 0 0 0-3.4 0z"/><path d="M12 9.5v4M12 17h.01"/>',
+clip:'<path d="M20 11.5l-7.8 7.8a5 5 0 0 1-7.1-7.1l8.2-8.2a3.4 3.4 0 0 1 4.8 4.8l-8.1 8.1a1.7 1.7 0 0 1-2.4-2.4l7.4-7.4"/>',
+lock:'<rect x="4.5" y="10.5" width="15" height="10" rx="2.5"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/>',
+info:'<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5M12 8h.01"/>',
+check:'<path d="M5 12.5l4.5 4.5L19 7.5"/>'};
+const ic=(n,c="")=>`<svg class="i ${c}" viewBox="0 0 24 24" aria-hidden="true">${IC[n]||""}</svg>`;
+const MARK='<svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="17" fill="#1d5c4d"/><path d="M32 17v30M17 32h30" stroke="#f6efe3" stroke-width="9" stroke-linecap="round"/><path d="M48.5 21.5A19.5 19.5 0 1 1 42.5 15.6" fill="none" stroke="#8fd1bb" stroke-width="3" stroke-linecap="round"/><circle cx="47.6" cy="18.6" r="2.6" fill="#e9a27c"/></svg>';
+document.querySelectorAll("[data-ic]").forEach(el=>el.insertAdjacentHTML("afterbegin",ic(el.dataset.ic)));
+document.querySelectorAll("[data-mark]").forEach(el=>el.innerHTML=MARK);
+// Ayudas de presentación
+const localDay=(o=0)=>new Date(Date.now()+o*864e5).toLocaleDateString("sv");
+const fmtDay=d=>{try{const t=new Date(d+"T12:00").toLocaleDateString("es-CL",{weekday:"long",day:"numeric",month:"long"});return t.charAt(0).toUpperCase()+t.slice(1)}catch{return d}};
+const fmtDT=s=>{const d=new Date(String(s||"").replace(" ","T"));return isNaN(d)?String(s||""):d.toLocaleDateString("es-CL",{day:"numeric",month:"short",year:"numeric"})+" · "+d.toLocaleTimeString("es-CL",{hour:"2-digit",minute:"2-digit",hourCycle:"h23"})};
+const ini=n=>String(n||"?").replace(/^dra?\.?\s+/i,"").split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0]).join("").toUpperCase();
+const av=(n,c="")=>`<span class="av a${[...String(n||"")].reduce((a,ch)=>a+ch.charCodeAt(0),0)%6} ${c}" aria-hidden="true">${esc(ini(n))}</span>`;
+const norm=s=>String(s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"");
+const EART='<svg class="e-bg" viewBox="0 0 120 96" aria-hidden="true"><circle class="e-blob" cx="60" cy="50" r="36"/><circle class="e-orbit" cx="60" cy="50" r="45" stroke-dasharray="2 7"/><circle class="e-sp" cx="17" cy="24" r="2.6"/><path class="e-sp s2" d="M104 12v9M99.5 16.5h9"/><circle class="e-sp s3" cx="106" cy="80" r="3"/></svg>';
+const empty=(i,t,h)=>`<div class="empty"><span class="e-art" aria-hidden="true">${EART}<span class="e-ic">${ic(i)}</span></span><b>${t}</b><p>${h}</p></div>`;
+const plural=(n,a,b)=>`${n} ${n===1?a:b}`;
+async function api(u,o){const r=await fetch(u,o);if(r.status===401&&!u.includes("/auth/login")){showLogin();throw new Error("Sesión expirada")}if(!r.ok){let d="Error";try{d=(await r.json()).detail}catch{};throw new Error(typeof d==="string"?d:"Datos inválidos")}return r.status===204?null:r.json()}
+let msgT;function say(t){const m=$("msg");m.innerHTML=(/^(Guardado|Mensaje copiado)/.test(t)?'<svg class="ck" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>':"")+`<span>${esc(t)}</span>`;m.classList.add("on");clearTimeout(msgT);msgT=setTimeout(()=>m.classList.remove("on"),2400)}
+const post=(u,b)=>api(u,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(b)});
+let pats=[],pros=[];
+const opts=(l,f)=>l.map(x=>`<option value="${+x.id}">${esc(f(x))}</option>`).join("");
+async function stats(){const d=await api("/api/dashboard"),t=+d.today_appointments||0,done=+d.today_done||0,pend=+d.today_pending||0,oth=Math.max(0,t-done-pend);
+$("stats").innerHTML=`<div class="stat-main"><div class="sm-top"><span class="lbl">Hoy</span><span>${esc(fmtDay(localDay()))}</span></div><div class="sm-num"><strong data-n="${t}" data-k="t">${t}</strong><span>${t===1?"cita agendada":"citas agendadas"}</span></div><div class="seg" role="img" aria-label="${done} realizadas y ${pend} pendientes de ${t}">${t?`<i class="s-ok" style="flex:${done}"></i><i class="s-pend" style="flex:${pend}"></i><i class="s-oth" style="flex:${oth}"></i>`:""}</div><div class="legend"><span><i class="dot"></i>${plural(done,"realizada","realizadas")}</span><span><i class="dot pend"></i>${plural(pend,"pendiente","pendientes")}</span></div></div>
+<div class="stat"><span class="lbl">Pacientes</span><div><strong data-n="${+d.patients||0}" data-k="pat">${+d.patients||0}</strong><small>${plural(+d.professionals||0,"profesional","profesionales")} en el equipo</small></div></div><div class="stat"><span class="lbl">Ingresos del mes</span><div><strong data-n="${+d.month_revenue||0}" data-k="rev" data-f="clp">${clp(+d.month_revenue||0)}</strong><small>${esc(new Date().toLocaleDateString("es-CL",{month:"long",year:"numeric"}))}</small></div></div>`}
+const NEXT={scheduled:["arrived","Marcar llegada"],arrived:["done","Finalizar atención"]};
+function apptHTML(a){const s=esc(a.status),nx=NEXT[a.status];return`<article class="tl-i s-${s}" data-a="${+a.id}"><div class="tl-t"><b>${esc(a.starts_at.slice(11,16))}</b><span>${a.duration_min?(+a.duration_min)+" min":""}</span></div><div class="tl-c card">${a.status==="arrived"?'<i class="tl-pulse" aria-hidden="true"></i>':""}<div class="tl-h">${av(a.patient_name)}<div class="tl-n"><b>${esc(a.patient_name)}</b><span class="mute">${esc(a.professional_name)} · ${esc(a.specialty)}</span></div></div><div class="meta"><span class="st st-${s}">${ST[a.status]||s}</span>${a.room?`<span class="pill">${esc(a.room)}</span>`:""}${a.reason?`<span class="pill">${esc(a.reason)}</span>`:""}</div>${a.allergies?`<div class="alert">${ic("alert")}<span>Alergias: <b>${esc(a.allergies)}</b></span></div>`:""}<div class="acts">${nx?`<button class="btn tonal sm" data-s="${nx[0]}" data-id="${+a.id}">${ic(nx[0]==="done"?"check":"chevR")}${nx[1]}</button>`:""}<details class="more"><summary>Cambiar estado${ic("chevD")}</summary><div class="menu">${Object.entries(ST).filter(([k])=>k!==a.status&&!(nx&&k===nx[0])).map(([k,v])=>`<button class="btn ghost sm" data-s="${k}" data-id="${+a.id}">${v}</button>`).join("")}</div></details></div></div></article>`}
+async function agenda(){const day=$("day").value,l=await api("/api/agenda?day="+day);
+$("dayLbl").textContent=fmtDay(day)+" · "+plural(l.length,"cita","citas");
+let h="",now=day===localDay()&&l.length?new Date().toTimeString().slice(0,5):null;const line=`<div class="now" aria-hidden="true"><span>${now}</span><i></i></div>`;
+l.forEach(a=>{if(now&&a.starts_at.slice(11,16)>now){h+=line;now=null}h+=apptHTML(a)});if(now)h+=line;
+$("agendaList").innerHTML=l.length?`<div class="tl">${h}</div>`:`<div class="card">${empty("calendar","Día libre","No hay citas para esta fecha. Agende una desde “Nueva cita”.")}</div>`}
+function renderPats(){const q=norm($("pq").value),l=pats.filter(p=>!q||norm(`${p.name} ${p.rut||""} ${p.phone||""}`).includes(q));
+$("patCount").textContent=plural(pats.length,"paciente registrado","pacientes registrados");
+$("patList").innerHTML=l.length?`<div class="list">${l.map(p=>`<div class="card row-i" data-id="${+p.id}" role="button" tabindex="0" aria-label="Abrir ficha de ${esc(p.name)}">${av(p.name)}<div class="ri-b"><b>${esc(p.name)}</b><span class="mute"><span class="nw">${esc(p.rut||"Sin RUT")}</span> · <span class="nw">${esc(p.phone||"Sin teléfono")}</span></span>${p.allergies?`<span class="alert-inline">${ic("alert")}${esc(p.allergies)}</span>`:""}</div>${p.insurance?`<span class="pill">${esc(p.insurance)}</span>`:""}${ic("chevR","chev")}</div>`).join("")}</div>`
+:`<div class="card">${pats.length?empty("search","Sin resultados","Pruebe con otro nombre, RUT o teléfono."):empty("users","Aún no hay pacientes","Registre el primero con “Registrar paciente”.")}</div>`}
+async function lists(){[pats,pros]=await Promise.all([api("/api/patients"),api("/api/professionals")]);const po=opts(pats,p=>p.name+(p.rut?" · "+p.rut:"")),pr=opts(pros,p=>p.name+" · "+p.specialty);["aPatient","cPatient","yPatient"].forEach(i=>$(i).innerHTML=po);["aPro","cPro"].forEach(i=>$(i).innerHTML=pr);renderPats()}
+async function cons(){const l=await api("/api/consultations");$("consList").innerHTML=l.map(c=>`<article class="card cons">${av(c.patient_name)}<div class="cb"><div class="ch"><b>${esc(c.patient_name)}</b><time class="mute">${esc(fmtDT(c.occurred_at))}</time></div>${c.diagnosis?`<p class="dx">${esc(c.diagnosis)}</p>`:""}${c.treatment?`<p class="mute">${esc(c.treatment)}</p>`:""}<p class="by">${esc(c.professional_name)}</p>${c.attachment_path?`<a class="btn ghost sm" href="/api/consultations/${+c.id}/attachment" target="_blank" rel="noopener">${ic("clip")}Ver adjunto</a>`:""}</div></article>`).join("")||`<div class="card">${empty("steth","Sin atenciones registradas","Las atenciones que guarde aparecerán aquí, de la más reciente a la más antigua.")}</div>`}
+const M={cash:"Efectivo",card:"Tarjeta",transfer:"Transferencia",insurance:"Seguro / Isapre"};
+async function pays(){const l=await api("/api/payments");$("payList").innerHTML=l.length?`<div class="list">${l.slice(0,30).map(y=>{const p=pats.find(x=>x.id===y.patient_id);return`<div class="card row-i"><span class="mi m-${esc(y.method)}">${ic("wallet")}</span><div class="ri-b"><b>${esc(y.concept)}</b><span class="mute">${esc(p?p.name:"")} · ${esc(M[y.method]||y.method)} · ${esc(fmtDT(y.paid_at))}</span></div><b class="amt">${clp(y.amount)}</b></div>`}).join("")}</div>`:`<div class="card">${empty("wallet","Sin pagos registrados","Registre el primer pago con el formulario de arriba.")}</div>`}
+const refresh=()=>Promise.all([stats(),agenda(),lists().then(pays),cons(),rem(),report()]).catch(e=>say(e.message));
+const form=(id,fn)=>$(id).addEventListener("submit",async e=>{e.preventDefault();const b=e.target.querySelector("button.p");if(b)b.disabled=true;try{await fn();e.target.reset?.();e.target.closest("details")?.removeAttribute("open");$("day").value=$("day").value||localDay();say("Guardado");await refresh()}catch(x){say(x.message)}finally{if(b)b.disabled=false}});
+form("fAppt",async()=>{const s=$("aStart").value;await post("/api/appointments",{patient_id:+$("aPatient").value,professional_id:+$("aPro").value,starts_at:s,room:$("aRoom").value||null,reason:$("aReason").value||null});$("day").value=s.slice(0,10)});
+form("fPat",()=>post("/api/patients",{name:$("pName").value,rut:$("pRut").value||null,phone:$("pPhone").value||null,allergies:$("pAll").value||null}));
+form("fPay",()=>post("/api/payments",{patient_id:+$("yPatient").value,concept:$("yConcept").value,amount:+$("yAmount").value,method:$("yMethod").value}));
+form("fCons",()=>{const f=new FormData();f.append("patient_id",$("cPatient").value);f.append("professional_id",$("cPro").value);f.append("diagnosis",$("cDiag").value);f.append("treatment",$("cTreat").value);if($("cFile").files[0])f.append("attachment",$("cFile").files[0]);return api("/api/consultations",{method:"POST",body:f})});
+$("day").addEventListener("change",agenda);
+const shiftDay=n=>{const d=new Date(($("day").value||localDay())+"T12:00");d.setDate(d.getDate()+n);$("day").value=d.toLocaleDateString("sv");agenda().catch(x=>say(x.message))};
+$("dPrev").addEventListener("click",()=>shiftDay(-1));$("dNext").addEventListener("click",()=>shiftDay(1));
+$("dToday").addEventListener("click",()=>{$("day").value=localDay();agenda().catch(x=>say(x.message))});
+$("pq").addEventListener("input",renderPats);
+$("agendaList").addEventListener("click",async e=>{const b=e.target.closest("button[data-s]");if(!b)return;try{const f=new FormData();f.append("status",b.dataset.s);await api(`/api/appointments/${b.dataset.id}/status`,{method:"POST",body:f});refresh()}catch(x){say(x.message)}});
+document.querySelector("nav").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;document.querySelectorAll("nav button").forEach(x=>x.setAttribute("aria-selected",x===b));document.querySelectorAll("main section").forEach(s=>s.hidden=s.id!==b.dataset.t);window.scrollTo(0,0)});
+let me=null,dcat="";
+function showLogin(){$("login").style.display="grid"}
+async function start(){try{me=await api("/api/auth/me");$("login").style.display="none";$("tabAdmin").hidden=me.role!=="admin";$("hello").textContent=me.name;{const rl=me.role==="admin"?"Administrador":"Profesional";$("railUser").textContent=me.name+(rl!==me.name?" · "+rl:"")}$("day").value=localDay();await refresh();docMeta();docSearch();rem();report()}catch{showLogin()}}
+$("fLogin").addEventListener("submit",async e=>{e.preventDefault();$("lgErr").textContent="";try{await post("/api/auth/login",{username:$("lgUser").value,password:$("lgPass").value});$("lgPass").value="";start()}catch(x){$("lgErr").textContent=x.message}});
+$("btnOut").addEventListener("click",async()=>{await api("/api/auth/logout",{method:"POST"});location.reload()});
+async function users(){const l=await api("/api/users");$("userList").innerHTML=`<div class="list">${l.map(u=>`<div class="card row-i">${av(u.name)}<div class="ri-b"><b>${esc(u.name)}</b><span class="mute">@${esc(u.username)}</span></div><span class="st ${u.role==="admin"?"st-scheduled":""}">${u.role==="admin"?"Administrador":"Profesional"}${u.active?"":" · inactivo"}</span></div>`).join("")}</div>`}
+document.querySelector("nav").addEventListener("click",e=>{if(e.target.closest("button")?.dataset.t==="admin")users().catch(x=>say(x.message))});
+form("fUser",async()=>{await post("/api/users",{username:$("uUser").value,name:$("uName").value,password:$("uPass").value,role:$("uRole").value});users()});
+form("fPass",async()=>{await post("/api/auth/password",{current:$("pwOld").value,new:$("pwNew").value})});
+const DC={protocolo:"Protocolo",consentimiento:"Consentimiento",tarifas:"Tarifas",otro:"Otro"};
+$("dCat").innerHTML=Object.entries(DC).map(([k,v])=>`<option value="${k}">${v}</option>`).join("");
+function docMeta(){$("dcats").innerHTML=`<button class="chip" aria-pressed="${dcat===""}" data-c="">Todos</button>`+Object.entries(DC).map(([k,v])=>`<button class="chip" aria-pressed="${dcat===k}" data-c="${k}">${v}</button>`).join("")}
+async function docSearch(){const l=await api("/api/documents?"+new URLSearchParams({q:$("dq").value,category:dcat}));$("docCount").textContent=plural(l.length,"documento","documentos");$("docList").innerHTML=l.length?`<div class="list">${l.map(d=>`<div class="card row-i" data-id="${+d.id}" role="button" tabindex="0" aria-label="Abrir ${esc(d.title)}"><span class="doc-ic">${ic("file")}</span><div class="ri-b"><b>${esc(d.title)}</b><span class="mute">${esc(DC[d.category]||d.category)}</span></div>${ic("chevR","chev")}</div>`).join("")}</div>`:`<div class="card">${empty("file",$("dq").value||dcat?"Sin resultados":"Aún no hay documentos",$("dq").value||dcat?"Pruebe con otra búsqueda o categoría.":"Protocolos, consentimientos y tarifas de la clínica."+(me&&me.role==="admin"?" Créelos desde Admin.":""))}</div>`}
+let dt;$("dq").addEventListener("input",()=>{clearTimeout(dt);dt=setTimeout(docSearch,200)});
+$("dcats").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;dcat=b.dataset.c;docMeta();docSearch()});
+const sheetTop=`<div class="grab" aria-hidden="true"></div><div class="sh-top"><button class="icon-btn" id="dClose" aria-label="Cerrar">${ic("x")}</button></div>`;

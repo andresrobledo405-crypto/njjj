@@ -1,0 +1,476 @@
+Eres un ingeniero de software senior y revisor de seguridad. Voy a pasarte el código fuente completo de KinePro (app para kinesiólogos: agenda, fichas, planes de sesiones, EVA, ejercicios para el hogar, caja, biblioteca y asistente IA opcional) en 11 mensajes numerados, porque no cabe en uno solo.
+Pila: Python 3.11+, FastAPI, SQLite (sqlite3 sin ORM), front HTML/CSS/JS sin framework, PWA, pytest. Interfaz en español de Chile.
+REGLAS MIENTRAS RECIBES: responde ÚNICAMENTE "Recibido i/11" a cada parte. No analices ni comentes hasta que yo diga "FIN".
+REGLAS DESPUÉS: no inventes funciones que no estén en el código; si algo no está claro, pregunta; devuelve siempre archivos completos con su ruta; cita archivo y línea de lo que cambies; mantén las pruebas verdes y agrega pruebas a lo nuevo; ningún dato de pacientes sale a servicios externos; no pongas secretos en el código.
+Cada archivo empieza con una línea ==================== ruta ====================.
+
+[PARTE 1 de 11] — responde solo: Recibido 1/11
+
+# KinePro — código fuente completo (sin la biblioteca de contenido)
+
+
+==================== KinePro/.env.example ====================
+# Copie este archivo como .env y ajuste los valores.
+KINEPRO_NOMBRE=KinePro
+KINEPRO_HOST=127.0.0.1
+KINEPRO_PORT=8000
+# KINEPRO_DATA_DIR=C:\KinePro\data
+# Asistente "Preguntar con IA" (opcional). Sin clave, el botón no aparece.
+# OPENAI_API_KEY=
+# OPENAI_MODEL=gpt-4o-mini
+# KINEPRO_ASK_LIMIT=20
+
+
+==================== KinePro/.gitignore ====================
+.venv/
+__pycache__/
+.env
+data/*.db
+data/uploads/*
+!data/uploads/.gitkeep
+backups/
+.pytest_cache/
+data/.secret
+data/admin_inicial.txt
+
+
+==================== KinePro/DEPLOY.md ====================
+# Publicar KinePro en Render
+
+Servicio existente: `kinepro` (`srv-dc2oghjm8hqs73853iqg`, workspace `tea-cufbdbogph6c7382o0vg`), repo `andresrobledo405-crypto/njjj`, rama `claude/modest-volta-kgrtr2`.
+
+## Configuración (ya aplicada)
+La configuración vive en `render.yaml` (raíz del repo) y el servicio está adoptado por el Blueprint `exs-dc2vamm1egvs73futm6g` con auto-sync: Root Directory `KinePro`, Build `pip install -r requirements.txt`, Start `uvicorn app.main:app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips='*'`, Health Check `/api/health`, rama `claude/modest-volta-kgrtr2`. Para cambiar algo, edite `render.yaml` y haga push.
+
+## Variables de entorno
+| Variable | Para qué |
+|---|---|
+| `KINEPRO_ADMIN_PASSWORD` | Clave del usuario `admin` (se crea al arrancar con la base vacía). **Cámbiela desde Admin → Mi clave.** |
+| `KINEPRO_SECRET` | Firma de las cookies de sesión (aleatoria, larga). El Blueprint la genera solo si no existe; hoy ya está definida. |
+| `KINEPRO_COOKIE_SECURE=1` | Cookie solo por HTTPS. |
+| `TZ=America/Santiago` | Hora local para “hoy” y la fecha de cada atención (Render usa UTC). |
+| `OPENAI_API_KEY` (opcional) | Activa “Preguntar con IA”; solo se envían la pregunta y entradas de la biblioteca, nunca datos de pacientes. |
+| `KINEPRO_DATA_DIR` | Carpeta de datos (con disco persistente: la ruta del disco, p. ej. `/var/data`). |
+
+Nunca se commitean claves: están solo en Render.
+
+## ⚠ Persistencia de datos (importante)
+El plan **gratuito** de Render tiene disco efímero: **la base SQLite y los adjuntos se pierden en cada reinicio/redeploy** (y el servicio se duerme tras 15 min sin uso). Sirve para demostración, **no para datos reales de pacientes**. Opciones (requieren aprobación del usuario porque tienen costo):
+1. **Disco persistente** (plan de pago, p. ej. Starter + Disk): montar en `/var/data` y poner `KINEPRO_DATA_DIR=/var/data`. Es lo más simple.
+2. **PostgreSQL administrado**: requiere migrar `app/db.py` (hoy SQLite) — trabajo adicional.
+Mientras tanto: Admin → **Respaldo** descarga un .zip (base + adjuntos); hágalo con frecuencia. Además: respaldos periódicos y, para datos reales, cumplir Ley 19.628 / 20.584 (ver README).
+
+## Verificación después de desplegar
+`curl https://kinepro.onrender.com/api/health` → `{"status":"ok"}`; abrir la URL, ingresar como `admin`.
+
+
+==================== KinePro/GUIA_VENTA.md ====================
+# Guía de venta — KinePro
+
+**Cliente ideal:** consultas médicas, centros dentales, kinesiología y policlínicos pequeños que hoy usan papel o Excel.
+
+**Dolor que resuelve:** dobles reservas, fichas perdidas, alergias no vistas, cierre de caja manual.
+
+## Demostración (10 min)
+1. Ejecutar `demo_kinepro.bat`.
+2. Mostrar la agenda del día y el aviso de alergias en la cita.
+3. Intentar agendar un choque de horario → el sistema lo rechaza.
+4. Registrar una atención con foto de un examen desde el celular.
+5. Registrar un pago y mostrar ingresos del mes; descargar Excel.
+
+## Propuesta
+- **Piloto local:** instalación en 1 computador + celulares por Wi-Fi, capacitación de 1 hora.
+- **Mensual:** soporte, respaldos y actualizaciones. *(Definir precios según el cliente; no se fijan aquí.)*
+- **Fase 2 (servicio en Internet):** usuarios y roles, HTTPS, auditoría, respaldos cifrados, recordatorios por WhatsApp/correo.
+
+## Objeciones frecuentes
+- *¿Y la privacidad?* Datos en el computador de la clínica; en fase 2 cifrado y auditoría.
+- *¿Se puede migrar mi Excel?* Sí, vía API/CSV en el onboarding.
+
+
+==================== KinePro/README.md ====================
+# KinePro — Gestión y biblioteca para kinesiólogos
+
+App web móvil (español, Chile) para consultas de kinesiología: pacientes, agenda por **plan de tratamiento** (ej. “10 sesiones”), atenciones con **EVA y rangos medidos por sesión** con gráfico de evolución, **hojas de ejercicios para el hogar** imprimibles/PDF armadas desde la biblioteca, caja, login con roles (admin/profesional) y una **biblioteca de kinesiología de 115 entradas** con asistente opcional “Preguntar con IA”.
+
+> ⚠ **Aviso:** el contenido clínico de la biblioteca fue redactado con apoyo de IA y **no está validado por un kinesiólogo**. El aviso es visible en la app y en las hojas para el profesional. `revision_gpt/` contiene el paquete para revisarlo; las correcciones se incorporan editando `app/library_data.txt` (no se inventan citas ni cifras).
+
+## Novedades kinesiológicas
+- **Planes**: pestaña Pacientes → ficha → *Nuevo plan* (motivo de consulta, diagnóstico kinésico, N sesiones). Progreso “4 de 10”; *Agendar sesiones* crea la serie (cada N días) omitiendo choques; el plan se cierra solo al completar las sesiones.
+- **Atención**: desde la agenda (*Registrar atención*) o la pestaña Atención: plan, EVA 0–10 (toque), mediciones (movimiento, valor, ° o cm), enlaces a entradas de la biblioteca, adjunto.
+- **Evolución**: ficha → plan → *Evolución*: gráficos de EVA y de cada medición por sesión.
+- **Ejercicios para el hogar**: Biblioteca → *Ejercicios para el hogar*: plantillas con ejercicios de la biblioteca y dosis que define el profesional; *Imprimir / PDF* (con nombre del paciente) abre una hoja lista para imprimir o “Guardar como PDF”.
+
+## Abrir sin complicaciones
+
+### Primera instalación
+1. Instalar Python 3.11 o superior desde <https://www.python.org/downloads/>.
+2. Descomprimir esta carpeta en el computador de recepción.
+3. Ejecutar `install_kinepro.ps1` con PowerShell.
+4. Ejecutar `run_kinepro.bat`. Se abre `http://127.0.0.1:8000`.
+
+Siguientes veces: doble clic en `run_kinepro.bat`.
+Demostración con datos de ejemplo: `demo_kinepro.bat` (no borra datos existentes).
+Copia de la base y adjuntos: `backup_kinepro.bat`.
+
+## Uso en celulares
+Computador y celulares en la misma red Wi-Fi. Buscar la IP con `ipconfig` y abrir `http://IP-DEL-COMPUTADOR:8000`; en el navegador elegir **Agregar a pantalla de inicio**.
+
+## Flujo
+1. **Pacientes**: registrar nombre, RUT (se normaliza y no se repite), teléfono, alergias.
+2. **Agenda**: agendar cita; el sistema rechaza choques de horario del profesional, del paciente o de la sala. Cambiar estado: En espera, Realizada, Cancelada, No asistió (una cita cancelada libera el horario).
+3. **Atención**: registrar diagnóstico, tratamiento y adjuntar examen (JPG/PNG/WEBP/PDF, máx. 8 MB). La cita asociada pasa a *Realizada*.
+4. **Caja**: registrar pagos (efectivo, tarjeta, transferencia, seguro). El panel muestra ingresos del mes.
+5. Descargar citas y pagos en CSV (separador `;`, UTF-8 con BOM, abre directo en Excel).
+
+## API
+Documentación interactiva en `/docs`: `/api/patients`, `/api/professionals`, `/api/appointments`, `/api/agenda`, `/api/consultations`, `/api/payments`, `/api/dashboard`, `/api/plans`, `/api/templates`, `/api/library`.
+
+## Datos y respaldos
+- Base: `data/kinepro.db` · Adjuntos: `data/uploads`.
+- Para respaldar: `backup_kinepro.bat` o copiar la carpeta `data`. No publicar el puerto en Internet.
+
+## Entrega comercial
+Versión lista para demostración y piloto local. Ya incluye login con roles. Antes de operar con datos clínicos reales en Internet hay que agregar: HTTPS (lo da Render), auditoría de accesos a fichas, copias automáticas cifradas, política de retención y cumplimiento de la Ley 19.628/20.584 (datos sensibles de salud) y una base PostgreSQL administrada. Ver `GUIA_VENTA.md`.
+
+## Validación técnica
+```powershell
+py -3 -m pytest -q
+```
+Pruebas (44): RUT, choques de agenda, planes y series de sesiones, EVA/mediciones/evolución, plantillas e impresión, enlaces a biblioteca, autenticación, adjuntos, pagos, dashboard, exportación y protección de borrado con historial.
+
+## Interfaz
+Diseño propio (sin CDN): tipografías Fraunces y Figtree autoalojadas en `app/static/fonts/` (licencia OFL incluida), iconos SVG dibujados, modo claro/oscuro, barra inferior en móvil y menú lateral con ficha en panel lateral en escritorio. Agenda en línea de tiempo con selector de semana; los puntos bajo cada plan son las sesiones (llenos = realizadas, anillo = agendadas).
+
+**Recordatorio por WhatsApp:** el botón *Recordar* abre `wa.me` en el dispositivo del profesional con un mensaje prellenado (nombre de pila, día y hora). Solo ocurre al tocarlo; el servidor de KinePro no envía datos a terceros.
+
+
+==================== KinePro/app/__init__.py ====================
+
+
+==================== KinePro/app/auth.py ====================
+"""Autenticación: contraseñas con scrypt y sesión en cookie firmada (HMAC-SHA256)."""
+import base64
+import hashlib
+import hmac
+import json
+import os
+import secrets
+import time
+
+from .config import DATA_DIR
+
+SESSION_COOKIE = "kinepro_session"
+SESSION_SECONDS = 12 * 3600
+
+
+def hash_password(password: str, salt: bytes | None = None) -> str:
+    salt = salt or secrets.token_bytes(16)
+    digest = hashlib.scrypt(password.encode(), salt=salt, n=2**14, r=8, p=1, dklen=32)
+    return f"scrypt${salt.hex()}${digest.hex()}"
+
+
+def verify_password(password: str, stored: str) -> bool:
+    try:
+        _, salt_hex, digest_hex = stored.split("$")
+        expected = hash_password(password, bytes.fromhex(salt_hex)).split("$")[2]
+    except ValueError:
+        return False
+    return hmac.compare_digest(expected, digest_hex)
+
+
+def _secret() -> bytes:
+    env = os.getenv("KINEPRO_SECRET")
+    if env:
+        return env.encode()
+    path = DATA_DIR / ".secret"
+    if not path.exists():
+        path.write_text(secrets.token_hex(32))
+        try:
+            path.chmod(0o600)
+        except OSError:
+            pass
+    return path.read_text().strip().encode()
+
+
+def _b64(data: bytes) -> str:
+    return base64.urlsafe_b64encode(data).decode().rstrip("=")
+
+
+def make_token(user: dict) -> str:
+    payload = _b64(json.dumps({"id": user["id"], "u": user["username"], "r": user["role"], "exp": int(time.time()) + SESSION_SECONDS}).encode())
+    return f"{payload}.{_b64(hmac.new(_secret(), payload.encode(), hashlib.sha256).digest())}"
+
+
+def read_token(token: str | None) -> dict | None:
+    if not token or "." not in token:
+        return None
+    payload, signature = token.rsplit(".", 1)
+    expected = _b64(hmac.new(_secret(), payload.encode(), hashlib.sha256).digest())
+    if not hmac.compare_digest(signature, expected):
+        return None
+    try:
+        data = json.loads(base64.urlsafe_b64decode(payload + "=" * (-len(payload) % 4)))
+    except ValueError:
+        return None
+    return data if data.get("exp", 0) > time.time() else None
+
+
+class LoginThrottle:
+    """Bloquea 5 minutos tras 5 intentos fallidos por usuario+IP."""
+
+    def __init__(self, limit: int = 5, window: int = 300):
+        self.limit, self.window, self.fails = limit, window, {}
+
+    def _recent(self, key):
+        now = time.time()
+        self.fails[key] = [t for t in self.fails.get(key, []) if now - t < self.window]
+        return self.fails[key]
+
+    def blocked(self, key) -> bool:
+        return len(self._recent(key)) >= self.limit
+
+    def fail(self, key) -> None:
+        self._recent(key).append(time.time())
+
+    def reset(self, key) -> None:
+        self.fails.pop(key, None)
+
+
+throttle = LoginThrottle()
+
+
+==================== KinePro/app/config.py ====================
+import os
+from pathlib import Path
+
+from dotenv import load_dotenv
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(BASE_DIR / ".env")
+
+APP_NAME = os.getenv("KINEPRO_NOMBRE", "KinePro")
+DATA_DIR = Path(os.getenv("KINEPRO_DATA_DIR", BASE_DIR / "data"))
+UPLOAD_DIR = DATA_DIR / "uploads"
+DATABASE_PATH = DATA_DIR / "kinepro.db"
+MAX_UPLOAD_BYTES = 8 * 1024 * 1024
+
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+
+
+==================== KinePro/app/db.py ====================
+import sqlite3
+from collections.abc import Generator
+
+from .config import DATABASE_PATH
+
+SCHEMA = """
+CREATE TABLE IF NOT EXISTS patients (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    rut TEXT UNIQUE,
+    birth_date TEXT,
+    phone TEXT,
+    email TEXT,
+    insurance TEXT,
+    allergies TEXT,
+    occupation TEXT,
+    history TEXT,
+    active INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS professionals (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    specialty TEXT NOT NULL,
+    phone TEXT,
+    email TEXT,
+    active INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS appointments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    patient_id INTEGER NOT NULL,
+    professional_id INTEGER NOT NULL,
+    starts_at TEXT NOT NULL,
+    duration_min INTEGER NOT NULL DEFAULT 30,
+    room TEXT,
+    reason TEXT,
+    plan_id INTEGER REFERENCES treatment_plans(id),
+    status TEXT NOT NULL DEFAULT 'scheduled'
+        CHECK (status IN ('scheduled', 'arrived', 'done', 'cancelled', 'no_show')),
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (patient_id) REFERENCES patients(id),
+    FOREIGN KEY (professional_id) REFERENCES professionals(id)
+);
+CREATE TABLE IF NOT EXISTS consultations (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    patient_id INTEGER NOT NULL,
+    professional_id INTEGER NOT NULL,
+    appointment_id INTEGER,
+    diagnosis TEXT,
+    treatment TEXT,
+    notes TEXT,
+    attachment_path TEXT,
+    plan_id INTEGER REFERENCES treatment_plans(id),
+    eva INTEGER CHECK (eva IS NULL OR (eva >= 0 AND eva <= 10)),
+    occurred_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (patient_id) REFERENCES patients(id),
+    FOREIGN KEY (professional_id) REFERENCES professionals(id),
+    FOREIGN KEY (appointment_id) REFERENCES appointments(id)
+);
+CREATE TABLE IF NOT EXISTS payments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    patient_id INTEGER NOT NULL,
+    appointment_id INTEGER,
+    concept TEXT NOT NULL,
+    amount INTEGER NOT NULL CHECK (amount >= 0),
+    method TEXT NOT NULL DEFAULT 'cash'
+        CHECK (method IN ('cash', 'card', 'transfer', 'insurance')),
+    paid_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (patient_id) REFERENCES patients(id),
+    FOREIGN KEY (appointment_id) REFERENCES appointments(id)
+);
+CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT NOT NULL UNIQUE,
+    name TEXT NOT NULL,
+    password_hash TEXT NOT NULL,
+    role TEXT NOT NULL DEFAULT 'profesional' CHECK (role IN ('admin', 'profesional')),
+    active INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS audit_log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    at TEXT NOT NULL,
+    user_id INTEGER,
+    username TEXT,
+    method TEXT NOT NULL,
+    path TEXT NOT NULL,
+    status INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_audit_at ON audit_log(at);
+CREATE TABLE IF NOT EXISTS library_items (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    category TEXT NOT NULL,
+    region TEXT,
+    title TEXT NOT NULL,
+    summary TEXT,
+    content TEXT,
+    precautions TEXT,
+    tags TEXT,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (category, title)
+);
+CREATE TABLE IF NOT EXISTS treatment_plans (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    patient_id INTEGER NOT NULL REFERENCES patients(id),
+    professional_id INTEGER REFERENCES professionals(id),
+    title TEXT NOT NULL,
+    reason TEXT,
+    kine_diagnosis TEXT,
+    total_sessions INTEGER NOT NULL CHECK (total_sessions >= 1 AND total_sessions <= 100),
+    status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'completed', 'cancelled')),
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS measurements (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    consultation_id INTEGER NOT NULL REFERENCES consultations(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    value REAL NOT NULL,
+    unit TEXT NOT NULL DEFAULT '°'
+);
+CREATE TABLE IF NOT EXISTS consultation_library (
+    consultation_id INTEGER NOT NULL REFERENCES consultations(id) ON DELETE CASCADE,
+    library_item_id INTEGER NOT NULL REFERENCES library_items(id) ON DELETE RESTRICT,
+    PRIMARY KEY (consultation_id, library_item_id)
+);
+CREATE TABLE IF NOT EXISTS exercise_templates (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    notes TEXT,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS exercise_template_items (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    template_id INTEGER NOT NULL REFERENCES exercise_templates(id) ON DELETE CASCADE,
+    library_item_id INTEGER NOT NULL REFERENCES library_items(id) ON DELETE RESTRICT,
+    dosage TEXT,
+    notes TEXT,
+    position INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS idx_appointments_plan ON appointments(plan_id);
+CREATE INDEX IF NOT EXISTS idx_consultations_plan ON consultations(plan_id);
+CREATE INDEX IF NOT EXISTS idx_measurements_consultation ON measurements(consultation_id);
+CREATE INDEX IF NOT EXISTS idx_conslib_item ON consultation_library(library_item_id);
+CREATE INDEX IF NOT EXISTS idx_tplitems_template ON exercise_template_items(template_id);
+CREATE INDEX IF NOT EXISTS idx_appointments_starts_at ON appointments(starts_at);
+CREATE INDEX IF NOT EXISTS idx_consultations_patient ON consultations(patient_id);
+"""
+
+
+def get_connection() -> sqlite3.Connection:
+    connection = sqlite3.connect(str(DATABASE_PATH), check_same_thread=False)
+    connection.row_factory = sqlite3.Row
+    connection.execute("PRAGMA foreign_keys = ON")
+    return connection
+
+
+MIGRATIONS = (
+    ("patients", "occupation", "TEXT"),
+    ("patients", "history", "TEXT"),
+    ("appointments", "plan_id", "INTEGER REFERENCES treatment_plans(id)"),
+    ("consultations", "plan_id", "INTEGER REFERENCES treatment_plans(id)"),
+    ("consultations", "eva", "INTEGER CHECK (eva IS NULL OR (eva >= 0 AND eva <= 10))"),
+)
+
+
+def _migrate(connection: sqlite3.Connection) -> None:
+    """Agrega columnas nuevas a bases creadas por versiones anteriores."""
+    for table, column, definition in MIGRATIONS:
+        if column not in {row["name"] for row in connection.execute(f"PRAGMA table_info({table})")}:
+            connection.execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition}")
+
+
+def init_db() -> None:
+    connection = get_connection()
+    try:
+        connection.executescript(SCHEMA)
+        _migrate(connection)
+        connection.commit()
+    finally:
+        connection.close()
+
+
+def get_db() -> Generator[sqlite3.Connection, None, None]:
+    connection = get_connection()
+    try:
+        yield connection
+    finally:
+        connection.close()
+
+
+==================== KinePro/app/exporters.py ====================
+import csv
+import io
+from collections.abc import Iterable
+from sqlite3 import Row
+
+
+class CsvExporter:
+    """Exporta filas a CSV con BOM UTF-8 para que Excel respete las tildes."""
+
+    @staticmethod
+    def _safe(value):
+        """Evita inyección de fórmulas en Excel: texto que empieza con = + - @ se prefija con comilla."""
+        if value is None:
+            return ""
+        if isinstance(value, str) and value[:1] in ("=", "+", "-", "@", "\t", "\r"):
+            return "'" + value
+        return value
+
+    def export(self, rows: Iterable[Row]) -> io.StringIO:
+        rows = list(rows)
+        stream = io.StringIO()
+        stream.write("\ufeff")
+        if rows:

@@ -1,0 +1,200 @@
+[PARTE 6 de 11] — responde solo: Recibido 6/11
+
+.pay b{font-variant-numeric:tabular-nums}
+
+/* login */
+#login{position:fixed;inset:0;z-index:50;background:var(--paper);display:grid;grid-template-rows:auto 1fr;overflow:auto}
+#login .hero{background:var(--brand);color:var(--brand-ink);padding:2.6rem 1.6rem 3.2rem}
+#login .hero .brand{font-size:1.7rem}#login .hero .brand img{width:42px;height:42px;border-radius:12px}
+#login .hero p{font:500 1.5rem/1.2 var(--display);margin:2rem 0 0;max-width:20ch;text-wrap:balance}
+#login .card{margin:-1.6rem 1.2rem 1.6rem;background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:1.3rem;box-shadow:var(--shadow);align-self:start;max-width:420px;width:calc(100% - 2.4rem)}
+@media (min-width:760px){#login{grid-template-columns:1fr 1fr;grid-template-rows:1fr}#login .hero{display:flex;flex-direction:column;justify-content:space-between;padding:3rem}#login .hero p{font-size:2.4rem;margin:0}#login .card{margin:auto;align-self:center}}
+#lgErr{color:var(--bad);font-size:.88rem;min-height:1.2em;margin:0}
+#msg{position:fixed;top:.8rem;left:50%;transform:translate(-50%,-12px);background:var(--ink);color:var(--paper);padding:.65rem 1.1rem;border-radius:14px;opacity:0;transition:opacity .25s var(--ease),transform .25s var(--ease);pointer-events:none;z-index:60;max-width:92vw;font-weight:500;box-shadow:var(--shadow)}
+#msg.on{opacity:1;transform:translate(-50%,0)}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+
+
+==================== KinePro/app/static/app.js ====================
+"use strict";
+/* ---------- utilidades ---------- */
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const ic = (n, c = "sm") => `<svg class="ic ${c}" aria-hidden="true"><use href="#i-${n}"/></svg>`;
+const fold = s => (s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+const ST = { scheduled: "Agendada", arrived: "En espera", done: "Realizada", cancelled: "Cancelada", no_show: "No asistió" };
+const PST = { active: "En curso", completed: "Completado", cancelled: "Cancelado" };
+const clp = n => new Intl.NumberFormat("es-CL", { style: "currency", currency: "CLP", maximumFractionDigits: 0 }).format(n);
+const localDay = (d = new Date()) => new Date(d - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 10);
+const parseDay = s => new Date(s + "T12:00:00");
+const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+const longDate = d => cap(new Intl.DateTimeFormat("es-CL", { weekday: "long", day: "numeric", month: "long" }).format(d));
+const dm = d => d.slice(8, 10) + "/" + d.slice(5, 7);
+const nul = v => (v && String(v).trim()) || null;
+const initials = n => n.split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join("").toUpperCase();
+const hue = n => [...n].reduce((a, c) => a + c.charCodeAt(0), 0) % 5;
+const avatar = (n, big = "") => `<span class="avatar a${hue(n)} ${big}" aria-hidden="true">${esc(initials(n))}</span>`;
+const age = b => { if (!b) return ""; const d = new Date(b), t = new Date(); let a = t.getFullYear() - d.getFullYear(); if (t < new Date(t.getFullYear(), d.getMonth(), d.getDate())) a--; return a >= 0 && a < 130 ? a + " años" : ""; };
+
+async function api(u, o) {
+  const r = await fetch(u, o);
+  if (r.status === 401 && !u.includes("/auth/login")) { showLogin(); throw new Error("Sesión expirada"); }
+  if (!r.ok) { let d = "Error"; try { d = (await r.json()).detail } catch { } throw new Error(typeof d === "string" ? d : "Datos inválidos"); }
+  return r.status === 204 ? null : r.json();
+}
+const send = (m, u, b) => api(u, { method: m, headers: { "Content-Type": "application/json" }, body: JSON.stringify(b) });
+const post = (u, b) => send("POST", u, b);
+let msgTimer;
+function say(t) {
+  const m = $("msg"); m.setAttribute("role", /inv[aá]lid|error|no existe|ya |omitid|expir|requerid|activo|pertenece/i.test(t) ? "alert" : "status");
+  m.textContent = t; m.classList.add("on"); clearTimeout(msgTimer); msgTimer = setTimeout(() => m.classList.remove("on"), 3800);
+}
+const fail = x => say(x.message);
+
+let pats = [], pros = [], plansAll = [], me = null, cat = "", lastFocus = null;
+const patient = id => pats.find(p => p.id === +id);
+let showArchived = false;
+const opts = (l, f) => l.map(x => `<option value="${x.id}">${esc(f(x))}</option>`).join("");
+const activePlans = pid => plansAll.filter(p => p.patient_id === +pid && p.status === "active");
+
+/* ---------- navegación y hoja lateral ---------- */
+function go(t) {
+  document.querySelectorAll("nav.tabs button").forEach(x => { const on = x.dataset.t === t; on ? x.setAttribute("aria-current", "page") : x.removeAttribute("aria-current"); });
+  document.querySelectorAll("main section").forEach(s => s.hidden = s.id !== t);
+  $("fab").hidden = t !== "agenda";
+  if (t === "caja") pays().catch(fail);
+  if (t === "admin") { users().catch(fail); audits().catch(fail); }
+  if (t === "biblioteca" && !$("tplPane").hidden) tplList().catch(fail);
+  window.scrollTo({ top: 0 });
+}
+const sheetTop = back => `<div class="sheet-top">${back ? `<button class="btn ghost sm" data-act="${back.act}" data-id="${back.id ?? ""}">${ic("left")}${esc(back.label)}</button>` : "<span></span>"}<button class="iconbtn" data-act="close" aria-label="Cerrar">${ic("x", "")}</button></div>`;
+function sheet(html) {
+  const d = $("detail"), b = $("detailBody");
+  if (!d.classList.contains("on")) lastFocus = document.activeElement;
+  b.innerHTML = html; d.classList.add("on"); b.parentElement.scrollTop = 0; b.setAttribute("tabindex", "-1");
+  const t = b.querySelector("h2"); if (t) { t.id = "sheetTitle"; d.setAttribute("aria-labelledby", "sheetTitle"); }
+  document.querySelectorAll("header,main,nav,.fab").forEach(x => x.inert = true); b.focus({ preventScroll: true });
+}
+function closeSheet() {
+  const d = $("detail"); if (!d.classList.contains("on")) return;
+  d.classList.remove("on"); document.querySelectorAll("header,main,nav,.fab").forEach(x => x.inert = false);
+  lastFocus?.isConnected && lastFocus.focus({ preventScroll: true });
+}
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeSheet(); });
+$("detail").addEventListener("click", e => { if (e.target.id === "detail") closeSheet(); });
+
+/* ---------- piezas visuales ---------- */
+const pips = (done, sched, total) => total > 24 ? `<span class="muted">${done} de ${total}</span>`
+  : `<span class="pips" role="img" aria-label="${done} de ${total} sesiones realizadas">${Array.from({ length: total }, (_, i) => `<i class="${i < done ? "d" : i < done + sched ? "s" : ""}"></i>`).join("")}</span>`;
+const empty = (t, s, btn = "") => `<div class="empty"><b>${t}</b>${s}${btn}</div>`;
+const waLink = (p, a) => {
+  if (!p || !p.phone) return "";
+  let n = p.phone.replace(/\D/g, ""); if (n.length === 9 && n[0] === "9") n = "56" + n; else if (n.length === 8) n = "569" + n; if (n.length < 10) return "";
+  const msg = `Hola ${p.name.split(" ")[0]}, te recordamos tu sesión de kinesiología el ${longDate(parseDay(a.starts_at.slice(0, 10))).toLowerCase()} a las ${a.starts_at.slice(11)}. ¿Confirmas tu asistencia?`;
+  return `<a class="btn ghost sm" target="_blank" rel="noopener noreferrer" href="https://wa.me/${n}?text=${encodeURIComponent(msg)}">${ic("chat")}Recordar</a>`;
+};
+
+/* ---------- agenda ---------- */
+function strip() {
+  const sel = parseDay($("day").value), today = localDay(), out = [];
+  const start = new Date(sel); start.setDate(sel.getDate() - 3);
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(start); d.setDate(start.getDate() + i); const iso = localDay(d);
+    out.push(`<button class="d ${iso === today ? "today" : ""}" data-act="day" data-d="${iso}" aria-pressed="${iso === $("day").value}" aria-label="${longDate(d)}">${new Intl.DateTimeFormat("es-CL", { weekday: "short" }).format(d).replace(".", "")}<b>${d.getDate()}</b></button>`);
+  }
+  $("strip").innerHTML = out.join("");
+}
+const slotHTML = (a, next) => {
+  const p = patient(a.patient_id), plan = a.plan_id && plansAll.find(x => x.id === a.plan_id), live = ["scheduled", "arrived"].includes(a.status);
+  const tag = a.status === "done" ? `<span class="tag ok">${ic("check")}${ST.done}</span>` : a.status === "arrived" ? `<span class="tag wait">${ST.arrived}</span>` : next ? `<span class="tag now">Siguiente</span>` : (live ? "" : `<span class="tag">${ST[a.status]}</span>`);
+  const end = new Date(parseDay(a.starts_at.slice(0, 10)).setHours(+a.starts_at.slice(11, 13), +a.starts_at.slice(14, 16) + a.duration_min)).toTimeString().slice(0, 5);
+  return `<article class="slot"><div class="t">${a.starts_at.slice(11)}<small>${end}</small></div>
+  <div class="ap ${next ? "next" : ""} ${["cancelled", "no_show"].includes(a.status) ? "off" : ""}"><div class="top2"><div><div class="name">${esc(a.patient_name)}</div>
+  <div class="meta">${esc(a.professional_name)}${a.room ? " · " + esc(a.room) : ""}${a.reason && !a.plan_id ? " · " + esc(a.reason) : ""}</div></div>${tag}</div>
+  ${plan ? `<div class="plan">${pips(plan.sessions_done, plan.sessions_scheduled, plan.total_sessions)}<span>${a.session_no ? `Sesión ${a.session_no} de ${a.plan_total} · ` : ""}${esc(a.plan_title)}</span></div>` : ""}
+  ${a.allergies ? `<div class="alert">${ic("alert")}<span>${esc(a.allergies)}</span></div>` : ""}
+  <div class="acts">${live ? `<button class="btn sm" data-act="attendAppt" data-id="${a.id}">${ic("note")}Atender</button>${waLink(p, a)}<button class="btn ghost sm" data-act="resched" data-id="${a.id}">${ic("edit")}Reprogramar</button>` : ""}
+  <select data-status="${a.id}" aria-label="Estado de la cita de ${esc(a.patient_name)}">${Object.entries(ST).map(([k, v]) => `<option value="${k}" ${k === a.status ? "selected" : ""}>${v}</option>`).join("")}</select></div></div></article>`;
+};
+let agendaCache = [];
+async function agenda() {
+  const day = $("day").value, l = agendaCache = await api("/api/agenda?day=" + day + ($("agPro").value ? "&professional_id=" + $("agPro").value : ""));
+  $("agTitle").textContent = longDate(parseDay(day));
+  const live = l.filter(a => ["scheduled", "arrived"].includes(a.status)), done = l.filter(a => a.status === "done").length;
+  $("agSub").textContent = l.length ? `${l.length} ${l.length === 1 ? "sesión" : "sesiones"} · ${live.length} por atender · ${done} ${done === 1 ? "realizada" : "realizadas"}` : "Sin sesiones agendadas";
+  strip();
+  let next = null;
+  if (day === localDay()) { const now = new Date().toTimeString().slice(0, 5); next = live.find(a => a.starts_at.slice(11) >= now) || live[0]; }
+  $("agendaList").innerHTML = l.length ? l.map(a => slotHTML(a, next && a.id === next.id)).join("")
+    : empty("Día libre", "No hay sesiones para esta fecha.", `<br><button class="btn" data-act="newAppt">${ic("plus")}Agendar una sesión</button>`);
+}
+
+/* ---------- carga de datos ---------- */
+async function load() {
+  [pats, pros, plansAll] = await Promise.all([api("/api/patients"), api("/api/professionals"), api("/api/plans")]);
+  const keepP = $("cPatient").value, keepR = $("cPro").value, keepF = $("agPro").value;
+  $("agPro").innerHTML = '<option value="">Todos</option>' + opts(pros, p => p.name); $("agPro").value = keepF;
+  $("cPatient").innerHTML = opts(pats.filter(p => p.active), p => p.name + (p.rut ? " · " + p.rut : "")); $("cPro").innerHTML = opts(pros, p => p.name + " · " + p.specialty);
+  if (keepP) $("cPatient").value = keepP; if (keepR) $("cPro").value = keepR;
+  renderPatients(); await loadPlans($("cPlan").value);
+}
+const refresh = () => load().then(() => Promise.all([agenda(), cons()])).catch(fail);
+
+/* ---------- pacientes ---------- */
+function renderPatients() {
+  const q = fold($("pSearch").value);
+  const nAct = pats.filter(p => p.active).length; $("patCount").textContent = nAct + (nAct === 1 ? " paciente" : " pacientes") + (pats.length > nAct ? ` · ${pats.length - nAct} archivados` : "");
+  const l = pats.filter(p => (showArchived || p.active) && (!q || fold(p.name + " " + (p.rut || "")).includes(q)));
+  $("patList").innerHTML = l.map(p => { const pl = activePlans(p.id)[0];
+    return `<div class="prow" data-act="patient" data-id="${p.id}" tabindex="0" role="button">${avatar(p.name)}<div><div class="nm">${esc(p.name)}</div><div class="sub">${pl ? `${pips(pl.sessions_done, pl.sessions_scheduled, pl.total_sessions)}<span>${esc(pl.title)}</span>` : `<span>${esc(p.rut || "Sin RUT")}</span>`}${p.active ? "" : `<span class="tag">Archivado</span>`}${p.allergies ? `<span class="tag wait">${ic("alert")}Precaución</span>` : ""}</div></div>${ic("right", "")}</div>`; }).join("")
+    || (pats.length ? empty("Sin coincidencias", "Pruebe con otro nombre o RUT.") : empty("Aún no hay pacientes", "Registre al primero para crear su plan de tratamiento.", `<br><button class="btn" data-act="newPatient">${ic("plus")}Nuevo paciente</button>`));
+}
+$("pSearch").addEventListener("input", renderPatients);
+$("showArch").addEventListener("click", e => { showArchived = !showArchived; e.currentTarget.setAttribute("aria-pressed", showArchived); renderPatients(); });
+const patientForm = p => `${sheetTop(p ? { act: "patient", id: p.id, label: "Ficha" } : null)}<h2>${p ? "Editar paciente" : "Nuevo paciente"}</h2>
+<form class="stack" data-form="patient" data-id="${p?.id ?? ""}" style="margin-top:1rem"><label class="field"><span>Nombre completo</span><input name="name" value="${esc(p?.name)}" required maxlength="120"></label>
+<div class="cols"><label class="field"><span>RUT</span><input name="rut" value="${esc(p?.rut)}" maxlength="20"></label><label class="field"><span>Fecha de nacimiento</span><input type="date" name="birth_date" value="${esc(p?.birth_date)}"></label></div>
+<div class="cols"><label class="field"><span>Teléfono (WhatsApp)</span><input name="phone" value="${esc(p?.phone)}" inputmode="tel" maxlength="40"></label><label class="field"><span>Correo</span><input name="email" type="email" value="${esc(p?.email)}" maxlength="160"></label></div>
+<label class="field"><span>Ocupación / deporte</span><input name="occupation" value="${esc(p?.occupation)}" maxlength="120"></label>
+<label class="field"><span>Previsión</span><input name="insurance" value="${esc(p?.insurance)}" maxlength="80" placeholder="Fonasa, Isapre, particular"></label>
+<label class="field"><span>Alergias / precauciones</span><input name="allergies" value="${esc(p?.allergies)}" maxlength="300"></label>
+<label class="field"><span>Antecedentes (mórbidos, quirúrgicos, lesiones previas)</span><textarea name="history" rows="3" maxlength="1500">${esc(p?.history)}</textarea></label><button class="btn block">Guardar</button></form>`;
+
+const consRow = c => `<div class="rowl"><div class="d">${dm(c.occurred_at)}</div><div class="grow"><div>${c.eva != null ? `<span class="tag">EVA ${c.eva}/10</span> ` : ""}${(c.measurements || []).map(m => `<span class="tag">${esc(m.name)} ${+m.value}${esc(m.unit)}</span>`).join(" ")}</div>
+${c.diagnosis ? `<div style="margin-top:.3rem">${esc(c.diagnosis)}</div>` : ""}${c.treatment ? `<div class="muted">${esc(c.treatment)}</div>` : ""}
+${(c.library || []).length ? `<div class="pick">${c.library.map(l => `<button class="btn ghost sm" data-act="lib" data-id="${l.id}">${ic("book")}${esc(l.title)}</button>`).join("")}</div>` : ""}
+${c.attachment_path ? `<a class="btn ghost sm" href="/api/consultations/${c.id}/attachment" target="_blank" rel="noopener">Ver adjunto</a>` : ""}</div></div>`;
+
+const planCard = p => `<div class="plancard"><div style="display:flex;justify-content:space-between;gap:.5rem;align-items:flex-start"><h4>${esc(p.title)}</h4><span class="tag ${p.status === "completed" ? "ok" : ""}">${PST[p.status]}</span></div>
+<div style="margin:.5rem 0">${pips(p.sessions_done, p.sessions_scheduled, p.total_sessions)}</div><div class="muted">${p.sessions_done} de ${p.total_sessions} sesiones${p.sessions_scheduled ? ` · ${p.sessions_scheduled} agendadas` : ""}</div>
+${p.reason ? `<p style="margin:.6rem 0 0"><span class="muted">Motivo:</span> ${esc(p.reason)}</p>` : ""}${p.kine_diagnosis ? `<p style="margin:.3rem 0 0"><span class="muted">Dx kinésico:</span> ${esc(p.kine_diagnosis)}</p>` : ""}
+<div class="pick" style="margin-top:.7rem"><button class="btn sm" data-act="plan" data-id="${p.id}">Ver evolución</button>${p.status === "active" ? `<button class="btn soft sm" data-act="attendPlan" data-id="${p.id}" data-pt="${p.patient_id}">Atender</button><button class="btn ghost sm" data-act="sched" data-id="${p.id}">Agendar sesiones</button>` : ""}</div><div data-schedbox="${p.id}"></div></div>`;
+
+async function openPatient(id, tab = "resumen") {
+  try {
+    const p = patient(id), [plans, cs] = await Promise.all([api("/api/plans?patient_id=" + id), api("/api/consultations?patient_id=" + id + "&limit=50")]);
+    const tel = p.phone ? p.phone.replace(/[^\d+]/g, "") : "";
+    const tabs = `<div class="seg" style="margin:1rem 0">${[["resumen", "Resumen"], ["planes", "Planes"], ["historial", "Historial"]].map(([k, v]) => `<button data-act="ptab" data-id="${id}" data-tab="${k}" aria-pressed="${k === tab}">${v}</button>`).join("")}</div>`;
+    let body = "";
+    if (tab === "resumen") {
+      body = `<dl class="info"><dt>RUT</dt><dd>${esc(p.rut || "—")}</dd>${p.birth_date ? `<dt>Edad</dt><dd>${age(p.birth_date)}</dd>` : ""}<dt>Teléfono</dt><dd>${esc(p.phone || "—")}</dd>${p.email ? `<dt>Correo</dt><dd>${esc(p.email)}</dd>` : ""}<dt>Previsión</dt><dd>${esc(p.insurance || "—")}</dd>${p.occupation ? `<dt>Ocupación</dt><dd>${esc(p.occupation)}</dd>` : ""}</dl>
+      ${p.history ? `<h3>Antecedentes</h3><p style="white-space:pre-wrap;margin:0">${esc(p.history)}</p>` : ""}
+      ${p.allergies ? `<div class="alert">${ic("alert")}<span>${esc(p.allergies)}</span></div>` : ""}
+      <div class="pick" style="margin-top:1rem"><button class="btn sm" data-act="attendPat" data-id="${id}">${ic("note")}Atención rápida</button><button class="btn ghost sm" data-act="editPatient" data-id="${id}">${ic("edit")}Editar datos</button><button class="btn ghost sm" data-act="archive" data-id="${id}">${p.active ? "Archivar paciente" : "Reactivar paciente"}</button></div>
+      <h3>Plan en curso</h3>${plans.filter(x => x.status === "active").map(planCard).join("") || `<p class="muted">Sin plan en curso. Cree uno en la pestaña Planes.</p>`}
+      <h3>Última atención</h3>${cs.slice(0, 1).map(consRow).join("") || `<p class="muted">Sin atenciones registradas.</p>`}`;
+    } else if (tab === "planes") {
+      body = `${plans.map(planCard).join("") || `<p class="muted">Aún no tiene planes de tratamiento.</p>`}
+      <h3>Nuevo plan</h3><form class="stack" data-form="plan" data-id="${id}"><label class="field"><span>Nombre del plan</span><input name="title" placeholder="Ej.: Lumbalgia mecánica" required maxlength="120"></label>
+      <label class="field"><span>Motivo de consulta</span><textarea name="reason" rows="2" maxlength="500" placeholder="En palabras del paciente"></textarea></label>
+      <div class="cols"><label class="field"><span>Diagnóstico kinésico</span><input name="dx" maxlength="300"></label><label class="field"><span>Cantidad de sesiones</span><input name="n" type="number" min="1" max="100" value="10" inputmode="numeric" required></label></div><button class="btn block">Crear plan</button></form>`;
+    } else body = cs.map(consRow).join("") || empty("Sin atenciones", "Se listan aquí al registrar la primera.");
+    sheet(`${sheetTop()}<div class="person">${avatar(p.name, "big")}<div><h2 style="font-size:1.5rem">${esc(p.name)}</h2><div class="muted">${[p.rut, age(p.birth_date)].filter(Boolean).join(" · ")}</div></div></div>
+    <div class="pick">${tel ? `<a class="btn ghost sm" href="tel:${esc(tel)}">${ic("phone")}Llamar</a>` : ""}</div>${tabs}${body}`);
+  } catch (x) { fail(x); }
+}
+
+/* ---------- planes y evolución ---------- */
+let chartN = 0;
+function chart(title, pts, { min, max, unit = "", judge = false } = {}) {
+  if (!pts.length) return "";

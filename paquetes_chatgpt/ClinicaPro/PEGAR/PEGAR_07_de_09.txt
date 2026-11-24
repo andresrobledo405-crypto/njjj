@@ -1,0 +1,138 @@
+[PARTE 7 de 9] — responde solo: Recibido 7/9
+
+$("docList").addEventListener("click",async e=>{const c=e.target.closest(".card");if(!c)return;const d=await api("/api/documents/"+c.dataset.id);$("detailBody").setAttribute("aria-label",d.title);$("detailBody").innerHTML=`${sheetTop}<div class="doc-h"><span class="st st-scheduled">${esc(DC[d.category]||d.category)}</span><h2>${esc(d.title)}</h2><p>Actualizado el ${esc(fmtDT(d.updated_at))}</p></div><div class="doc-body">${esc(d.content||"Sin contenido.")}</div>${me.role==="admin"?`<div class="acts" style="margin-top:24px"><button class="btn danger sm" id="dDel" data-id="${+d.id}">Eliminar documento</button></div>`:""}`;$("detail").classList.add("on")});
+form("fDoc",async()=>{await post("/api/documents",{category:$("dCat").value,title:$("dTitle").value,content:$("dBody").value||null});docSearch()});
+$("detail").addEventListener("click",async e=>{if(e.target.id==="detail"||e.target.id==="dClose")$("detail").classList.remove("on");if(e.target.id==="dDel"&&confirm("¿Eliminar este documento?")){await api("/api/documents/"+e.target.dataset.id,{method:"DELETE"});$("detail").classList.remove("on");docSearch()}});
+// Recordatorios
+async function rem(){const d=$("remDay").value||localDay(1);$("remDay").value=d;const l=await api("/api/reminders?day="+d);$("remCount").textContent=fmtDay(d)+" · "+plural(l.length,"cita","citas");$("remList").innerHTML=l.map(r=>`<article class="card rem"><div class="rem-h">${av(r.patient_name)}<div class="ri-b"><b>${esc(r.patient_name)}</b><span class="mute">${esc(r.starts_at.slice(11,16))} · ${esc(r.professional_name)}</span></div><span class="mute tel">${esc(r.phone||"Sin teléfono")}</span></div><p class="bubble">${esc(r.message)}</p><div class="acts"><button class="btn tonal sm" data-msg="${esc(r.message)}">${ic("copy")}<span>Copiar mensaje</span></button>${r.whatsapp_url?`<a class="btn ghost sm" href="${esc(r.whatsapp_url)}" target="_blank" rel="noopener">${ic("chat")}Abrir WhatsApp</a>`:""}</div></article>`).join("")||`<div class="card">${empty("bell","Nada que recordar","No hay citas pendientes para ese día.")}</div>`}
+$("remDay").addEventListener("change",rem);
+$("remList").addEventListener("click",async e=>{const b=e.target.closest("button[data-msg]");if(!b)return;try{await navigator.clipboard.writeText(b.dataset.msg);say("Mensaje copiado");const s=b.querySelector("span");s.textContent="Copiado";window.fxCopied?.(b);setTimeout(()=>s.textContent="Copiar mensaje",1800)}catch{say("No se pudo copiar; selecciónelo manualmente")}});
+// Reporte de caja
+let repP="day";
+async function report(){const r=await api("/api/reports/cash?period="+repP),max=Math.max(1,...Object.values(r.by_method).map(v=>+v.total||0));
+$("report").innerHTML=`<div class="rep-top"><div><span class="lbl">${repP==="day"?"Caja de hoy":"Caja del mes"} · ${esc(r.date)}</span><strong class="big" data-n="${+r.total||0}" data-k="rep-${repP}" data-f="clp">${clp(+r.total||0)}</strong><span class="mute">${plural(+r.count||0,"pago","pagos")}</span></div></div><ul class="bars">`+Object.keys(M).map(k=>{const v=r.by_method[k]||{count:0,total:0};return`<li class="b-${k}${v.count?"":" zero"}"><div class="bar-l"><span>${M[k]}</span><span class="mute">${plural(+v.count,"pago","pagos")}</span><b>${clp(+v.total)}</b></div><div class="track"><i style="width:${Math.round((+v.total/max)*100)}%"></i></div></li>`}).join("")+`</ul>`}
+$("repTabs").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;repP=b.dataset.p;document.querySelectorAll("#repTabs .chip").forEach(x=>x.setAttribute("aria-pressed",x===b));report().catch(x=>say(x.message))});
+// Ficha de paciente
+const hRow=(l,r)=>`<div class="card h-row"><div class="ri-b">${l}</div>${r}</div>`;
+$("patList").addEventListener("click",async e=>{const c=e.target.closest(".card[data-id]");if(!c)return;const h=await api(`/api/patients/${c.dataset.id}/history`),p=h.patient;$("detailBody").setAttribute("aria-label","Ficha de "+p.name);
+$("detailBody").innerHTML=`${sheetTop}<div class="pf">${av(p.name,"xl")}<div><h2>${esc(p.name)}</h2><p>${esc(p.rut||"Sin RUT")}${p.insurance?" · "+esc(p.insurance):""}</p></div></div>${p.allergies?`<div class="alert">${ic("alert")}<span>Alergias: <b>${esc(p.allergies)}</b></span></div>`:""}
+<dl class="kv"><div><dt>Teléfono</dt><dd>${esc(p.phone||"—")}</dd></div><div><dt>Correo</dt><dd>${esc(p.email||"—")}</dd></div><div><dt>Previsión</dt><dd>${esc(p.insurance||"—")}</dd></div><div><dt>Total pagado</dt><dd>${clp(+h.total_paid||0)}</dd></div></dl>
+<h3 class="sub">Citas <span>${h.appointments.length}</span></h3>${h.appointments.length?`<div class="list">${h.appointments.map(a=>hRow(`<b>${esc(fmtDT(a.starts_at))}</b><span class="mute">${esc(a.professional_name)}${a.reason?" · "+esc(a.reason):""}</span>`,`<span class="st st-${esc(a.status)}">${ST[a.status]||esc(a.status)}</span>`)).join("")}</div>`:`<div class="card">${empty("calendar","Sin citas","Este paciente aún no tiene citas.")}</div>`}
+<h3 class="sub">Atenciones <span>${h.consultations.length}</span></h3>${h.consultations.length?`<div class="list">${h.consultations.map(c=>hRow(`<b>${esc(c.diagnosis||"Atención")}</b>${c.treatment?`<span class="mute" style="white-space:normal">${esc(c.treatment)}</span>`:""}<span class="mute">${esc(fmtDT(c.occurred_at))} · ${esc(c.professional_name)}</span>`,c.attachment_path?`<a class="btn ghost sm" href="/api/consultations/${+c.id}/attachment" target="_blank" rel="noopener">${ic("clip")}Adjunto</a>`:"")).join("")}</div>`:`<div class="card">${empty("steth","Sin atenciones","Aún no hay registros clínicos.")}</div>`}
+<h3 class="sub">Pagos <span>${clp(+h.total_paid||0)}</span></h3>${h.payments.length?`<div class="list">${h.payments.map(y=>hRow(`<b>${esc(y.concept)}</b><span class="mute">${esc(fmtDT(y.paid_at))}</span>`,`<b class="amt">${clp(y.amount)}</b>`)).join("")}</div>`:`<div class="card">${empty("wallet","Sin pagos","No hay pagos registrados.")}</div>`}`;$("detail").classList.add("on")});
+fetch("/api/meta").then(r=>r.json()).then(m=>{document.title=m.name;["brand","lgBrand","railName"].forEach(i=>$(i).textContent=m.name)}).catch(()=>{});
+// Accesibilidad: etiquetas desde placeholder, pestañas con rol, Escape cierra el detalle
+document.querySelectorAll("input,select,textarea").forEach(el=>{if(!el.getAttribute("aria-label"))el.setAttribute("aria-label",el.placeholder||el.id)});
+document.querySelectorAll("nav button").forEach(b=>b.setAttribute("role","tab"));
+document.addEventListener("keydown",e=>{if(e.key==="Escape")$("detail").classList.remove("on")});
+// Filas activables con teclado (Enter / Espacio)
+document.addEventListener("keydown",e=>{const r=e.target.closest?.('[role="button"][data-id]');if(r&&(e.key==="Enter"||e.key===" ")){e.preventDefault();r.click()}});
+// Hoja de detalle: foco al abrir, foco atrapado dentro y retorno al cerrar
+let lastFocus=null;new MutationObserver(()=>{if($("detail").classList.contains("on")){if(!$("detailBody").contains(document.activeElement)){lastFocus=document.activeElement;$("dClose")?.focus()}}else if(lastFocus){lastFocus.focus?.();lastFocus=null}}).observe($("detail"),{attributes:true,attributeFilter:["class"]});
+$("detailBody").addEventListener("keydown",e=>{if(e.key!=="Tab")return;const f=[...$("detailBody").querySelectorAll("button,a[href],summary")];if(!f.length)return;const a=f[0],z=f[f.length-1];if(e.shiftKey&&document.activeElement===a){e.preventDefault();z.focus()}else if(!e.shiftKey&&document.activeElement===z){e.preventDefault();a.focus()}});
+if("serviceWorker" in navigator)navigator.serviceWorker.register("/sw.js").catch(()=>{});
+start();
+</script>
+<script>
+// ===== Capa de movimiento (ronda 2). Solo presentación: no cambia datos ni lógica.
+(()=>{
+const RMq=matchMedia("(prefers-reduced-motion: reduce)"),RM=()=>RMq.matches;
+const EO="cubic-bezier(.23,1,.32,1)",EIO="cubic-bezier(.77,0,.175,1)",ED="cubic-bezier(.32,.72,0,1)";
+const desk=()=>innerWidth>=900;
+document.documentElement.classList.add("fx");
+// Resorte amortiguado (bounce 0–0.3) muestreado como easing linear(); se usa solo si el navegador lo soporta.
+function spring(b){const z=1-b,w=2*Math.PI,wd=w*Math.sqrt(1-z*z),p=[];for(let i=0;i<=40;i++){const t=i/40,x=1-Math.exp(-z*w*t)*(Math.cos(wd*t)+(z*w/wd)*Math.sin(wd*t));p.push(i===40?1:+x.toFixed(4))}return`linear(${p.join(",")})`}
+const SP=CSS.supports("transition-timing-function","linear(0,1)")?spring(.14):ED,SPP=CSS.supports("transition-timing-function","linear(0,1)")?spring(.26):EO;
+if(SP!==ED){document.documentElement.style.setProperty("--spring",SP);document.documentElement.style.setProperty("--spring-pop",SPP)}
+
+// --- Esqueletos mientras llegan los datos
+const L=(w,h=12,x="")=>`<span class="sk${x}" style="width:${w};height:${h}px"></span>`;
+const skRow=()=>`<div class="sk-row">${L("40px",40," c")}<div>${L("55%",13)}${L("35%",10)}</div></div>`;
+const skList=n=>`<div class="list">${Array.from({length:n},skRow).join("")}</div>`;
+const SK={stats:`<div class="stat-main is-sk">${L("28%",11)}${L("42%",40)}${L("100%",8)}</div><div class="stat is-sk">${L("50%",11)}${L("40%",26)}</div><div class="stat is-sk">${L("60%",11)}${L("70%",26)}</div>`,
+agendaList:`<div class="tl">${[0,1,2].map(()=>`<div class="tl-i"><div class="tl-t">${L("38px",16)}</div><div class="tl-c card is-sk"><div class="sk-row" style="padding:0;min-height:0">${L("40px",40," c")}<div>${L("50%",13)}${L("70%",10)}</div></div>${L("30%",22)}</div></div>`).join("")}</div>`,
+patList:skList(5),consList:skList(3),payList:skList(4),remList:skList(2),docList:skList(3)};
+for(const id in SK){const c=$(id);if(c&&!c.children.length){c.innerHTML=SK[id];c.setAttribute("aria-busy","true")}}
+
+// --- Entrada escalonada de contenido nuevo
+function reveal(items,{y=10,step=45,dur=300,max=10,delay=0}={}){if(RM())return;[...items].slice(0,max).forEach((el,i)=>el.animate([{opacity:0,transform:`translateY(${y}px)`},{opacity:1,transform:"none"}],{duration:dur,delay:delay+i*step,easing:EO,fill:"backwards"}))}
+const drawTL=(arts,step)=>{if(RM())return;arts.forEach((a,i)=>{try{a.animate([{transform:"translateX(6px) scaleY(0)"},{transform:"translateX(6px) scaleY(1)"}],{duration:360,delay:80+i*step,easing:EO,fill:"backwards",pseudoElement:"::before"})}catch{}})};
+
+// --- Contadores que suben hasta su valor (desde el valor anterior)
+const prevN={};
+function countUp(el,delay=0){const to=+el.dataset.n,k=el.dataset.k,from=prevN[k]??0,f=el.dataset.f==="clp"?n=>clp(Math.round(n)):n=>String(Math.round(n));prevN[k]=to;
+if(RM()||from===to||!isFinite(to)){el.textContent=f(to);return}el.textContent=f(from);const D=400;let t0=null;
+const step=t=>{if(!el.isConnected)return;if(t0===null)t0=t+delay;const p=Math.max(0,Math.min(1,(t-t0)/D)),e=1-Math.pow(1-p,3);el.textContent=f(from+(to-from)*e);if(p<1)requestAnimationFrame(step)};requestAnimationFrame(step)}
+
+// --- FLIP + realce cuando cambia el estado de una cita
+let flip=null;
+$("agendaList").addEventListener("click",e=>{const b=e.target.closest("button[data-s]");if(!b)return;b.classList.add("busy");setTimeout(()=>b.classList.remove("busy"),5000);const m=new Map();$("agendaList").querySelectorAll("[data-a]").forEach(el=>m.set(el.dataset.a,el.getBoundingClientRect().top));flip={m,id:b.dataset.id,t:performance.now()}},true);
+
+const visible=c=>c.offsetParent!==null&&$("login").style.display==="none";
+const typing=c=>{const a=document.activeElement;return a&&(a.id==="pq"||a.id==="dq")&&c.closest("section")?.contains(a)};
+const itemsOf=c=>c.querySelectorAll(":scope>.tl>*,:scope>.list>*,:scope>.card,:scope>article");
+function onRender(c){
+  if(!c.querySelector(".sk"))c.removeAttribute("aria-busy");
+  if(c.id==="stats"){const first=!("t" in prevN);c.querySelectorAll("[data-n]").forEach((el,i)=>countUp(el,visible(c)?i*70:0));if(first&&visible(c)){reveal(c.children,{step:70,y:12});const sg=c.querySelector(".seg");if(sg&&!RM())sg.animate([{clipPath:"inset(0 100% 0 0 round 99px)"},{clipPath:"inset(0 0 0 0 round 99px)"}],{duration:400,delay:160,easing:EO,fill:"backwards"})}return}
+  if(c.id==="report"){c.querySelectorAll("[data-n]").forEach(el=>countUp(el));return}
+  if(c.id==="agendaList"&&flip&&performance.now()-flip.t<5000){const f=flip;flip=null;if(RM())return;
+    c.querySelectorAll("[data-a]").forEach(el=>{const o=f.m.get(el.dataset.a);if(o==null)return;const d=o-el.getBoundingClientRect().top;if(Math.abs(d)>1)el.animate([{transform:`translateY(${d}px)`},{transform:"none"}],{duration:320,easing:EO});if(el.dataset.a===f.id){el.classList.add("just");setTimeout(()=>el.classList.remove("just"),1000)}});return}
+  if(!visible(c)||typing(c))return;
+  const it=itemsOf(c);reveal(it,{step:c.id==="agendaList"?55:40});
+  if(c.id==="agendaList")drawTL([...c.querySelectorAll(".tl-i")].slice(0,10),55);
+}
+const mo=new MutationObserver(rs=>{const seen=new Set();rs.forEach(r=>{if(!seen.has(r.target)){seen.add(r.target);onRender(r.target)}})});
+["stats","agendaList","patList","consList","payList","remList","docList","userList","report"].forEach(id=>$(id)&&mo.observe($(id),{childList:true}));
+
+// --- Pestañas: indicador deslizante, transición de vista y micro-animación del icono
+const nav=document.querySelector("nav"),ind=document.createElement("span");ind.className="tab-ind";ind.setAttribute("aria-hidden","true");nav.prepend(ind);document.documentElement.classList.add("fx-ind");
+let ix=null,iy=null,curTab="agenda";
+function placeInd(anim){const b=nav.querySelector('button[aria-selected="true"]');if(!b||b.hidden||!nav.offsetParent){ind.style.opacity=0;return}ind.style.opacity=1;
+  const nr=nav.getBoundingClientRect(),br=b.getBoundingClientRect(),D=desk();let w,h,x,y;
+  if(D){w=br.width;h=br.height;x=br.left-nr.left;y=br.top-nr.top}else{const sr=b.querySelector("svg").getBoundingClientRect();w=Math.min(58,br.width-6);h=30;x=br.left-nr.left+(br.width-w)/2;y=sr.top-nr.top+sr.height/2-h/2}
+  ind.style.width=w+"px";ind.style.height=h+"px";const to=`translate(${x}px,${y}px)`;
+  if(anim&&!RM()&&ix!==null&&(ix!==x||iy!==y)){const mx=(ix+x)/2,my=(iy+y)/2;ind.animate([{transform:`translate(${ix}px,${iy}px)`},{transform:`translate(${mx}px,${my}px) ${D?"scale(.98,1.06)":"scale(1.22,.9)"}`,offset:.45},{transform:to}],{duration:340,easing:EO})}
+  ind.style.transform=to;ix=x;iy=y}
+nav.addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;placeInd(true);if(b.dataset.t===curTab)return;
+  const order=[...nav.querySelectorAll("button")].map(x=>x.dataset.t),dir=Math.sign(order.indexOf(b.dataset.t)-order.indexOf(curTab))||1;curTab=b.dataset.t;if(RM())return;
+  const sec=$(b.dataset.t),from=desk()?`translateY(${dir*10}px)`:`translateX(${dir*16}px)`;
+  sec.animate([{opacity:0,transform:from},{opacity:1,transform:"none"}],{duration:280,easing:EO});
+  if(b.dataset.t==="agenda")$("stats").animate([{opacity:0},{opacity:1}],{duration:240,easing:"ease-out"});
+  b.querySelector("svg")?.animate([{transform:"scale(1)"},{transform:"scale(1.18) translateY(-1px) rotate(-6deg)",offset:.4},{transform:"scale(1)"}],{duration:380,easing:EO})});
+new ResizeObserver(()=>placeInd(false)).observe(nav);
+new MutationObserver(()=>placeInd(false)).observe($("tabAdmin"),{attributes:true,attributeFilter:["hidden"]});
+addEventListener("resize",()=>placeInd(false));placeInd(false);
+
+// --- Entrada de la app después del ingreso
+let loginShown=getComputedStyle($("login")).display!=="none";
+new MutationObserver(()=>{const vis=$("login").style.display!=="none";if(loginShown&&!vis){requestAnimationFrame(()=>placeInd(false));if(!RM())[document.querySelector("header.top"),document.querySelector("main"),document.querySelector(".rail")].forEach((el,i)=>el.animate([{opacity:0,transform:i===2?"none":"translateY(10px)"},{opacity:1,transform:"none"}],{duration:380,delay:i*70,easing:EO,fill:"backwards"}))}loginShown=vis}).observe($("login"),{attributes:true,attributeFilter:["style"]});
+new MutationObserver(()=>{if($("lgErr").textContent&&!RM()){const c=document.querySelector(".lg-card");c.classList.remove("shake");void c.offsetWidth;c.classList.add("shake")}}).observe($("lgErr"),{childList:true,characterData:true,subtree:true});
+
+// --- Ondas en botones (pulsación)
+document.addEventListener("pointerdown",e=>{const b=e.target.closest("button.p,.btn");if(!b||RM()||b.disabled)return;const r=b.getBoundingClientRect(),s=Math.max(r.width,r.height)*2.2,el=document.createElement("i");el.className="rpl";el.setAttribute("aria-hidden","true");el.style.cssText=`width:${s}px;height:${s}px;left:${e.clientX-r.left-s/2}px;top:${e.clientY-r.top-s/2}px`;b.prepend(el);
+  el.animate([{transform:"scale(.08)",opacity:.22},{transform:"scale(1)",opacity:0}],{duration:400,easing:EO}).onfinish=()=>el.remove()});
+
+// --- Copiar: morph a "Copiado" con check y confeti mínimo
+const CC=["var(--brand)","var(--clay)","var(--ok)","var(--wait)","var(--info)"];
+window.fxCopied=b=>{const sv=b.querySelector("svg"),old=sv?.innerHTML;b.classList.add("ok");if(sv)sv.innerHTML=IC.check;setTimeout(()=>{b.classList.remove("ok");if(sv)sv.innerHTML=old},1800);if(RM())return;
+  const r=b.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;for(let i=0;i<12;i++){const p=document.createElement("i");p.className="cft";p.setAttribute("aria-hidden","true");p.style.cssText=`left:${cx-3}px;top:${cy-3}px;background:${CC[i%5]}`;document.body.append(p);
+    const a=(i/12)*Math.PI*2+Math.random()*.4,d=34+Math.random()*30,x=Math.cos(a)*d,y=Math.sin(a)*d*.75-14,rot=Math.random()*240-120;
+    p.animate([{transform:"translate(0,0) scale(.4) rotate(0)",opacity:1},{transform:`translate(${x}px,${y}px) scale(1) rotate(${rot}deg)`,opacity:1,offset:.6},{transform:`translate(${x*1.1}px,${y+16}px) scale(.8) rotate(${rot*1.4}deg)`,opacity:0}],{duration:400+Math.random()*120,easing:EO}).onfinish=()=>p.remove()}};
+
+// --- Formularios plegables: altura animada (única excepción a transform/opacity, propia de acordeones)
+document.addEventListener("click",e=>{const s=e.target.closest("details.panel>summary");if(!s||RM())return;const d=s.parentElement;e.preventDefault();
+  const cur=d.getBoundingClientRect().height,closing=d._closing;d._a?.cancel();d.style.overflow="hidden";
+  const done=()=>{d.style.overflow="";d._a=null;d._closing=false};
+  if(d.open&&!closing){const end=s.offsetHeight+parseFloat(getComputedStyle(d).borderTopWidth)*2;d._closing=true;d._a=d.animate({height:[cur+"px",end+"px"]},{duration:240,easing:EIO});d._a.onfinish=()=>{d.open=false;done()}}
+  else{d._closing=false;d.open=true;const end=d.offsetHeight;d._a=d.animate({height:[cur+"px",end+"px"]},{duration:300,easing:EO});d._a.onfinish=done}});
+
+// --- Tarjeta "Hoy": inclinación muy sutil y brillo que sigue al puntero (solo escritorio con mouse)
+if(matchMedia("(hover:hover) and (pointer:fine)").matches){let raf=0;
+  $("stats").addEventListener("pointermove",e=>{const h=e.target.closest(".stat-main:not(.is-sk)");if(!h||RM()||!desk())return;const r=h.getBoundingClientRect(),x=(e.clientX-r.left)/r.width-.5,y=(e.clientY-r.top)/r.height-.5;cancelAnimationFrame(raf);
+    raf=requestAnimationFrame(()=>{h.classList.add("tilt");h.style.transform=`perspective(900px) rotateX(${(-y*3.5).toFixed(2)}deg) rotateY(${(x*4.5).toFixed(2)}deg) translateY(-2px)`;h.style.setProperty("--mx",((x+.5)*100).toFixed(1)+"%");h.style.setProperty("--my",((y+.5)*100).toFixed(1)+"%")})});
+  $("stats").addEventListener("pointerout",e=>{const h=e.target.closest(".stat-main");if(!h||h.contains(e.relatedTarget))return;cancelAnimationFrame(raf);h.classList.remove("tilt");h.style.transform=""})}
+
+// --- Hoja inferior: salida animada y arrastre para cerrar (con velocidad)
+const det=$("detail"),sheet=$("detailBody");let skipClose=false,wasOn=false;
+new MutationObserver(()=>{const on=det.classList.contains("on");
+  if(on&&!wasOn){det.classList.remove("closing");sheet.style.transform="";det.style.removeProperty("--so");sheet.scrollTop=0}

@@ -1,0 +1,111 @@
+[PARTE 3 de 3]
+
+### [anatomia] Manguito rotador (Hombro)
+Resumen: Supraespinoso, infraespinoso, redondo menor y subescapular.
+Centran la cabeza humeral en la glenoides. Supraespinoso: inicia la abducción (nervio supraescapular). Infraespinoso y redondo menor: rotación externa (supraescapular y axilar). Subescapular: rotación interna (nervios subescapulares).
+Sinergia con deltoides y escapulares para la elevación del brazo.
+
+### [anatomia] Ligamentos y meniscos de la rodilla (Rodilla)
+Resumen: Estabilizadores principales.
+LCA: evita traslación anterior de la tibia. LCP: traslación posterior. LCM y LCL: estabilidad en valgo y varo. Meniscos: absorben carga y mejoran la congruencia.
+La zona roja del menisco (periférica) tiene mejor irrigación y capacidad de cicatrización.
+
+### [anatomia] Regiones y raíces de la columna (Columna)
+Resumen: 7 cervicales, 12 torácicas, 5 lumbares, sacro y cóccix.
+Dermatomas útiles: C6 pulgar, C7 dedo medio, C8 meñique, L4 cara medial de pierna, L5 dorso del pie, S1 borde lateral del pie.
+Hernias lumbares bajas (L4-L5, L5-S1) comprimen típicamente L5 y S1.
+
+### [anatomia] Plexo braquial y nervios principales (Miembro superior)
+Resumen: Raíces C5–T1.
+Nervio axilar (C5-C6): deltoides. Musculocutáneo: flexores del codo. Radial: extensores de muñeca y dedos. Mediano: pronación, flexores y opositor del pulgar. Cubital: musculatura intrínseca de la mano.
+Lesión del radial: mano en "gota"; mediano: mano de bendición; cubital: mano en garra.
+
+### [anatomia] Arcos del pie y fascia plantar (Pie)
+Resumen: Arco longitudinal medial y lateral, y arco transverso.
+La fascia plantar actúa como un cable en el mecanismo de "cabrestante" (windlass): la extensión del hallux tensa la fascia y eleva el arco.
+Pie plano flexible es variante normal si no hay dolor ni rigidez.
+
+### [anatomia] Musculatura glútea y estabilizadores de pelvis (Cadera)
+Resumen: Glúteo mayor: extensión y rotación externa. Glúteo medio y menor: abducción y estabilización pélvica en la marcha.
+Debilidad del glúteo medio produce Trendelenburg y valgo dinámico de rodilla.
+
+### [clinica] Banderas rojas: cuándo derivar (General)
+Resumen: Señales de alarma que obligan a descartar patología grave.
+Dolor nocturno intenso y constante, fiebre o malestar sistémico, pérdida de peso inexplicada, antecedente de cáncer, trauma importante, déficit neurológico progresivo, alteración de esfínteres, anestesia en silla de montar, dolor torácico, disnea súbita, signos de trombosis (pantorrilla caliente, hinchada y dolorosa).
+Registre los hallazgos y derive con prontitud a evaluación médica.
+Precauciones: En presencia de dolor torácico, disnea súbita o déficit neurológico agudo, derive a urgencias.
+
+### [clinica] Banderas amarillas y factores psicosociales (General)
+Resumen: Factores asociados a cronificación del dolor.
+Creencias de miedo-evitación, catastrofización, baja autoeficacia, depresión o ansiedad, problemas laborales o litigios.
+Intervención: educación en neurociencia del dolor, exposición graduada a la actividad, metas funcionales, trabajo multidisciplinario. Instrumentos útiles: STarT Back, Escala de catastrofización, TSK.
+
+### [clinica] Fases de cicatrización de tejidos y carga (General)
+Resumen: Guía temporal aproximada para dosificar el ejercicio.
+Inflamatoria (días 0–5): protección y movilidad suave; proliferativa (≈5–21 días): carga progresiva controlada; remodelación (3 semanas–12 meses o más): fuerza específica y retorno funcional.
+Los tiempos varían según tejido, edad y comorbilidades. Use la irritabilidad como criterio principal.
+
+### [clinica] Consentimiento informado y registro clínico (General)
+Resumen: Buenas prácticas en la atención kinesiológica.
+Explique diagnóstico funcional, objetivos, riesgos, alternativas y duración probable; registre fecha, hallazgos, intervención, respuesta del paciente y plan. Asegure la confidencialidad (Ley 20.584 en Chile).
+Documente la evolución con medidas objetivas (ROM, fuerza, PROMs).
+
+### [clinica] Estructura de una sesión de kinesiología (General)
+Resumen: Plan sugerido de 45–60 min.
+1) Recepción y evaluación subjetiva (dolor, sueño, actividad). 2) Revisión de objetivos y reevaluación breve. 3) Calentamiento. 4) Bloque principal (terapia manual y/o agentes físicos + ejercicio terapéutico). 5) Educación y tarea para casa. 6) Registro.
+Priorice el ejercicio y la educación sobre las técnicas pasivas.
+
+### [glosario] Término: ROM (General)
+Resumen: Range of Motion (rango de movimiento).
+Cantidad de movimiento disponible en una articulación, medida en grados; puede ser activo o pasivo.
+
+### [glosario] Término: Tope final (end-feel) (General)
+Resumen: Sensación al final del movimiento pasivo.
+Normal: duro (hueso con hueso), blando (tejido blando), elástico (cápsula/ligamento). Anormal: vacío, espasmo o capsular.
+
+### [glosario] Término: Propiocepción (General)
+Resumen: Sentido de posición y movimiento del cuerpo.
+Se entrena con ejercicios de equilibrio y tareas de control motor.
+
+### [glosario] Término: Ejercicio excéntrico (General)
+Resumen: Contracción muscular mientras el músculo se alarga.
+Base de muchos protocolos de tendinopatía y prevención de lesiones musculares.
+
+### [glosario] Término: Isométrico (General)
+Resumen: Contracción sin cambio de longitud muscular.
+Puede aliviar el dolor tendinoso y se usa como primera fase de carga.
+
+### [glosario] Término: Neurodinamia (General)
+Resumen: Estudio de la mecánica y fisiología del sistema nervioso en movimiento.
+Incluye pruebas de tensión (SLR, slump, ULTT) y técnicas de deslizamiento o tensión neural.
+
+### [glosario] Término: Radiculopatía (General)
+Resumen: Disfunción de una raíz nerviosa con dolor irradiado, déficit sensitivo o motor.
+Se confirma con la combinación de síntomas, dermatomas, miotomas, reflejos y pruebas de tensión.
+
+### [glosario] Término: Tendinopatía (General)
+Resumen: Dolor y disfunción del tendón asociada a carga.
+Término preferido sobre "tendinitis"; la inflamación aguda no es el rasgo dominante en la mayoría de casos.
+
+### [glosario] Término: PROMs (General)
+Resumen: Patient-Reported Outcome Measures.
+Cuestionarios completados por el paciente (EVA, Oswestry, DASH, WOMAC) para medir resultados.
+
+### [glosario] Término: Kinesiofobia (General)
+Resumen: Miedo excesivo al movimiento por temor a lesión o recidiva.
+Se mide con la Escala de Tampa (TSK) y se aborda con educación y exposición graduada.
+
+### [glosario] Término: Valgo dinámico (General)
+Resumen: Colapso de la rodilla hacia medial durante tareas de carga.
+Asociado a debilidad de abductores y rotadores externos de cadera y control motor inadecuado.
+
+### [glosario] Término: Sensibilización central (General)
+Resumen: Aumento de la respuesta del sistema nervioso central a estímulos dolorosos.
+Presente en dolor crónico; justifica la educación en dolor y el ejercicio graduado.
+
+### [glosario] Término: Pacing (General)
+Resumen: Dosificación de la actividad en ciclos de esfuerzo y descanso.
+Evita ciclos de sobreesfuerzo y brote de síntomas, sobre todo en dolor crónico y fatiga.
+
+
+[FIN] Entrega ahora el resumen de los 5 hallazgos más importantes de TODAS las partes.

@@ -1,0 +1,419 @@
+[PARTE 3 de 11] — responde solo: Recibido 3/11
+
+<meta name="viewport" content="width=device-width, initial-scale=1"><title>{e(template["name"])}</title><style>{SHEET_CSS}</style></head><body>
+<div class="banner no-print"><b>Para el profesional:</b> el contenido de la biblioteca fue redactado con apoyo de IA y <b>aún no está validado por un kinesiólogo</b>.
+Revise y adapte cada ejercicio antes de entregar esta hoja. <br><br><button onclick="window.print()">Imprimir o guardar como PDF</button></div>
+<div class="mute">{e(APP_NAME)} · {today}</div>
+<h1>{e(template["name"])}</h1>
+{f'<p><b>Paciente:</b> {e(patient_name)}</p>' if patient_name else ''}
+{f'<p class="body">{e(template["notes"])}</p>' if template["notes"] else ''}
+{body}
+<div class="foot">Realice solo los ejercicios indicados por su kinesiólogo. Si el dolor aumenta de forma importante o aparecen síntomas nuevos, deténgase y consulte a su kinesiólogo.</div>
+</body></html>"""
+
+
+def render_report(plan: dict[str, Any], pat: dict[str, Any]) -> str:
+    e = escape
+    ev = plan["evolution"]
+
+    def summary(label: str, pts: list[dict], unit: str) -> str:
+        if not pts:
+            return ""
+        first, last = pts[0]["value"], pts[-1]["value"]
+        change = f" ({last - first:+g})" if len(pts) > 1 else ""
+        return f"<tr><td>{e(label)}</td><td>{first:g}{e(unit)}</td><td>{last:g}{e(unit)}</td><td>{change[1:-1] if change else '—'}</td></tr>"
+
+    rows = summary("EVA (dolor 0–10)", ev["eva"], "") + "".join(summary(n, pts, pts[0]["unit"]) for n, pts in ev["measures"].items())
+    sessions = "".join(
+        f'<tr><td>{e(c["occurred_at"][:10])}</td><td>{"" if c["eva"] is None else c["eva"]}</td>'
+        f'<td>{e("; ".join(f"{m["name"]} {m["value"]:g}{m["unit"]}" for m in c["measurements"]))}</td>'
+        f'<td>{e(c["diagnosis"] or "")}</td><td>{e(c["treatment"] or "")}</td></tr>' for c in plan["consultations"])
+    return f"""<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Informe de evolución</title><style>{SHEET_CSS}table{{width:100%;border-collapse:collapse;margin:.6rem 0;font-size:.9rem}}
+th,td{{border-bottom:1px solid #cfdad8;padding:.4rem .5rem;text-align:left;vertical-align:top}}th{{color:#5d7471;font-weight:600}}</style></head><body>
+<div class="banner no-print"><button onclick="window.print()">Imprimir o guardar como PDF</button></div>
+<div class="mute">{e(APP_NAME)} · {datetime.now():%d-%m-%Y}</div><h1>Informe de evolución</h1>
+<p><b>Paciente:</b> {e(pat["name"])}{f' · RUT {e(pat["rut"])}' if pat["rut"] else ""}<br><b>Plan:</b> {e(plan["title"])} · {plan["sessions_done"]} de {plan["total_sessions"]} sesiones realizadas</p>
+{f'<p><b>Motivo de consulta:</b> {e(plan["reason"])}</p>' if plan["reason"] else ""}{f'<p><b>Diagnóstico kinésico:</b> {e(plan["kine_diagnosis"])}</p>' if plan["kine_diagnosis"] else ""}
+<h2>Cambio entre la primera y la última sesión</h2>
+{f'<table><tr><th>Medida</th><th>Inicial</th><th>Último</th><th>Cambio</th></tr>{rows}</table>' if rows else '<p class="mute">Sin EVA ni mediciones registradas.</p>'}
+<h2>Sesiones</h2>{f'<table><tr><th>Fecha</th><th>EVA</th><th>Mediciones</th><th>Hallazgos</th><th>Tratamiento</th></tr>{sessions}</table>' if sessions else '<p class="mute">Sin sesiones registradas.</p>'}
+<div class="foot">Documento generado por el profesional tratante a partir de los registros de KinePro.</div></body></html>"""
+
+
+==================== KinePro/app/library.py ====================
+"""Carga la biblioteca de kinesiología desde library_data.txt (no sobrescribe ediciones)."""
+import sqlite3
+from pathlib import Path
+
+DATA_FILE = Path(__file__).with_name("library_data.txt")
+CATEGORIES = {
+    "evaluacion": "Evaluación",
+    "patologia": "Patologías",
+    "ejercicio": "Ejercicios",
+    "tecnica": "Técnicas y agentes",
+    "anatomia": "Anatomía",
+    "clinica": "Práctica clínica",
+    "glosario": "Glosario",
+}
+
+
+def parse_library(text: str) -> list[dict]:
+    items, current = [], None
+    for line in text.splitlines():
+        if line.startswith("## "):
+            category, region, title = (part.strip() for part in line[3:].split("|", 2))
+            current = {"category": category, "region": region, "title": title, "summary": "", "body": [], "precautions": [], "tags": ""}
+            items.append(current)
+        elif current is None or not line.strip():
+            continue
+        elif line.startswith("> "):
+            current["summary"] = line[2:].strip()
+        elif line.startswith("! "):
+            current["precautions"].append(line[2:].strip())
+        elif line.startswith("# "):
+            current["tags"] = line[2:].strip()
+        else:
+            current["body"].append(line.strip())
+    for item in items:
+        item["content"] = "\n".join(item.pop("body"))
+        item["precautions"] = "\n".join(item["precautions"])
+    return items
+
+
+def seed_library(db: sqlite3.Connection) -> int:
+    inserted = 0
+    for item in parse_library(DATA_FILE.read_text(encoding="utf-8")):
+        cursor = db.execute(
+            """INSERT OR IGNORE INTO library_items (category, region, title, summary, content, precautions, tags)
+               VALUES (:category, :region, :title, :summary, :content, :precautions, :tags)""",
+            item,
+        )
+        inserted += cursor.rowcount
+    db.commit()
+    return inserted
+
+
+==================== KinePro/app/main.py ====================
+from contextlib import asynccontextmanager
+from datetime import datetime, timedelta, timezone
+import mimetypes
+from pathlib import Path
+import secrets
+import sqlite3
+from typing import Any
+
+from fastapi import Depends, FastAPI, File, Form, HTTPException, Query, UploadFile
+from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
+from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel, Field
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request
+
+import os
+import re
+import time
+import unicodedata
+
+import httpx
+
+from fastapi.responses import JSONResponse, Response
+
+from .auth import SESSION_COOKIE, SESSION_SECONDS, hash_password, make_token, read_token, throttle, verify_password
+from .config import APP_NAME, DATA_DIR, MAX_UPLOAD_BYTES, UPLOAD_DIR
+from .db import get_connection, get_db, init_db
+from .exporters import CsvExporter
+from .kine import enrich_consultations, parse_ids, parse_measurements, refresh_plan_status, register as register_kine, save_consultation_extras
+from .library import CATEGORIES, seed_library
+
+STATIC_DIR = Path(__file__).parent / "static"
+STATUSES = {"scheduled", "arrived", "done", "cancelled", "no_show"}
+METHODS = {"cash", "card", "transfer", "insurance"}
+ACTIVE_STATUSES = ("scheduled", "arrived")
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    init_db()
+    connection = get_connection()
+    try:
+        seed_library(connection)
+        bootstrap_admin(connection)
+    finally:
+        connection.close()
+    yield
+
+
+def bootstrap_admin(db: sqlite3.Connection) -> None:
+    """Crea el administrador inicial si no hay usuarios. La clave sale del entorno o se genera."""
+    if db.execute("SELECT COUNT(*) FROM users").fetchone()[0]:
+        return
+    username = os.getenv("KINEPRO_ADMIN_USER", "admin")
+    password = os.getenv("KINEPRO_ADMIN_PASSWORD")
+    if not password:
+        password = secrets.token_urlsafe(12)
+        (DATA_DIR / "admin_inicial.txt").write_text(f"usuario: {username}\nclave: {password}\n(cámbiela al ingresar y borre este archivo)\n")
+    db.execute("INSERT INTO users (username, name, password_hash, role) VALUES (?, ?, ?, 'admin')",
+               (username, "Administrador", hash_password(password)))
+    db.commit()
+
+
+app = FastAPI(title=f"{APP_NAME} - Gestión para kinesiólogos", version="1.1.0", lifespan=lifespan)
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "SAMEORIGIN"
+        response.headers["Referrer-Policy"] = "same-origin"
+        if request.url.scheme == "https":
+            response.headers["Strict-Transport-Security"] = "max-age=15552000; includeSubDomains"
+        response.headers["Content-Security-Policy"] = ("default-src 'self'; script-src 'self'; "
+                                                       "style-src 'self' 'unsafe-inline'; img-src 'self' data:; frame-ancestors 'self'; object-src 'none'; base-uri 'none'; form-action 'self'")
+        return response
+
+
+SENSITIVE_GET = re.compile(r"^/api/(patients/\d+|plans/\d+(/report)?|consultations(/\d+/attachment)?|export/[\w.]+|admin/backup|templates/\d+/print)$")
+
+
+def audit(user: dict | None, method: str, path: str, status: int, username: str | None = None) -> None:
+    """Registro de actividad (quién, qué, cuándo). No guarda contenido de fichas ni cuerpos de petición."""
+    db = get_connection()
+    try:
+        db.execute("INSERT INTO audit_log (at, user_id, username, method, path, status) VALUES (?,?,?,?,?,?)",
+                   (datetime.now().strftime("%Y-%m-%d %H:%M:%S"), user["id"] if user else None, (user or {}).get("u") or username, method, path, status))
+        db.commit()
+    finally:
+        db.close()
+
+
+PUBLIC_PATHS = {"/api/auth/login", "/api/health", "/api/meta"}
+
+
+class AuthMiddleware(BaseHTTPMiddleware):
+    """Todo lo que cuelga de /api y la documentación exige sesión válida."""
+
+    async def dispatch(self, request: Request, call_next):
+        path = request.url.path
+        protected = path.startswith(("/api", "/docs", "/redoc", "/openapi"))
+        user = read_token(request.cookies.get(SESSION_COOKIE))
+        if user is not None:  # revalida contra la base: usuario desactivado o con otro rol pierde la sesión
+            db = get_connection()
+            try:
+                row = db.execute("SELECT role FROM users WHERE id = ? AND active = 1", (user["id"],)).fetchone()
+            finally:
+                db.close()
+            user = {**user, "r": row["role"]} if row else None
+        request.state.user = user
+        if protected and path not in PUBLIC_PATHS and request.state.user is None:
+            return JSONResponse({"detail": "Sesión requerida"}, status_code=401)
+        response = await call_next(request)
+        if user is not None and path.startswith("/api") and path != "/api/admin/audit" and (
+                request.method != "GET" or SENSITIVE_GET.match(path)):
+            audit(user, request.method, path, response.status_code)
+        return response
+
+
+app.add_middleware(AuthMiddleware)
+app.add_middleware(SecurityHeadersMiddleware)
+
+
+def admin_only(request: Request) -> dict:
+    user = request.state.user
+    if not user or user["r"] != "admin":
+        raise HTTPException(403, "Solo el administrador puede hacer esto")
+    return user
+
+
+@app.get("/api/health")
+def health() -> dict[str, str]:
+    return {"status": "ok"}
+
+
+@app.get("/api/meta")
+def meta() -> dict[str, Any]:
+    return {"name": APP_NAME, "ask_enabled": bool(os.getenv("OPENAI_API_KEY"))}
+
+
+class LoginIn(BaseModel):
+    username: str = Field(min_length=1, max_length=60)
+    password: str = Field(min_length=1, max_length=200)
+
+
+@app.post("/api/auth/login")
+def login(payload: LoginIn, request: Request, db: sqlite3.Connection = Depends(get_db)) -> Response:
+    key = (payload.username.lower(), request.client.host if request.client else "-")
+    if throttle.blocked(key):
+        raise HTTPException(429, "Demasiados intentos; espere 5 minutos")
+    row = db.execute("SELECT * FROM users WHERE username = ? AND active = 1", (payload.username,)).fetchone()
+    if row is None or not verify_password(payload.password, row["password_hash"]):
+        throttle.fail(key)
+        audit(None, "POST", "/api/auth/login", 401, payload.username[:60])
+        raise HTTPException(401, "Usuario o clave incorrectos")
+    throttle.reset(key)
+    audit({"id": row["id"], "u": row["username"]}, "POST", "/api/auth/login", 200)
+    user = {"id": row["id"], "username": row["username"], "role": row["role"], "name": row["name"]}
+    response = JSONResponse(user)
+    response.set_cookie(SESSION_COOKIE, make_token(user), max_age=SESSION_SECONDS, httponly=True, samesite="strict",
+                        secure=os.getenv("KINEPRO_COOKIE_SECURE") == "1" or request.url.scheme == "https")
+    return response
+
+
+@app.post("/api/auth/logout")
+def logout() -> Response:
+    response = JSONResponse({"ok": True})
+    response.delete_cookie(SESSION_COOKIE)
+    return response
+
+
+@app.get("/api/auth/me")
+def me(request: Request, db: sqlite3.Connection = Depends(get_db)) -> dict[str, Any]:
+    row = db.execute("SELECT id, username, name, role FROM users WHERE id = ? AND active = 1", (request.state.user["id"],)).fetchone()
+    if row is None:
+        raise HTTPException(401, "Sesión requerida")
+    return dict(row)
+
+
+class PasswordIn(BaseModel):
+    current: str
+    new: str = Field(min_length=10, max_length=200)
+
+
+@app.post("/api/auth/password")
+def change_password(payload: PasswordIn, request: Request, db: sqlite3.Connection = Depends(get_db)) -> dict[str, bool]:
+    row = db.execute("SELECT * FROM users WHERE id = ?", (request.state.user["id"],)).fetchone()
+    if row is None or not verify_password(payload.current, row["password_hash"]):
+        raise HTTPException(403, "La clave actual no coincide")
+    db.execute("UPDATE users SET password_hash = ? WHERE id = ?", (hash_password(payload.new), row["id"]))
+    db.commit()
+    return {"ok": True}
+
+
+class UserIn(BaseModel):
+    username: str = Field(min_length=3, max_length=60, pattern=r"^[A-Za-z0-9_.@-]+$")
+    name: str = Field(min_length=1, max_length=120)
+    password: str | None = Field(default=None, min_length=10, max_length=200)
+    role: str = "profesional"
+    active: bool = True
+
+
+def _admins_left(db: sqlite3.Connection, excluding: int) -> int:
+    return db.execute("SELECT COUNT(*) FROM users WHERE role='admin' AND active=1 AND id != ?", (excluding,)).fetchone()[0]
+
+
+@app.get("/api/users")
+def list_users(request: Request, db: sqlite3.Connection = Depends(get_db)) -> list[dict[str, Any]]:
+    admin_only(request)
+    return [row_dict(r) for r in db.execute("SELECT id, username, name, role, active, created_at FROM users ORDER BY id")]
+
+
+@app.post("/api/users", status_code=201)
+def create_user(payload: UserIn, request: Request, db: sqlite3.Connection = Depends(get_db)) -> dict[str, Any]:
+    admin_only(request)
+    if payload.role not in ("admin", "profesional") or not payload.password:
+        raise HTTPException(422, "Rol no válido o clave faltante (mínimo 10 caracteres)")
+    try:
+        cursor = db.execute("INSERT INTO users (username, name, password_hash, role, active) VALUES (?,?,?,?,?)",
+                            (payload.username, payload.name, hash_password(payload.password), payload.role, int(payload.active)))
+        db.commit()
+    except sqlite3.IntegrityError as error:
+        raise HTTPException(409, "Ese usuario ya existe") from error
+    return row_dict(db.execute("SELECT id, username, name, role, active FROM users WHERE id = ?", (cursor.lastrowid,)).fetchone())
+
+
+@app.put("/api/users/{user_id}")
+def update_user(user_id: int, payload: UserIn, request: Request, db: sqlite3.Connection = Depends(get_db)) -> dict[str, Any]:
+    admin_only(request)
+    if payload.role not in ("admin", "profesional"):
+        raise HTTPException(422, "Rol no válido")
+    if (payload.role != "admin" or not payload.active) and _admins_left(db, user_id) == 0:
+        raise HTTPException(409, "Debe quedar al menos un administrador activo")
+    sets, params = ["username=?", "name=?", "role=?", "active=?"], [payload.username, payload.name, payload.role, int(payload.active)]
+    if payload.password:
+        sets.append("password_hash=?")
+        params.append(hash_password(payload.password))
+    try:
+        cursor = db.execute(f"UPDATE users SET {', '.join(sets)} WHERE id=?", (*params, user_id))
+        db.commit()
+    except sqlite3.IntegrityError as error:
+        raise HTTPException(409, "Ese usuario ya existe") from error
+    if cursor.rowcount == 0:
+        raise HTTPException(404, "Usuario no encontrado")
+    return row_dict(db.execute("SELECT id, username, name, role, active FROM users WHERE id = ?", (user_id,)).fetchone())
+
+
+@app.delete("/api/users/{user_id}", status_code=204)
+def delete_user(user_id: int, request: Request, db: sqlite3.Connection = Depends(get_db)) -> None:
+    admin_only(request)
+    if _admins_left(db, user_id) == 0:
+        raise HTTPException(409, "Debe quedar al menos un administrador activo")
+    db.execute("DELETE FROM users WHERE id = ?", (user_id,))
+    db.commit()
+
+
+def fold(text: str | None) -> str:
+    return "".join(c for c in unicodedata.normalize("NFD", (text or "").lower()) if unicodedata.category(c) != "Mn")
+
+
+class LibraryIn(BaseModel):
+    category: str
+    region: str | None = Field(default=None, max_length=60)
+    title: str = Field(min_length=1, max_length=160)
+    summary: str | None = Field(default=None, max_length=400)
+    content: str | None = Field(default=None, max_length=12000)
+    precautions: str | None = Field(default=None, max_length=2000)
+    tags: str | None = Field(default=None, max_length=300)
+
+
+LIB_COLUMNS = ("category", "region", "title", "summary", "content", "precautions", "tags")
+
+
+@app.get("/api/library/meta")
+def library_meta(db: sqlite3.Connection = Depends(get_db)) -> dict[str, Any]:
+    counts = {r["category"]: r["n"] for r in db.execute("SELECT category, COUNT(*) AS n FROM library_items GROUP BY category")}
+    regions = [r["region"] for r in db.execute("SELECT DISTINCT region FROM library_items WHERE region IS NOT NULL ORDER BY region")]
+    return {"categories": [{"id": k, "label": v, "count": counts.get(k, 0)} for k, v in CATEGORIES.items()], "regions": regions,
+            "total": sum(counts.values())}
+
+
+@app.get("/api/library")
+def library_search(q: str | None = None, category: str | None = None, region: str | None = None,
+                   db: sqlite3.Connection = Depends(get_db)) -> list[dict[str, Any]]:
+    sql, params = "SELECT * FROM library_items WHERE 1=1", []
+    if category:
+        sql, params = sql + " AND category = ?", [*params, category]
+    if region:
+        sql, params = sql + " AND region = ?", [*params, region]
+    rows = [dict(r) for r in db.execute(sql + " ORDER BY category, title", params)]
+    if q:
+        terms = fold(q).split()
+        def haystack(r): return fold(" ".join(str(r[c] or "") for c in ("title", "summary", "content", "tags", "region", "precautions")))
+        def rank(r):
+            title = fold(r["title"])
+            return -sum(3 if t in title else 1 for t in terms)
+        rows = sorted((r for r in rows if all(t in haystack(r) for t in terms)), key=rank)
+    return rows
+
+
+class AskIn(BaseModel):
+    question: str = Field(min_length=5, max_length=500)
+
+
+ASK_PROMPT = (
+    "Eres un asistente de apoyo educativo para kinesiólogos. Responde en español, de forma breve y clara, "
+    "usando EXCLUSIVAMENTE las entradas de la biblioteca entregadas como contexto. Si el contexto no alcanza "
+    "para responder, dilo y sugiere consultar guías clínicas o a un especialista. No des diagnósticos ni "
+    "indicaciones para un paciente concreto. Menciona siempre las precauciones y banderas rojas pertinentes. "
+    "Cita las entradas usadas por su título entre corchetes."
+)
+ask_log: dict[int, list[float]] = {}
+ASK_LIMIT_PER_HOUR = int(os.getenv("KINEPRO_ASK_LIMIT", "20"))
+
+
+@app.post("/api/library/ask")
+def library_ask(payload: AskIn, request: Request, db: sqlite3.Connection = Depends(get_db)) -> dict[str, Any]:
+    """Pregunta a un modelo de OpenAI. Solo se envían la pregunta y entradas de la biblioteca; nunca datos de pacientes."""
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:

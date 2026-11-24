@@ -1,0 +1,207 @@
+[PARTE 8 de 11] — responde solo: Recibido 8/11
+
+  ${tpls.length ? `<div class="cols" style="margin-top:1rem"><select id="addTplSel" aria-label="Plantilla">${opts(tpls, t => t.name)}</select><button class="btn soft sm" data-act="addToTpl" data-id="${i.id}">${ic("plus")}Agregar a plantilla</button></div>` : i.category === "ejercicio" ? `<p class="muted">Cree una plantilla en “Ejercicios para el hogar” para agregar este ejercicio.</p>` : ""}
+  ${me.role === "admin" ? `<p style="margin-top:1.4rem"><button class="btn ghost sm" data-act="delLib" data-id="${i.id}">Eliminar entrada</button></p>` : ""}`);
+}
+let tplItems = [], tplId = null;
+async function tplList() { const l = await api("/api/templates"); $("tplList").innerHTML = l.map(t => `<div class="lrow" data-act="tplOpen" data-id="${t.id}" tabindex="0" role="button"><div class="ti">${esc(t.name)}<span>${t.item_count} ejercicios</span></div>${t.notes ? `<p>${esc(t.notes)}</p>` : ""}</div>`).join("") || empty("Aún no hay plantillas", "Reúna ejercicios de la biblioteca en un programa para entregar al paciente."); }
+function drawTplItems() { $("tplItems").innerHTML = tplItems.map((it, i) => `<div class="item"><div style="display:flex;justify-content:space-between;gap:.5rem;align-items:center"><b>${i + 1}. ${esc(it.title)}</b><span style="display:flex;gap:.3rem"><button type="button" class="iconbtn" data-act="tplUp" data-i="${i}" aria-label="Subir ${esc(it.title)}" ${i ? "" : "disabled"}>${ic("up", "sm")}</button><button type="button" class="iconbtn" data-act="tplRm" data-i="${i}" aria-label="Quitar ${esc(it.title)}">${ic("x", "sm")}</button></span></div><input placeholder="Series / repeticiones (lo define usted)" aria-label="Dosificación" value="${esc(it.dosage || "")}" data-k="dosage" data-i="${i}" maxlength="80"><input placeholder="Indicación para el paciente (opcional)" aria-label="Indicación" value="${esc(it.notes || "")}" data-k="notes" data-i="${i}" maxlength="300"></div>`).join("") || '<p class="muted">Agregue ejercicios con el buscador.</p>'; }
+async function openTemplate(id) {
+  tplId = id; let t = { name: "", notes: "", items: [] }; if (id) t = await api("/api/templates/" + id);
+  tplItems = t.items.map(i => ({ library_item_id: i.library_item_id, title: i.title, dosage: i.dosage, notes: i.notes }));
+  sheet(`${sheetTop()}<h2>${id ? "Editar plantilla" : "Nueva plantilla"}</h2><div class="notice">${ic("alert")}<span>Contenido de la biblioteca redactado con apoyo de IA y sin validar por un kinesiólogo: revise cada ejercicio antes de entregarlo.</span></div>
+  <div class="stack"><label class="field"><span>Nombre</span><input id="tplName" value="${esc(t.name)}" maxlength="120" placeholder="Rodilla – fase inicial"></label><label class="field"><span>Indicaciones generales</span><textarea id="tplNotes" rows="2" maxlength="600">${esc(t.notes || "")}</textarea></label>
+  <div class="search"><svg class="ic"><use href="#i-search"/></svg><input id="tplQ" type="search" placeholder="Buscar ejercicio de la biblioteca" autocomplete="off" aria-label="Buscar ejercicio"></div><div class="pick" id="tplRes"></div><div id="tplItems"></div>
+  <button class="btn block" data-act="tplSave">Guardar plantilla</button>
+  ${id ? `<div class="cols"><select id="tplPatient" aria-label="Paciente"><option value="">Sin nombre de paciente</option>${opts(pats, p => p.name)}</select><button class="btn soft" data-act="tplPrint" data-id="${id}">${ic("print")}Imprimir / PDF</button></div><button class="btn ghost sm" data-act="tplDel" data-id="${id}">Eliminar plantilla</button>` : ""}</div>`);
+  drawTplItems();
+  $("tplItems").addEventListener("input", e => { const k = e.target.dataset.k; if (k) tplItems[+e.target.dataset.i][k] = e.target.value; });
+  let tt; $("tplQ").addEventListener("input", () => { clearTimeout(tt); tt = setTimeout(async () => { const l = (await api("/api/library?category=ejercicio&q=" + encodeURIComponent($("tplQ").value.trim())).catch(() => [])).slice(0, 8); $("tplRes").innerHTML = l.map(i => `<button type="button" class="chip" aria-pressed="false" data-act="tplAdd" data-id="${i.id}" data-t="${esc(i.title)}">+ ${esc(i.title)}</button>`).join("") || '<span class="muted">Sin resultados</span>'; }, 200); });
+}
+async function saveTemplate() {
+  try { const name = $("tplName").value.trim(); if (!name) return say("Ponga un nombre a la plantilla");
+    const body = { name, notes: nul($("tplNotes").value), items: tplItems.map(i => ({ library_item_id: i.library_item_id, dosage: nul(i.dosage), notes: nul(i.notes) })) };
+    const t = tplId ? await send("PUT", "/api/templates/" + tplId, body) : await post("/api/templates", body); say("Plantilla guardada"); tplList(); await openTemplate(t.id); } catch (x) { fail(x); }
+}
+$("libTabs").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; document.querySelectorAll("#libTabs button").forEach(x => x.setAttribute("aria-pressed", x === b)); $("libPane").hidden = b.dataset.p !== "lib"; $("tplPane").hidden = b.dataset.p !== "tpl"; if (b.dataset.p === "tpl") tplList().catch(fail); });
+
+/* ---------- administración ---------- */
+async function audits() {
+  const l = await api("/api/admin/audit?limit=60");
+  $("auditList").innerHTML = l.map(e => `<div class="rowl" style="padding:.5rem .1rem"><div class="d" style="min-width:5.6rem;font-size:.8rem">${esc(e.at.slice(5, 16).replace("-", "/"))}</div><div class="grow" style="font-size:.88rem"><b>${esc(e.username || "—")}</b> · ${esc(e.method)} ${esc(e.path.replace("/api/", ""))} <span class="tag ${e.status >= 400 ? "wait" : ""}">${+e.status}</span></div></div>`).join("") || '<p class="muted">Sin actividad registrada.</p>';
+}
+async function users() { const l = await api("/api/users"); $("userList").innerHTML = l.map(u => `<div class="rowl"><div class="grow"><b>${esc(u.name)}</b> <span class="muted">@${esc(u.username)}</span></div><span class="tag">${u.role}${u.active ? "" : " · inactivo"}</span></div>`).join(""); }
+const simple = (id, fn) => $(id).addEventListener("submit", async e => { e.preventDefault(); try { await fn(); e.target.reset(); say("Guardado"); } catch (x) { fail(x); } });
+simple("fUser", async () => { await post("/api/users", { username: $("uUser").value, name: $("uName").value, password: $("uPass").value, role: $("uRole").value }); users(); });
+simple("fPass", () => post("/api/auth/password", { current: $("pwOld").value, new: $("pwNew").value }));
+simple("fLib", async () => { await post("/api/library", { category: $("lCat").value, region: nul($("lRegion").value), title: $("lTitle").value, summary: nul($("lSum").value), content: nul($("lBody").value), precautions: nul($("lPrec").value), tags: nul($("lTags").value) }); libMeta(); libSearch(); });
+
+/* ---------- acciones (delegación) ---------- */
+const A = {
+  close: closeSheet,
+  logout: async () => { await api("/api/auth/logout", { method: "POST" }); location.reload(); },
+  today: () => setDay(localDay()),
+  week: b => setDay(localDay(new Date(parseDay($("day").value).getTime() + (+b.dataset.n) * 864e5))),
+  day: b => setDay(b.dataset.d),
+  newAppt: () => apptForm(), newPatient: () => sheet(patientForm()), newPay: payForm,
+  patient: b => openPatient(+b.dataset.id), ptab: b => openPatient(+b.dataset.id, b.dataset.tab),
+  archive: async b => { const p = patient(b.dataset.id); if (p.active && !confirm("¿Archivar a " + p.name + "? Su historial se conserva y deja de aparecer en las listas de trabajo.")) return; try { await send("PUT", "/api/patients/" + p.id, { name: p.name, rut: p.rut, birth_date: p.birth_date, phone: p.phone, email: p.email, insurance: p.insurance, allergies: p.allergies, occupation: p.occupation, history: p.history, active: !p.active }); say(p.active ? "Paciente archivado" : "Paciente reactivado"); await load(); openPatient(p.id); } catch (x) { fail(x); } },
+  editPatient: b => sheet(patientForm(patient(b.dataset.id))),
+  plan: b => openPlan(+b.dataset.id), sched: b => schedForm(b.dataset.id),
+  planStatus: b => planStatus(+b.dataset.id, b.dataset.s),
+  attendAppt: b => startAttention(+b.dataset.id), attendPat: b => startAttention(null, { patient: b.dataset.id }),
+  attendPlan: b => startAttention(null, { patient: b.dataset.pt, plan: b.dataset.id }),
+  lib: b => libDetail(+b.dataset.id).catch(fail),
+  delLib: async b => { if (confirm("¿Eliminar esta entrada de la biblioteca?")) try { await api("/api/library/" + b.dataset.id, { method: "DELETE" }); closeSheet(); libMeta(); libSearch(); } catch (x) { fail(x); } },
+  addToTpl: async b => { try { const id = +$("addTplSel").value, tp = await api("/api/templates/" + id); await send("PUT", "/api/templates/" + id, { name: tp.name, notes: tp.notes, items: [...tp.items.map(i => ({ library_item_id: i.library_item_id, dosage: i.dosage, notes: i.notes })), { library_item_id: +b.dataset.id }] }); say("Agregado a la plantilla"); } catch (x) { fail(x); } },
+  homePrint: b => { const tid = $("homeTpl").value; if (!tid) return say("Cree primero una plantilla"); window.open(`/api/templates/${tid}/print?patient_id=${b.dataset.pt}`, "_blank", "noopener"); },
+  tplNew: () => openTemplate(null).catch(fail), tplOpen: b => openTemplate(+b.dataset.id).catch(fail), tplSave: saveTemplate,
+  tplDel: async b => { if (confirm("¿Eliminar esta plantilla?")) try { await api("/api/templates/" + b.dataset.id, { method: "DELETE" }); closeSheet(); tplList(); } catch (x) { fail(x); } },
+  tplPrint: b => window.open(`/api/templates/${b.dataset.id}/print${$("tplPatient").value ? "?patient_id=" + $("tplPatient").value : ""}`, "_blank", "noopener"),
+  tplAdd: b => { tplItems.push({ library_item_id: +b.dataset.id, title: b.dataset.t, dosage: "", notes: "" }); drawTplItems(); $("tplQ").value = ""; $("tplRes").innerHTML = ""; },
+  tplUp: b => { const i = +b.dataset.i; if (i > 0) { [tplItems[i - 1], tplItems[i]] = [tplItems[i], tplItems[i - 1]]; drawTplItems(); } },
+  planReport: b => window.open(`/api/plans/${b.dataset.id}/report`, "_blank", "noopener"),
+  planEdit: b => planEditForm(+b.dataset.id),
+  resched: b => apptForm({ edit: agendaCache.find(a => a.id === +b.dataset.id) }),
+  tplRm: b => { tplItems.splice(+b.dataset.i, 1); drawTplItems(); },
+};
+function setDay(d) { $("day").value = d; agenda().catch(fail); }
+document.addEventListener("click", e => { const b = e.target.closest("[data-act]"); if (b && A[b.dataset.act]) A[b.dataset.act](b, e); const t = e.target.closest("nav.tabs button"); if (t) go(t.dataset.t); });
+document.addEventListener("keydown", e => { if ((e.key === "Enter" || e.key === " ") && e.target.matches("[role=button][data-act]")) { e.preventDefault(); A[e.target.dataset.act](e.target, e); } });
+document.addEventListener("change", async e => {
+  if (e.target.id === "apPat") return fillApPlans();
+  const s = e.target.dataset.status; if (!s) return;
+  try { const f = new FormData(); f.append("status", e.target.value); await api(`/api/appointments/${s}/status`, { method: "POST", body: f }); await refresh(); } catch (x) { fail(x); await agenda(); }
+});
+$("day").addEventListener("change", () => agenda().catch(fail));
+$("agPro").addEventListener("change", () => agenda().catch(fail));
+
+document.addEventListener("submit", async e => {
+  const f = e.target, kind = f.dataset.form; if (!kind) return; e.preventDefault(); const q = f.elements;
+  try {
+    if (kind === "patient") {
+      const body = { name: q.name.value.trim(), rut: nul(q.rut.value), birth_date: nul(q.birth_date.value), phone: nul(q.phone.value), email: nul(q.email.value), insurance: nul(q.insurance.value), allergies: nul(q.allergies.value), occupation: nul(q.occupation.value), history: nul(q.history.value), active: true };
+      const id = f.dataset.id, saved = id ? await send("PUT", "/api/patients/" + id, body) : await post("/api/patients", body);
+      say(id ? "Paciente actualizado" : "Paciente registrado"); await load(); id ? openPatient(saved.id) : openPatient(saved.id, "planes");
+    } else if (kind === "plan") {
+      const pt = +f.dataset.id; await post("/api/plans", { patient_id: pt, title: q.title.value, reason: nul(q.reason.value), kine_diagnosis: nul(q.dx.value), total_sessions: +q.n.value });
+      say("Plan creado"); await load(); openPatient(pt, "planes");
+    } else if (kind === "planedit") {
+      const id = +f.dataset.id, p = await api("/api/plans/" + id);
+      await send("PUT", "/api/plans/" + id, { patient_id: p.patient_id, professional_id: p.professional_id, title: q.title.value, reason: nul(q.reason.value), kine_diagnosis: nul(q.dx.value), total_sessions: +q.n.value, status: p.status });
+      say("Plan actualizado"); await load(); openPlan(id);
+    } else if (kind === "series") {
+      const r = await post(`/api/plans/${f.dataset.id}/schedule`, { professional_id: +q.p.value, starts_at: q.s.value, count: +q.n.value, interval_days: +q.i.value, duration_min: +q.d.value, room: nul(q.r.value) });
+      say(`${r.created.length} sesiones agendadas` + (r.skipped.length ? ` · ${r.skipped.length} omitidas por choque` : "") + (r.capped ? " · tope del plan" : ""));
+      const card = f.closest(".plancard"); if (r.skipped.length) card.insertAdjacentHTML("beforeend", `<div class="notice">${ic("alert")}<span>Omitidas: ${r.skipped.map(s => esc(s.starts_at.replace("T", " ")) + " (" + esc(s.reason) + ")").join("; ")}</span></div>`);
+      f.remove(); await load(); agenda();
+    } else if (kind === "appt") {
+      const s = q.start.value, id = f.dataset.id, body = { patient_id: +q.patient.value, professional_id: +q.pro.value, starts_at: s, duration_min: +q.dur.value || 45, room: nul(q.room.value), reason: nul(q.reason.value), plan_id: q.plan.value ? +q.plan.value : null };
+      id ? await send("PUT", "/api/appointments/" + id, { ...body, status: agendaCache.find(a => a.id === +id)?.status || "scheduled" }) : await post("/api/appointments", body);
+      closeSheet(); say(id ? "Sesión reprogramada" : "Sesión agendada"); $("day").value = s.slice(0, 10); await load(); agenda();
+    } else if (kind === "pay") {
+      await post("/api/payments", { patient_id: +q.patient.value, concept: q.concept.value, amount: +q.amount.value, method: q.method.value }); closeSheet(); say("Pago registrado"); pays();
+    }
+  } catch (x) { fail(x); }
+});
+$("detail").addEventListener("input", () => { });
+
+/* ---------- sesión ---------- */
+function showLogin() { $("login").style.display = "grid"; document.querySelectorAll("header,main,nav,.fab").forEach(x => x.inert = true); }
+async function start() {
+  try { me = await api("/api/auth/me"); $("login").style.display = "none"; document.querySelectorAll("header,main,nav,.fab").forEach(x => x.inert = false); $("tabAdmin").hidden = me.role !== "admin"; $("day").value = localDay();
+    await Promise.all([load(), libMeta()]); await Promise.all([agenda(), cons(), libSearch()]); go("agenda"); } catch { showLogin(); }
+}
+$("fLogin").addEventListener("submit", async e => { e.preventDefault(); $("lgErr").textContent = ""; try { await post("/api/auth/login", { username: $("lgUser").value, password: $("lgPass").value }); $("lgPass").value = ""; start(); } catch (x) { $("lgErr").textContent = x.message; } });
+fetch("/api/meta").then(r => r.json()).then(m => { $("askBox").hidden = !m.ask_enabled; document.title = m.name; }).catch(() => { });
+$("fAsk").addEventListener("submit", async e => { e.preventDefault(); $("askOut").innerHTML = '<p class="muted">Consultando…</p>'; try { const r = await post("/api/library/ask", { question: $("askQ").value }); $("askOut").innerHTML = `<div class="panel"><div style="white-space:pre-wrap">${esc(r.answer)}</div><div class="muted" style="margin-top:.6rem">Fuentes: ${r.sources.map(s => `<a href="#" data-act="lib" data-id="${s.id}">${esc(s.title)}</a>`).join(" · ") || "—"}</div></div>`; } catch (x) { $("askOut").innerHTML = ""; fail(x); } });
+$("askOut").addEventListener("click", e => { if (e.target.closest("a[data-act]")) e.preventDefault(); });
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(() => { });
+start();
+
+
+==================== KinePro/app/static/fonts/OFL-Figtree.txt ====================
+Copyright 2022 The Figtree Project Authors (https://github.com/erikdkennedy/figtree) Figtree-Italic[wght].ttf: Copyright 2022 The Figtree Project Authors (https://github.com/erikdkennedy/figtree)
+
+This Font Software is licensed under the SIL Open Font License, Version 1.1.
+This license is copied below, and is also available with a FAQ at:
+http://scripts.sil.org/OFL
+
+
+-----------------------------------------------------------
+SIL OPEN FONT LICENSE Version 1.1 - 26 February 2007
+-----------------------------------------------------------
+
+PREAMBLE
+The goals of the Open Font License (OFL) are to stimulate worldwide
+development of collaborative font projects, to support the font creation
+efforts of academic and linguistic communities, and to provide a free and
+open framework in which fonts may be shared and improved in partnership
+with others.
+
+The OFL allows the licensed fonts to be used, studied, modified and
+redistributed freely as long as they are not sold by themselves. The
+fonts, including any derivative works, can be bundled, embedded,
+redistributed and/or sold with any software provided that any reserved
+names are not used by derivative works. The fonts and derivatives,
+however, cannot be released under any other type of license. The
+requirement for fonts to remain under this license does not apply
+to any document created using the fonts or their derivatives.
+
+DEFINITIONS
+"Font Software" refers to the set of files released by the Copyright
+Holder(s) under this license and clearly marked as such. This may
+include source files, build scripts and documentation.
+
+"Reserved Font Name" refers to any names specified as such after the
+copyright statement(s).
+
+"Original Version" refers to the collection of Font Software components as
+distributed by the Copyright Holder(s).
+
+"Modified Version" refers to any derivative made by adding to, deleting,
+or substituting -- in part or in whole -- any of the components of the
+Original Version, by changing formats or by porting the Font Software to a
+new environment.
+
+"Author" refers to any designer, engineer, programmer, technical
+writer or other person who contributed to the Font Software.
+
+PERMISSION & CONDITIONS
+Permission is hereby granted, free of charge, to any person obtaining
+a copy of the Font Software, to use, study, copy, merge, embed, modify,
+redistribute, and sell modified and unmodified copies of the Font
+Software, subject to the following conditions:
+
+1) Neither the Font Software nor any of its individual components,
+in Original or Modified Versions, may be sold by itself.
+
+2) Original or Modified Versions of the Font Software may be bundled,
+redistributed and/or sold with any software, provided that each copy
+contains the above copyright notice and this license. These can be
+included either as stand-alone text files, human-readable headers or
+in the appropriate machine-readable metadata fields within text or
+binary files as long as those fields can be easily viewed by the user.
+
+3) No Modified Version of the Font Software may use the Reserved Font
+Name(s) unless explicit written permission is granted by the corresponding
+Copyright Holder. This restriction only applies to the primary font name as
+presented to the users.
+
+4) The name(s) of the Copyright Holder(s) or the Author(s) of the Font
+Software shall not be used to promote, endorse or advertise any
+Modified Version, except to acknowledge the contribution(s) of the
+Copyright Holder(s) and the Author(s) or with their explicit written
+permission.
+
+5) The Font Software, modified or unmodified, in part or in whole,
+must be distributed entirely under this license, and must not be
+distributed under any other license. The requirement for fonts to
+remain under this license does not apply to any document created
+using the Font Software.
+
+TERMINATION
+This license becomes null and void if any of the above conditions are
+not met.
+
+DISCLAIMER

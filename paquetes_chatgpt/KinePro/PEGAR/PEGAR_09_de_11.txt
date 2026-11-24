@@ -1,0 +1,240 @@
+[PARTE 9 de 11] — responde solo: Recibido 9/11
+
+THE FONT SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO ANY WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT
+OF COPYRIGHT, PATENT, TRADEMARK, OR OTHER RIGHT. IN NO EVENT SHALL THE
+COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+INCLUDING ANY GENERAL, SPECIAL, INDIRECT, INCIDENTAL, OR CONSEQUENTIAL
+DAMAGES, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+FROM, OUT OF THE USE OR INABILITY TO USE THE FONT SOFTWARE OR FROM
+OTHER DEALINGS IN THE FONT SOFTWARE.
+
+
+==================== KinePro/app/static/fonts/OFL-Fraunces.txt ====================
+Copyright 2020 The Fraunces Project Authors (github.com/undercasetype/Fraunces) Fraunces-Italic[SOFT,WONK,opsz,wght].ttf: Copyright 2020 The Fraunces Project Authors (github.com/undercasetype/Fraunces)
+
+This Font Software is licensed under the SIL Open Font License, Version 1.1.
+This license is copied below, and is also available with a FAQ at:
+http://scripts.sil.org/OFL
+
+
+-----------------------------------------------------------
+SIL OPEN FONT LICENSE Version 1.1 - 26 February 2007
+-----------------------------------------------------------
+
+PREAMBLE
+The goals of the Open Font License (OFL) are to stimulate worldwide
+development of collaborative font projects, to support the font creation
+efforts of academic and linguistic communities, and to provide a free and
+open framework in which fonts may be shared and improved in partnership
+with others.
+
+The OFL allows the licensed fonts to be used, studied, modified and
+redistributed freely as long as they are not sold by themselves. The
+fonts, including any derivative works, can be bundled, embedded,
+redistributed and/or sold with any software provided that any reserved
+names are not used by derivative works. The fonts and derivatives,
+however, cannot be released under any other type of license. The
+requirement for fonts to remain under this license does not apply
+to any document created using the fonts or their derivatives.
+
+DEFINITIONS
+"Font Software" refers to the set of files released by the Copyright
+Holder(s) under this license and clearly marked as such. This may
+include source files, build scripts and documentation.
+
+"Reserved Font Name" refers to any names specified as such after the
+copyright statement(s).
+
+"Original Version" refers to the collection of Font Software components as
+distributed by the Copyright Holder(s).
+
+"Modified Version" refers to any derivative made by adding to, deleting,
+or substituting -- in part or in whole -- any of the components of the
+Original Version, by changing formats or by porting the Font Software to a
+new environment.
+
+"Author" refers to any designer, engineer, programmer, technical
+writer or other person who contributed to the Font Software.
+
+PERMISSION & CONDITIONS
+Permission is hereby granted, free of charge, to any person obtaining
+a copy of the Font Software, to use, study, copy, merge, embed, modify,
+redistribute, and sell modified and unmodified copies of the Font
+Software, subject to the following conditions:
+
+1) Neither the Font Software nor any of its individual components,
+in Original or Modified Versions, may be sold by itself.
+
+2) Original or Modified Versions of the Font Software may be bundled,
+redistributed and/or sold with any software, provided that each copy
+contains the above copyright notice and this license. These can be
+included either as stand-alone text files, human-readable headers or
+in the appropriate machine-readable metadata fields within text or
+binary files as long as those fields can be easily viewed by the user.
+
+3) No Modified Version of the Font Software may use the Reserved Font
+Name(s) unless explicit written permission is granted by the corresponding
+Copyright Holder. This restriction only applies to the primary font name as
+presented to the users.
+
+4) The name(s) of the Copyright Holder(s) or the Author(s) of the Font
+Software shall not be used to promote, endorse or advertise any
+Modified Version, except to acknowledge the contribution(s) of the
+Copyright Holder(s) and the Author(s) or with their explicit written
+permission.
+
+5) The Font Software, modified or unmodified, in part or in whole,
+must be distributed entirely under this license, and must not be
+distributed under any other license. The requirement for fonts to
+remain under this license does not apply to any document created
+using the Font Software.
+
+TERMINATION
+This license becomes null and void if any of the above conditions are
+not met.
+
+DISCLAIMER
+THE FONT SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO ANY WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT
+OF COPYRIGHT, PATENT, TRADEMARK, OR OTHER RIGHT. IN NO EVENT SHALL THE
+COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+INCLUDING ANY GENERAL, SPECIAL, INDIRECT, INCIDENTAL, OR CONSEQUENTIAL
+DAMAGES, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+FROM, OUT OF THE USE OR INABILITY TO USE THE FONT SOFTWARE OR FROM
+OTHER DEALINGS IN THE FONT SOFTWARE.
+
+
+==================== KinePro/app/static/icon.svg ====================
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96"><rect width="96" height="96" rx="22" fill="#1f5c52"/><path d="M26 70V28" stroke="#f5f0e8" stroke-width="7" stroke-linecap="round"/><path d="M26 70h44" stroke="#f5f0e8" stroke-width="7" stroke-linecap="round"/><path d="M26 70 62 34" stroke="#f08a5d" stroke-width="7" stroke-linecap="round"/><circle cx="26" cy="70" r="7" fill="#f5f0e8"/></svg>
+
+
+==================== KinePro/app/static/index.html ====================
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1f5c52">
+<meta name="color-scheme" content="light dark">
+<link rel="manifest" href="/static/manifest.webmanifest">
+<link rel="icon" href="/static/icon.svg" type="image/svg+xml">
+<link rel="preload" href="/static/fonts/fraunces-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/static/fonts/figtree-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/static/app.css">
+<title>KinePro</title>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M8 3v4M16 3v4M3.5 10h17"/></symbol>
+<symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.2-5.5 6.5-5.5s5.9 1.9 6.5 5.5"/><path d="M16 4.8a3.4 3.4 0 0 1 0 6.4M18 14.8c2 .7 3.2 2.4 3.5 5.2"/></symbol>
+<symbol id="i-note" viewBox="0 0 24 24"><path d="M8 4H6.5A2.5 2.5 0 0 0 4 6.5v12A2.5 2.5 0 0 0 6.5 21h11a2.5 2.5 0 0 0 2.5-2.5v-12A2.5 2.5 0 0 0 17.5 4H16"/><rect x="8" y="2.5" width="8" height="3.5" rx="1.5"/><path d="M8 12h8M8 16h5"/></symbol>
+<symbol id="i-book" viewBox="0 0 24 24"><path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v16H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 20.5A2.5 2.5 0 0 0 6.5 22H20"/></symbol>
+<symbol id="i-wallet" viewBox="0 0 24 24"><path d="M3.5 7.5A2.5 2.5 0 0 1 6 5h12.5v3"/><path d="M3.5 7.5V18A2.5 2.5 0 0 0 6 20.5h13.5a1 1 0 0 0 1-1V9a1 1 0 0 0-1-1H6a2.5 2.5 0 0 1-2.5-.5z"/><circle cx="16.5" cy="14.2" r="1.2"/></symbol>
+<symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3 4.5 6v5.5c0 4.5 3 8 7.5 9.5 4.5-1.5 7.5-5 7.5-9.5V6z"/><path d="m9 12 2.2 2.2L15.5 10"/></symbol>
+<symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4-4"/></symbol>
+<symbol id="i-phone" viewBox="0 0 24 24"><path d="M5 4h3.5l1.7 4.3-2.2 1.4a11 11 0 0 0 5.3 5.3l1.4-2.2 4.3 1.7V18a2 2 0 0 1-2 2A13 13 0 0 1 3 6a2 2 0 0 1 2-2z"/></symbol>
+<symbol id="i-chat" viewBox="0 0 24 24"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H10l-4.5 4v-4H6.5A2.5 2.5 0 0 1 4 13.5z"/></symbol>
+<symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3.5 2.8 19.5h18.4z"/><path d="M12 10v4.5M12 17.2v.1"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
+<symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+<symbol id="i-left" viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></symbol>
+<symbol id="i-right" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></symbol>
+<symbol id="i-print" viewBox="0 0 24 24"><path d="M7 9V3.5h10V9"/><rect x="3.5" y="9" width="17" height="8" rx="2"/><path d="M7 14h10v6.5H7z"/></symbol>
+<symbol id="i-edit" viewBox="0 0 24 24"><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16z"/><path d="m13.5 6.5 4 4"/></symbol>
+<symbol id="i-out" viewBox="0 0 24 24"><path d="M10 4H6.5A2.5 2.5 0 0 0 4 6.5v11A2.5 2.5 0 0 0 6.5 20H10"/><path d="m15 8 4 4-4 4M19 12H9"/></symbol>
+<symbol id="i-down" viewBox="0 0 24 24"><path d="M12 4v11M7.5 11 12 15.5 16.5 11M5 20h14"/></symbol>
+<symbol id="i-up" viewBox="0 0 24 24"><path d="m5 15 7-7 7 7"/></symbol>
+<symbol id="i-spark" viewBox="0 0 24 24"><path d="m12 3 1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/></symbol>
+</defs></svg>
+
+<header class="top"><div class="brand"><img src="/static/icon.svg" alt="" width="30" height="30">KinePro</div>
+<div class="who"><a class="btn ghost sm" href="/api/export/appointments.csv" aria-label="Descargar citas en Excel"><svg class="ic sm"><use href="#i-down"/></svg>Excel</a><button class="iconbtn" data-act="logout" aria-label="Cerrar sesión"><svg class="ic"><use href="#i-out"/></svg></button></div></header>
+
+<main>
+<section id="agenda">
+  <div class="head"><div><h2 id="agTitle"></h2><p class="muted" id="agSub"></p></div><button class="btn soft sm" data-act="today">Hoy</button></div>
+  <div class="days"><button class="iconbtn" data-act="week" data-n="-7" aria-label="Semana anterior"><svg class="ic"><use href="#i-left"/></svg></button><div class="strip" id="strip"></div><button class="iconbtn" data-act="week" data-n="7" aria-label="Semana siguiente"><svg class="ic"><use href="#i-right"/></svg></button></div>
+  <div class="timeline" id="agendaList" aria-live="polite"></div>
+  <div class="cols" style="max-width:480px;margin-top:1.4rem"><label class="field"><span>Ir a una fecha</span><input type="date" id="day"></label><label class="field"><span>Profesional</span><select id="agPro"><option value="">Todos</option></select></label></div>
+</section>
+
+<section id="pacientes" hidden>
+  <div class="head"><div><h2>Pacientes</h2><p class="muted" id="patCount"></p></div><button class="btn sm" data-act="newPatient"><svg class="ic sm"><use href="#i-plus"/></svg>Nuevo</button></div>
+  <div class="search"><svg class="ic"><use href="#i-search"/></svg><input id="pSearch" type="search" placeholder="Buscar por nombre o RUT" aria-label="Buscar paciente"></div>
+  <div class="chips" style="margin-top:.5rem"><button class="chip" id="showArch" aria-pressed="false">Ver archivados</button></div>
+  <div class="plist" id="patList"></div>
+</section>
+
+<section id="atencion" hidden>
+  <div class="head"><div><h2>Registrar atención</h2><p class="muted">Dolor, rangos y enlaces a la biblioteca quedan en la evolución del plan.</p></div></div>
+  <form id="fCons" class="stack">
+    <div class="panel"><div class="cols"><label class="field"><span>Paciente</span><select id="cPatient" required></select></label><label class="field"><span>Profesional</span><select id="cPro" required></select></label></div>
+      <input type="hidden" id="cAppt"><p class="muted" id="cApptNote" hidden></p>
+      <label class="field" style="margin-top:.8rem"><span>Plan de tratamiento</span><select id="cPlan"></select></label></div>
+    <div class="panel"><h3>Dolor (EVA)</h3><div class="eva" id="evaRow"></div><div class="eva-scale"><span>Sin dolor</span><span>El peor imaginable</span></div></div>
+    <div class="panel"><h3>Rangos y mediciones</h3><div id="measRows"></div><div class="pick"><button type="button" class="btn ghost sm" id="addMeas"><svg class="ic sm"><use href="#i-plus"/></svg>Medición</button><button type="button" class="btn ghost sm" id="repeatMeas">Repetir las de la sesión anterior</button></div>
+      <datalist id="measNames"><option value="Flexión de rodilla"><option value="Extensión de rodilla"><option value="Flexión de hombro"><option value="Abducción de hombro"><option value="Rotación externa de hombro"><option value="Flexión de cadera"><option value="Flexión lumbar (dedos-suelo)"><option value="Dorsiflexión de tobillo"></datalist></div>
+    <div class="panel"><h3>Evolución clínica</h3><div class="stack">
+      <label class="field"><span>Hallazgos / diagnóstico</span><input id="cDiag"></label>
+      <label class="field"><span>Tratamiento realizado e indicaciones</span><textarea id="cTreat" rows="3"></textarea></label>
+      <label class="field"><span>Notas</span><textarea id="cNotes" rows="2"></textarea></label></div></div>
+    <div class="panel"><h3>Entradas de la biblioteca usadas</h3><div class="search"><svg class="ic"><use href="#i-search"/></svg><input id="linkQ" type="search" placeholder="Buscar: Lachman, puente, TENS" autocomplete="off" aria-label="Buscar en la biblioteca"></div><div class="pick" id="linkRes"></div><div class="pick" id="linkSel"></div>
+      <label class="field" style="margin-top:.8rem"><span>Adjuntar examen (foto o PDF)</span><input type="file" id="cFile" accept="image/*,.pdf"></label></div>
+    <button class="btn block" style="min-height:52px">Guardar atención</button>
+  </form>
+  <h3>Últimas atenciones</h3><div id="consList"></div>
+</section>
+
+<section id="biblioteca" hidden>
+  <div class="head"><div><h2>Biblioteca</h2><p class="muted" id="libCount"></p></div></div>
+  <div class="seg" id="libTabs"><button aria-pressed="true" data-p="lib">Consulta clínica</button><button aria-pressed="false" data-p="tpl">Ejercicios para el hogar</button></div>
+  <div class="notice"><svg class="ic sm"><use href="#i-alert"/></svg><span>Contenido redactado con apoyo de IA, <b>aún no validado por un kinesiólogo</b>. Verifíquelo con guías vigentes antes de aplicarlo.</span></div>
+  <div id="libPane">
+    <div class="search"><svg class="ic"><use href="#i-search"/></svg><input id="q" type="search" placeholder="Ciática, Lachman, hombro, TENS" autocomplete="off" aria-label="Buscar en la biblioteca"></div>
+    <div class="chips" id="cats" style="margin-top:.5rem"></div><label class="field"><span class="sr">Región</span><select id="regSel"><option value="">Todas las regiones</option></select></label>
+    <div id="askBox" hidden><form id="fAsk" class="stack" style="margin:.9rem 0 .3rem"><label class="field"><span>Pregunte a la biblioteca</span><input id="askQ" placeholder="¿Cómo diferencio Lachman de cajón anterior?" minlength="5" maxlength="500"></label><button class="btn soft"><svg class="ic sm"><use href="#i-spark"/></svg>Preguntar con IA</button></form><div id="askOut"></div><p class="muted">La pregunta se envía a OpenAI junto con entradas de la biblioteca. <b>No escriba nombres ni datos de pacientes.</b> La respuesta puede contener errores: verifique en las entradas citadas.</p></div>
+    <div class="lib" id="libList"></div>
+    <p class="muted" style="margin-top:1.4rem">Material de apoyo educativo para profesionales de la salud. No reemplaza el juicio clínico ni las guías vigentes.</p>
+  </div>
+  <div id="tplPane" hidden><div style="margin:.9rem 0"><button class="btn" data-act="tplNew"><svg class="ic sm"><use href="#i-plus"/></svg>Nueva plantilla</button></div><div id="tplList"></div>
+    <p class="muted">Arme una plantilla con ejercicios de la biblioteca; las series y repeticiones las define usted. Se imprime o guarda como PDF con el nombre del paciente.</p></div>
+</section>
+
+<section id="caja" hidden>
+  <div class="head"><div><h2>Caja</h2><p class="muted">Ingresos del mes</p><div class="money" id="money">—</div><p class="muted" id="monthSess"></p></div><button class="btn sm" data-act="newPay"><svg class="ic sm"><use href="#i-plus"/></svg>Pago</button></div>
+  <a class="btn ghost sm" href="/api/export/payments.csv"><svg class="ic sm"><use href="#i-down"/></svg>Descargar pagos (Excel)</a>
+  <div id="payList" style="margin-top:.8rem"></div>
+</section>
+
+<section id="admin" hidden>
+  <div class="head"><div><h2>Administración</h2></div></div>
+  <div class="panel"><h3>Usuarios</h3><div id="userList"></div>
+    <form id="fUser" class="stack"><div class="cols"><label class="field"><span>Nombre</span><input id="uName" required></label><label class="field"><span>Usuario</span><input id="uUser" required autocomplete="off"></label></div>
+    <div class="cols"><label class="field"><span>Clave (mín. 10 caracteres)</span><input id="uPass" type="password" minlength="10" required autocomplete="new-password"></label><label class="field"><span>Rol</span><select id="uRole"><option value="profesional">Profesional</option><option value="admin">Administrador</option></select></label></div><button class="btn">Crear usuario</button></form></div>
+  <div class="panel"><h3>Actividad reciente</h3><p class="muted">Quién entró, creó, modificó o consultó fichas, exportó o descargó respaldos. No guarda el contenido clínico.</p><div id="auditList"></div></div>
+  <div class="panel"><h3>Respaldo</h3><p class="muted">Descarga la base de datos y los adjuntos en un .zip. Guárdelo fuera del servidor: en el plan gratuito de Render los datos se pierden al reiniciar.</p><a class="btn soft" href="/api/admin/backup" download>Descargar respaldo</a></div>
+  <div class="panel"><h3>Mi clave</h3><form id="fPass" class="stack"><div class="cols"><label class="field"><span>Clave actual</span><input id="pwOld" type="password" required autocomplete="current-password"></label><label class="field"><span>Nueva clave (mín. 10)</span><input id="pwNew" type="password" minlength="10" required autocomplete="new-password"></label></div><button class="btn">Cambiar clave</button></form></div>
+  <div class="panel"><h3>Agregar a la biblioteca</h3><form id="fLib" class="stack"><div class="cols"><label class="field"><span>Categoría</span><select id="lCat"></select></label><label class="field"><span>Región</span><input id="lRegion" placeholder="Ej.: Hombro"></label></div>
+    <label class="field"><span>Título</span><input id="lTitle" required></label><label class="field"><span>Resumen</span><input id="lSum"></label><label class="field"><span>Contenido</span><textarea id="lBody" rows="5"></textarea></label>
+    <label class="field"><span>Precauciones / contraindicaciones</span><input id="lPrec"></label><label class="field"><span>Etiquetas (separadas por coma)</span><input id="lTags"></label><button class="btn">Guardar entrada</button></form></div>
+</section>
+</main>
+
+<button class="fab" id="fab" data-act="newAppt" aria-label="Agendar una sesión"><svg class="ic"><use href="#i-plus"/></svg></button>
+
+<nav class="tabs" aria-label="Secciones">
+<button aria-current="page" data-t="agenda"><svg class="ic"><use href="#i-calendar"/></svg>Agenda</button>
+<button data-t="pacientes"><svg class="ic"><use href="#i-users"/></svg>Pacientes</button>
+<button data-t="atencion"><svg class="ic"><use href="#i-note"/></svg>Atención</button>
+<button data-t="biblioteca"><svg class="ic"><use href="#i-book"/></svg>Biblioteca</button>
+<button data-t="caja"><svg class="ic"><use href="#i-wallet"/></svg>Caja</button>
+<button data-t="admin" id="tabAdmin" hidden><svg class="ic"><use href="#i-shield"/></svg>Admin</button>
+</nav>
+
+<div id="detail" role="dialog" aria-modal="true"><div id="detailBody"></div></div>
+
+<div id="login" role="dialog" aria-modal="true" aria-label="Ingresar a KinePro"><div class="hero"><div class="brand"><img src="/static/icon.svg" alt="" width="42" height="42">KinePro</div><p>Cada sesión, con su evolución a la vista.</p></div>

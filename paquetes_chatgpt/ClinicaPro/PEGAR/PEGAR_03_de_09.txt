@@ -1,0 +1,327 @@
+[PARTE 3 de 9] — responde solo: Recibido 3/9
+
+        """SELECT a.id, a.starts_at, a.duration_min, p.name AS paciente, p.rut, pr.name AS profesional,
+                  pr.specialty AS especialidad, a.room AS sala, a.reason AS motivo, a.status AS estado
+           FROM appointments a JOIN patients p ON p.id = a.patient_id
+           JOIN professionals pr ON pr.id = a.professional_id ORDER BY a.starts_at DESC""",
+        "citas.csv",
+    )
+
+
+@app.get("/api/export/payments.csv")
+def export_payments(db: sqlite3.Connection = Depends(get_db)) -> StreamingResponse:
+    return csv_response(
+        db,
+        """SELECT y.id, y.paid_at, p.name AS paciente, y.concept AS concepto, y.amount AS monto, y.method AS medio
+           FROM payments y JOIN patients p ON p.id = y.patient_id ORDER BY y.paid_at DESC""",
+        "pagos.csv",
+    )
+
+
+
+# ---------- Documentos y protocolos de la clínica (módulo opcional, sin contenido precargado) ----------
+DOC_CATEGORIES = {"protocolo": "Protocolo", "consentimiento": "Consentimiento", "tarifas": "Tarifas", "otro": "Otro"}
+
+
+class DocumentIn(BaseModel):
+    category: str = "protocolo"
+    title: str = Field(min_length=1, max_length=160)
+    content: str | None = Field(default=None, max_length=20000)
+
+
+def _check_doc(payload: DocumentIn) -> None:
+    if payload.category not in DOC_CATEGORIES:
+        raise HTTPException(422, "Categoría no válida")
+
+
+@app.get("/api/documents")
+def documents_list(q: str | None = None, category: str | None = None, db: sqlite3.Connection = Depends(get_db)) -> list[dict[str, Any]]:
+    sql, params = "SELECT * FROM documents WHERE 1=1", []
+    if category:
+        sql, params = sql + " AND category = ?", [category]
+    rows = [dict(r) for r in db.execute(sql + " ORDER BY category, title", params)]
+    if q:
+        terms = fold(q).split()
+        rows = [r for r in rows if all(t in fold(f"{r['title']} {r['content'] or ''}") for t in terms)]
+    return rows
+
+
+@app.get("/api/documents/{doc_id}")
+def documents_get(doc_id: int, db: sqlite3.Connection = Depends(get_db)) -> dict[str, Any]:
+    row = db.execute("SELECT * FROM documents WHERE id = ?", (doc_id,)).fetchone()
+    if row is None:
+        raise HTTPException(404, "Documento no encontrado")
+    return dict(row)
+
+
+@app.post("/api/documents", status_code=201)
+def documents_create(payload: DocumentIn, request: Request, db: sqlite3.Connection = Depends(get_db)) -> dict[str, Any]:
+    admin_only(request)
+    _check_doc(payload)
+    try:
+        cursor = db.execute("INSERT INTO documents (category, title, content) VALUES (?,?,?)", (payload.category, payload.title, payload.content))
+        db.commit()
+    except sqlite3.IntegrityError as error:
+        raise HTTPException(409, "Ya existe un documento con ese título") from error
+    return dict(db.execute("SELECT * FROM documents WHERE id = ?", (cursor.lastrowid,)).fetchone())
+
+
+@app.put("/api/documents/{doc_id}")
+def documents_update(doc_id: int, payload: DocumentIn, request: Request, db: sqlite3.Connection = Depends(get_db)) -> dict[str, Any]:
+    admin_only(request)
+    _check_doc(payload)
+    try:
+        cursor = db.execute("UPDATE documents SET category=?, title=?, content=?, updated_at=CURRENT_TIMESTAMP WHERE id=?",
+                            (payload.category, payload.title, payload.content, doc_id))
+        db.commit()
+    except sqlite3.IntegrityError as error:
+        raise HTTPException(409, "Ya existe un documento con ese título") from error
+    if cursor.rowcount == 0:
+        raise HTTPException(404, "Documento no encontrado")
+    return dict(db.execute("SELECT * FROM documents WHERE id = ?", (doc_id,)).fetchone())
+
+
+@app.delete("/api/documents/{doc_id}", status_code=204)
+def documents_delete(doc_id: int, request: Request, db: sqlite3.Connection = Depends(get_db)) -> None:
+    admin_only(request)
+    if db.execute("DELETE FROM documents WHERE id = ?", (doc_id,)).rowcount == 0:
+        raise HTTPException(404, "Documento no encontrado")
+    db.commit()
+
+
+# ---------- Recordatorios de citas (solo genera el texto; la clínica lo envía a mano) ----------
+def reminder_text(clinic: str, name: str, starts_at: str, professional: str) -> str:
+    start = datetime.fromisoformat(starts_at)
+    return (f"Hola {name.split()[0]}, le recordamos su cita en {clinic} el {start:%d-%m-%Y} a las {start:%H:%M} "
+            f"con {professional}. Si no puede asistir, avísenos con anticipación. ¡Gracias!")
+
+
+@app.get("/api/reminders")
+def reminders(day: str | None = Query(default=None, description="AAAA-MM-DD; por defecto mañana"),
+              db: sqlite3.Connection = Depends(get_db)) -> list[dict[str, Any]]:
+    day = day or (datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d")
+    rows = db.execute(
+        """SELECT a.id, a.starts_at, a.room, p.name AS patient_name, p.phone, pr.name AS professional_name
+           FROM appointments a JOIN patients p ON p.id = a.patient_id JOIN professionals pr ON pr.id = a.professional_id
+           WHERE date(a.starts_at) = date(?) AND a.status IN ('scheduled','arrived') ORDER BY a.starts_at""", (day,))
+    out = []
+    for r in rows:
+        item = dict(r)
+        item["message"] = reminder_text(APP_NAME, r["patient_name"], r["starts_at"], r["professional_name"])
+        digits = "".join(ch for ch in (r["phone"] or "") if ch.isdigit())
+        if digits.startswith("0"):
+            digits = digits.lstrip("0")
+        if digits and len(digits) <= 9:  # número local chileno sin código de país
+            digits = "56" + digits
+        item["whatsapp_url"] = f"https://wa.me/{digits}" if digits else None
+        out.append(item)
+    return out
+
+
+# ---------- Ficha de paciente con historial ----------
+@app.get("/api/patients/{patient_id}/history")
+def patient_history(patient_id: int, db: sqlite3.Connection = Depends(get_db)) -> dict[str, Any]:
+    patient = db.execute("SELECT * FROM patients WHERE id = ?", (patient_id,)).fetchone()
+    if patient is None:
+        raise HTTPException(404, "Paciente no encontrado")
+    appts = db.execute(
+        """SELECT a.id, a.starts_at, a.status, a.reason, a.room, pr.name AS professional_name, pr.specialty
+           FROM appointments a JOIN professionals pr ON pr.id = a.professional_id
+           WHERE a.patient_id = ? ORDER BY a.starts_at DESC""", (patient_id,))
+    cons = db.execute(CONSULTATION_SELECT + " WHERE c.patient_id = ? ORDER BY c.occurred_at DESC, c.id DESC", (patient_id,))
+    pays = db.execute("SELECT id, concept, amount, method, paid_at FROM payments WHERE patient_id = ? ORDER BY paid_at DESC, id DESC", (patient_id,))
+    payments = [dict(r) for r in pays]
+    return {"patient": row_dict(patient), "appointments": [dict(r) for r in appts],
+            "consultations": [row_dict(r) for r in cons], "payments": payments,
+            "total_paid": sum(p["amount"] for p in payments)}
+
+
+# ---------- Reporte de caja ----------
+@app.get("/api/reports/cash")
+def cash_report(period: str = Query(default="day", pattern="^(day|month)$"),
+                date: str | None = Query(default=None, description="AAAA-MM-DD (día) o AAAA-MM (mes); por defecto hoy/este mes"),
+                db: sqlite3.Connection = Depends(get_db)) -> dict[str, Any]:
+    now = datetime.now()
+    if period == "day":
+        date = date or now.strftime("%Y-%m-%d")
+        fmt, value = "%Y-%m-%d", date
+    else:
+        date = (date or now.strftime("%Y-%m"))[:7]
+        fmt, value = "%Y-%m", date
+    try:
+        datetime.strptime(value, fmt)
+    except ValueError as error:
+        raise HTTPException(422, "Fecha inválida") from error
+    rows = db.execute(f"SELECT method, COUNT(*) AS n, SUM(amount) AS total FROM payments WHERE strftime('{fmt}', paid_at) = ? GROUP BY method", (value,))
+    by_method = {r["method"]: {"count": r["n"], "total": r["total"]} for r in rows}
+    items = db.execute(
+        f"""SELECT y.id, y.paid_at, y.concept, y.amount, y.method, p.name AS patient_name FROM payments y
+            JOIN patients p ON p.id = y.patient_id WHERE strftime('{fmt}', y.paid_at) = ? ORDER BY y.paid_at""", (value,))
+    return {"period": period, "date": value, "total": sum(m["total"] for m in by_method.values()),
+            "count": sum(m["count"] for m in by_method.values()), "by_method": by_method, "payments": [dict(r) for r in items]}
+
+
+@app.get("/sw.js", include_in_schema=False)
+def service_worker() -> FileResponse:
+    return FileResponse(STATIC_DIR / "sw.js", media_type="application/javascript", headers={"Service-Worker-Allowed": "/"})
+
+
+@app.get("/", response_class=HTMLResponse)
+def index() -> FileResponse:
+    return FileResponse(STATIC_DIR / "index.html")
+
+
+==================== ClinicaPro/app/static/icon.svg ====================
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><title>Clínica Pro</title><rect width="512" height="512" rx="136" fill="#1d5c4d"/><path d="M256 136v240M136 256h240" stroke="#f6efe3" stroke-width="72" stroke-linecap="round"/><path d="M388 172A156 156 0 1 1 340 124.8" fill="none" stroke="#8fd1bb" stroke-width="24" stroke-linecap="round"/><circle cx="380.8" cy="148.8" r="21" fill="#e9a27c"/></svg>
+
+
+==================== ClinicaPro/app/static/index.html ====================
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#f6f4ef" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1312" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="/static/manifest.webmanifest">
+<title>Clínica Pro</title>
+<link rel="icon" href="/static/icon.svg" type="image/svg+xml">
+<style>
+:root{
+  color-scheme:light dark;
+  --bg:#f6f4ef;--surface:#fff;--surface-2:#efece5;--field:#fff;
+  --ink:#17211e;--ink-2:#3d4945;--mute:#5f6c67;--line:#e4e0d7;--line-2:#d3cec3;
+  --brand:#1d5c4d;--brand-2:#164a3e;--brand-ink:#fff;--brand-soft:#e1ede8;--brand-soft-ink:#164a3e;
+  --clay:#a5461f;--clay-soft:#f8e8df;
+  --info:#2c5a86;--info-bg:#e5edf6;--wait:#875500;--wait-bg:#faefd6;--ok:#276843;--ok-bg:#e1f0e6;--bad:#a3302b;--bad-bg:#f8e4e2;--off:#5f6c67;--off-bg:#ecebe6;
+  --card-border:transparent;--card-shadow:0 1px 2px rgb(23 33 30/.05),0 6px 20px -10px rgb(23 33 30/.14);
+  --sheet-shadow:0 -10px 40px -12px rgb(23 33 30/.28);
+  --scrim:rgb(16 22 20/.42);
+  --r:14px;--r-sm:11px;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,"Helvetica Neue",Arial,sans-serif;
+  --serif:"Iowan Old Style","Charter","Bitstream Charter","Palatino Linotype",Georgia,serif;
+  --ease:cubic-bezier(.22,1,.36,1);
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#0f1312;--surface:#171c1a;--surface-2:#1f2522;--field:#131816;
+  --ink:#edf1ee;--ink-2:#c5ceca;--mute:#97a49f;--line:#28302d;--line-2:#36403c;
+  --brand:#7fc8b0;--brand-2:#9ad6c2;--brand-ink:#0b2a22;--brand-soft:#18302a;--brand-soft-ink:#a6dcca;
+  --clay:#eb9e78;--clay-soft:#33211a;
+  --info:#93bbe3;--info-bg:#1a2633;--wait:#e8bd66;--wait-bg:#2c2413;--ok:#8dd3a9;--ok-bg:#16291f;--bad:#f0948d;--bad-bg:#341b1b;--off:#97a49f;--off-bg:#222826;
+  --card-border:var(--line);--card-shadow:none;--sheet-shadow:0 -10px 40px -8px rgb(0 0 0/.6);
+  --scrim:rgb(0 0 0/.6);
+}}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{-webkit-text-size-adjust:100%;scrollbar-color:var(--line-2) transparent}
+body{margin:0;font:16px/1.5 var(--sans);background:var(--bg);color:var(--ink);padding-bottom:calc(76px + env(safe-area-inset-bottom));-webkit-font-smoothing:antialiased;caret-color:var(--brand);accent-color:var(--brand)}
+body:has(#detail.on){overflow:hidden}
+::selection{background:var(--brand-soft);color:var(--brand-soft-ink)}
+:focus-visible{outline:2px solid var(--brand);outline-offset:2px;border-radius:8px}
+h1,h2,h3,p{margin:0}
+a{color:var(--brand)}
+svg.i{width:20px;height:20px;flex:none;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+button>*,a>*,summary>*{pointer-events:none}
+.mute{color:var(--mute)}
+.note{font-size:.84rem;color:var(--mute);line-height:1.45}
+.num,time{font-variant-numeric:tabular-nums}
+
+/* ---------- marca ---------- */
+.mark{display:inline-grid;place-items:center;width:38px;height:38px;flex:none}
+.mark svg{width:100%;height:100%;display:block}
+
+/* ---------- encabezado ---------- */
+header.top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:calc(14px + env(safe-area-inset-top)) 16px 10px;max-width:880px;margin:auto}
+.who{display:flex;align-items:center;gap:11px;min-width:0}
+#brand{font:600 1.15rem/1.15 var(--serif);letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.who p{font-size:.8rem;color:var(--mute)}
+.hact{display:flex;gap:6px}
+.icon-btn{display:inline-grid;place-items:center;width:44px;height:44px;border-radius:12px;border:0;background:transparent;color:var(--ink-2);cursor:pointer;transition:background-color .15s ease-out,transform .15s var(--ease);text-decoration:none}
+.icon-btn:hover{background:var(--surface-2)}
+.icon-btn:active{transform:scale(.94)}
+
+/* ---------- panel del día ---------- */
+#stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:6px 16px 4px;max-width:880px;margin:auto}
+body:has(#agenda[hidden]) #stats{display:none}
+.stat-main,.stat{background:var(--surface);border:1px solid var(--card-border);box-shadow:var(--card-shadow);border-radius:var(--r)}
+.stat-main{grid-column:1/-1;padding:16px 16px 14px;background:var(--brand);color:var(--brand-ink);border-color:transparent;box-shadow:0 10px 30px -16px rgb(22 74 62/.7)}
+.sm-top{display:flex;justify-content:space-between;align-items:baseline;font-size:.82rem;opacity:.86}
+.sm-num{display:flex;align-items:baseline;gap:8px;margin:4px 0 12px}
+.sm-num strong{font:500 2.9rem/1 var(--serif);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.sm-num span{font-size:.95rem;opacity:.86}
+.seg{display:flex;gap:3px;height:8px;border-radius:99px;overflow:hidden;background:color-mix(in srgb,var(--brand-ink) 16%,transparent)}
+.seg i{display:block;min-width:0}
+.seg .s-ok{background:var(--brand-ink)}
+.seg .s-pend{background:color-mix(in srgb,var(--brand-ink) 45%,transparent)}
+.seg .s-oth{background:color-mix(in srgb,var(--brand-ink) 22%,transparent)}
+.legend{display:flex;gap:16px;margin-top:10px;font-size:.82rem}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend .dot{width:8px;height:8px;border-radius:50%;background:var(--brand-ink)}
+.legend .dot.pend{background:color-mix(in srgb,var(--brand-ink) 45%,transparent)}
+.stat{padding:12px 14px}
+.lbl{font-size:.78rem;font-weight:600;color:var(--mute)}
+.stat-main .lbl{color:inherit}
+.stat strong{display:block;font:500 1.55rem/1.2 var(--serif);letter-spacing:-.01em;margin-top:2px;font-variant-numeric:tabular-nums}
+.stat small{display:block;font-size:.78rem;color:var(--mute);margin-top:2px}
+
+/* ---------- contenido ---------- */
+main{padding:14px 16px 24px;max-width:880px;margin:auto}
+main>section:not([hidden]){animation:enter .22s var(--ease)}
+@keyframes enter{from{opacity:0;transform:translateY(6px)}}
+.sh{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin:6px 0 14px}
+.sh h2{font:600 1.6rem/1.15 var(--serif);letter-spacing:-.015em}
+.sh p{font-size:.88rem;color:var(--mute);margin-top:3px}
+.sh p:first-letter{text-transform:uppercase}
+h3.sub{font-size:.8rem;font-weight:650;letter-spacing:.02em;color:var(--mute);margin:22px 4px 8px;display:flex;justify-content:space-between;align-items:baseline}
+.card{background:var(--surface);border:1px solid var(--card-border);box-shadow:var(--card-shadow);border-radius:var(--r);padding:14px}
+
+/* ---------- controles ---------- */
+.fld{display:grid;gap:6px;min-width:0}
+.fld>span{font-size:.8rem;font-weight:600;color:var(--ink-2)}
+input,select,textarea{font:inherit;font-size:16px;width:100%;min-height:48px;padding:11px 13px;border-radius:var(--r-sm);border:1px solid var(--line-2);background:var(--field);color:var(--ink);transition:border-color .15s ease-out,box-shadow .15s ease-out}
+textarea{min-height:96px;resize:vertical;line-height:1.45}
+input::placeholder,textarea::placeholder{color:var(--mute);opacity:1}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 3px color-mix(in srgb,var(--brand) 22%,transparent)}
+input[type=file]{padding:9px;font-size:.88rem;color:var(--mute)}
+input[type=file]::file-selector-button{font:inherit;font-weight:600;margin-right:10px;border:0;border-radius:8px;padding:7px 12px;background:var(--brand-soft);color:var(--brand-soft-ink);cursor:pointer}
+input[type=search]{padding-left:42px}
+.search{position:relative}
+.search svg{position:absolute;left:13px;top:14px;color:var(--mute);pointer-events:none}
+form{display:grid;gap:12px}
+.grid2{display:grid;gap:12px}
+@media (min-width:560px){.grid2{grid-template-columns:1fr 1fr}}
+.btn,button.p{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 16px;border-radius:12px;border:1px solid transparent;font:inherit;font-weight:600;font-size:.94rem;cursor:pointer;text-decoration:none;transition:transform .15s var(--ease),background-color .15s ease-out,border-color .15s ease-out;-webkit-tap-highlight-color:transparent}
+button.p{width:100%;min-height:50px;background:var(--brand);color:var(--brand-ink);font-size:1rem}
+button.p:hover{background:var(--brand-2)}
+.btn:active,button.p:active,.chip:active,.panel>summary:active,.row-i[role=button]:active{transform:scale(.97)}
+.btn.sm{min-height:44px;padding:0 13px;font-size:.88rem}
+.btn.tonal{background:var(--brand-soft);color:var(--brand-soft-ink)}
+.btn.tonal:hover{background:color-mix(in srgb,var(--brand-soft) 80%,var(--brand))}
+.btn.ghost{background:transparent;color:var(--ink-2);border-color:var(--line-2)}
+.btn.ghost:hover{background:var(--surface-2)}
+.btn.danger{background:var(--bad-bg);color:var(--bad)}
+.btn svg.i{width:18px;height:18px}
+.chips{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 6px;margin:0 -2px;scrollbar-width:none}
+.chip{white-space:nowrap;min-height:40px;border:1px solid var(--line-2);background:var(--surface);color:var(--ink-2);border-radius:99px;padding:0 15px;font:inherit;font-size:.88rem;font-weight:550;cursor:pointer;transition:background-color .15s ease-out,color .15s ease-out,transform .15s var(--ease)}
+.chip[aria-pressed=true]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+
+/* paneles colapsables (formularios) */
+.panel{background:var(--surface);border:1px solid var(--card-border);box-shadow:var(--card-shadow);border-radius:var(--r);margin-bottom:14px}
+.panel>summary{list-style:none;display:flex;align-items:center;gap:12px;min-height:56px;padding:6px 14px;cursor:pointer;font-weight:600;border-radius:var(--r);transition:transform .15s var(--ease)}
+.panel>summary::-webkit-details-marker{display:none}
+.panel>summary .plus{display:grid;place-items:center;width:32px;height:32px;border-radius:10px;background:var(--brand);color:var(--brand-ink)}
+.panel>summary .plus svg{width:18px;height:18px;stroke-width:2.2}
+.panel>summary .chev{margin-left:auto;color:var(--mute);transition:transform .2s var(--ease)}
+.panel[open]>summary .chev{transform:rotate(180deg)}
+.panel>summary small{display:block;font-weight:400;font-size:.8rem;color:var(--mute)}
+.panel>form,.panel>.pbody{padding:4px 14px 16px;animation:enter .2s var(--ease)}
+.panel.plain>summary .plus{background:var(--surface-2);color:var(--ink-2)}
+
+/* ---------- etiquetas de estado ---------- */
+.st{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;font-size:.76rem;font-weight:650;padding:4px 9px;border-radius:99px;background:var(--off-bg);color:var(--off)}
+.st::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.st-scheduled{background:var(--info-bg);color:var(--info)}
+.st-arrived{background:var(--wait-bg);color:var(--wait)}
+.st-done{background:var(--ok-bg);color:var(--ok)}
+.st-no_show{background:var(--bad-bg);color:var(--bad)}

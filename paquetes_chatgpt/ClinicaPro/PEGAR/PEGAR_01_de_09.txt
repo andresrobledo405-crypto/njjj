@@ -1,0 +1,488 @@
+Eres un ingeniero de software senior y revisor de seguridad. Voy a pasarte el código fuente completo de Clínica Pro (app de gestión para clínicas y consultas médicas: pacientes, profesionales, agenda con choques, atenciones con adjuntos, caja, documentos internos) en 9 mensajes numerados, porque no cabe en uno solo.
+Pila: Python 3.11+, FastAPI, SQLite (sqlite3 sin ORM), front HTML/CSS/JS sin framework, PWA, pytest. Interfaz en español de Chile.
+REGLAS MIENTRAS RECIBES: responde ÚNICAMENTE "Recibido i/9" a cada parte. No analices ni comentes hasta que yo diga "FIN".
+REGLAS DESPUÉS: no inventes funciones que no estén en el código; si algo no está claro, pregunta; devuelve siempre archivos completos con su ruta; cita archivo y línea de lo que cambies; mantén las pruebas verdes y agrega pruebas a lo nuevo; ningún dato de pacientes sale a servicios externos; no pongas secretos en el código.
+Cada archivo empieza con una línea ==================== ruta ====================.
+
+[PARTE 1 de 9] — responde solo: Recibido 1/9
+
+# ClinicaPro — código fuente completo (sin la biblioteca de contenido)
+
+
+==================== ClinicaPro/.env.example ====================
+# Copie este archivo como .env y ajuste los valores. Nunca suba .env al repositorio.
+CLINICAPRO_NOMBRE=Clínica Pro
+# CLINICAPRO_DATA_DIR=C:\ClinicaPro\data
+# CLINICAPRO_ADMIN_USER=admin
+# CLINICAPRO_ADMIN_PASSWORD=   (si se omite, se genera y se guarda en data/admin_inicial.txt)
+# CLINICAPRO_SECRET=           (firma de sesiones; si se omite, se genera en data/.secret)
+# CLINICAPRO_COOKIE_SECURE=1   (obligatorio al publicar con HTTPS)
+
+
+==================== ClinicaPro/.gitignore ====================
+.venv/
+__pycache__/
+.env
+data/*.db
+data/uploads/*
+!data/uploads/.gitkeep
+backups/
+.pytest_cache/
+data/.secret
+data/admin_inicial.txt
+
+
+==================== ClinicaPro/DEPLOY.md ====================
+# Publicar Clínica Pro en Render
+
+Servicio web **clinicapro** (plan gratuito, Python), independiente de cualquier otro servicio.
+
+| Campo | Valor |
+|---|---|
+| Repo / rama | `https://github.com/andresrobledo405-crypto/njjj` · rama `claude/clinicapro-general` |
+| Build | `cd ClinicaPro && pip install -r requirements.txt` |
+| Start | `cd ClinicaPro && uvicorn app.main:app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips='*'` |
+| Variables | `CLINICAPRO_NOMBRE=Clínica Pro`, `CLINICAPRO_ADMIN_USER=admin`, `CLINICAPRO_ADMIN_PASSWORD=<aleatoria>`, `CLINICAPRO_SECRET=<aleatoria>`, `CLINICAPRO_COOKIE_SECURE=1`, `TZ=America/Santiago` (horas y caja en hora de Chile) |
+
+Genere las claves con `python -c "import secrets;print(secrets.token_urlsafe(18))"`. **No las suba al repositorio.**
+
+## Persistencia de datos
+El plan gratuito tiene disco efímero: la base SQLite (`data/`) **se pierde en cada reinicio o redeploy**. Úselo solo para demostración. Para datos reales:
+1. **Disco persistente** (de pago): monte un disco en `/var/data` y fije `CLINICAPRO_DATA_DIR=/var/data`.
+2. **PostgreSQL**: requiere adaptar la capa de datos (hoy es SQLite).
+
+Cambiar la clave del administrador tras el primer ingreso (Admin → Mi clave). La variable `CLINICAPRO_ADMIN_PASSWORD` solo se usa mientras no existan usuarios.
+
+
+==================== ClinicaPro/GUIA_VENTA.md ====================
+# Guía de venta — Clínica Pro
+
+**Cliente ideal:** consultas médicas de cualquier especialidad, centros dentales y policlínicos pequeños que hoy usan papel o Excel.
+
+**Dolor que resuelve:** dobles reservas, fichas perdidas, alergias no vistas, cierre de caja manual.
+
+## Demostración (10 min)
+1. Ejecutar `demo_clinica_pro.bat`.
+2. Mostrar la agenda del día y el aviso de alergias en la cita.
+3. Intentar agendar un choque de horario → el sistema lo rechaza.
+4. Registrar una atención con foto de un examen desde el celular.
+5. Abrir la ficha de un paciente (historial) y la pestaña Recordatorios: copiar el mensaje de WhatsApp de las citas de mañana.
+6. Registrar un pago, mostrar el informe de caja diario/mensual y descargar Excel.
+
+## Propuesta
+- **Piloto local:** instalación en 1 computador + celulares por Wi-Fi, capacitación de 1 hora.
+- **Mensual:** soporte, respaldos y actualizaciones. *(Definir precios según el cliente; no se fijan aquí.)*
+- **Ya incluido:** usuarios y roles, recordatorios para WhatsApp (copiar y enviar), ficha con historial, informe de caja, documentos internos.
+- **Fase 2 (servicio en Internet):** auditoría de accesos, respaldos cifrados, PostgreSQL administrada, envío automático de recordatorios (opcional).
+
+## Objeciones frecuentes
+- *¿Y la privacidad?* Datos en el computador o servidor de la clínica; no se envían a servicios externos ni a IA. En fase 2, cifrado y auditoría.
+- *¿Se puede migrar mi Excel?* Sí, vía API/CSV en el onboarding.
+
+
+==================== ClinicaPro/README.md ====================
+# Clínica Pro — Gestión clínica
+
+Sistema web móvil para clínicas y consultas médicas de **cualquier especialidad**: login con roles, agenda con detección de choques (profesional, paciente, sala), ficha de paciente con historial, atenciones con adjuntos (foto/PDF de exámenes), recordatorios de citas para WhatsApp (se copian y se envían a mano), caja con informe diario/mensual, documentos internos de la clínica y exportación a CSV compatible con Excel. No incluye contenido clínico precargado ni servicios de IA: ningún dato sale del servidor.
+
+## Abrir sin complicaciones
+
+### Primera instalación
+1. Instalar Python 3.11 o superior desde <https://www.python.org/downloads/>.
+2. Descomprimir esta carpeta en el computador de recepción.
+3. Ejecutar `install_clinica_pro.ps1` con PowerShell.
+4. Ejecutar `run_clinica_pro.bat`. Se abre `http://127.0.0.1:8000`.
+
+Siguientes veces: doble clic en `run_clinica_pro.bat`.
+Demostración con datos de ejemplo: `demo_clinica_pro.bat` (no borra datos existentes).
+Copia de la base y adjuntos: `backup_clinica_pro.bat`.
+
+## Uso en celulares
+Computador y celulares en la misma red Wi-Fi. Buscar la IP con `ipconfig` y abrir `http://IP-DEL-COMPUTADOR:8000`; en el navegador elegir **Agregar a pantalla de inicio**.
+
+## Flujo
+1. **Ingreso**: usuario y clave. Roles: *administrador* (usuarios, documentos) y *profesional*. En el primer arranque se crea `admin` con la clave de `CLINICAPRO_ADMIN_PASSWORD` (o una generada en `data/admin_inicial.txt`).
+2. **Pacientes**: nombre, RUT (normalizado, no se repite), teléfono, alergias. Al tocar un paciente se abre su **ficha con historial** (citas, atenciones, pagos).
+3. **Agenda**: el sistema rechaza choques de profesional, paciente o sala. Estados: En espera, Realizada, Cancelada, No asistió.
+4. **Atención**: diagnóstico, tratamiento y adjunto (JPG/PNG/WEBP/PDF, máx. 8 MB); la cita pasa a *Realizada*.
+5. **Recordatorios**: lista de citas de mañana (o de otra fecha) con el mensaje listo; botón *Copiar mensaje* y enlace a WhatsApp. **Nada se envía automáticamente.**
+6. **Caja**: pagos por medio (efectivo, tarjeta, transferencia, seguro) y **informe de caja diario y mensual**.
+7. **Documentos**: módulo opcional donde el administrador sube/edita notas internas (protocolos, consentimientos, tarifas). Viene vacío. No guarde datos de pacientes ahí.
+8. Exportar citas y pagos en CSV (separador `;`, UTF-8 con BOM).
+
+## Configuración (variables de entorno)
+`CLINICAPRO_NOMBRE`, `CLINICAPRO_ADMIN_USER`, `CLINICAPRO_ADMIN_PASSWORD`, `CLINICAPRO_SECRET` (firma de sesiones), `CLINICAPRO_COOKIE_SECURE=1` (con HTTPS), `CLINICAPRO_DATA_DIR`. Ver `.env.example`. Publicación en Render: `DEPLOY.md`.
+
+## API
+Documentación en `/docs` (requiere sesión). Todo `/api` exige sesión salvo `/api/auth/login`, `/api/health` y `/api/meta` (solo el nombre de la clínica). Rutas: `/api/patients` (+`/{id}/history`), `/api/professionals`, `/api/appointments`, `/api/agenda`, `/api/reminders`, `/api/consultations`, `/api/payments`, `/api/reports/cash`, `/api/documents`, `/api/dashboard`, `/api/users`.
+
+## Datos y respaldos
+- Base: `data/clinica.db` · Adjuntos: `data/uploads`.
+- Para respaldar: `backup_clinica_pro.bat` o copiar la carpeta `data`. No publicar el puerto en Internet.
+
+## Seguridad
+Contraseñas con scrypt, sesión en cookie firmada (HttpOnly, SameSite=Strict, Secure con HTTPS), bloqueo tras 5 intentos fallidos, sin secretos en el repositorio y sin llamadas a servicios externos con datos de pacientes. Pendiente para operar con datos reales en Internet: auditoría de accesos, copias automáticas cifradas, base PostgreSQL administrada y cumplimiento de las leyes 19.628 y 20.584. Ver `GUIA_VENTA.md`.
+
+## Validación técnica
+```
+python -m pytest -q
+```
+Cubre RUT, choques de agenda, adjuntos, pagos, dashboard, exportación, login y roles, documentos, recordatorios, ficha de paciente e informe de caja.
+
+
+==================== ClinicaPro/app/__init__.py ====================
+
+
+==================== ClinicaPro/app/auth.py ====================
+"""Autenticación: contraseñas con scrypt y sesión en cookie firmada (HMAC-SHA256)."""
+import base64
+import hashlib
+import hmac
+import json
+import os
+import secrets
+import time
+
+from .config import DATA_DIR
+
+SESSION_COOKIE = "clinicapro_session"
+SESSION_SECONDS = 12 * 3600
+
+
+def hash_password(password: str, salt: bytes | None = None) -> str:
+    salt = salt or secrets.token_bytes(16)
+    digest = hashlib.scrypt(password.encode(), salt=salt, n=2**14, r=8, p=1, dklen=32)
+    return f"scrypt${salt.hex()}${digest.hex()}"
+
+
+def verify_password(password: str, stored: str) -> bool:
+    try:
+        _, salt_hex, digest_hex = stored.split("$")
+        expected = hash_password(password, bytes.fromhex(salt_hex)).split("$")[2]
+    except ValueError:
+        return False
+    return hmac.compare_digest(expected, digest_hex)
+
+
+def _secret() -> bytes:
+    env = os.getenv("CLINICAPRO_SECRET")
+    if env:
+        return env.encode()
+    path = DATA_DIR / ".secret"
+    if not path.exists():
+        path.write_text(secrets.token_hex(32))
+        try:
+            path.chmod(0o600)
+        except OSError:
+            pass
+    return path.read_text().strip().encode()
+
+
+def _b64(data: bytes) -> str:
+    return base64.urlsafe_b64encode(data).decode().rstrip("=")
+
+
+def make_token(user: dict) -> str:
+    payload = _b64(json.dumps({"id": user["id"], "u": user["username"], "r": user["role"], "exp": int(time.time()) + SESSION_SECONDS}).encode())
+    return f"{payload}.{_b64(hmac.new(_secret(), payload.encode(), hashlib.sha256).digest())}"
+
+
+def read_token(token: str | None) -> dict | None:
+    if not token or "." not in token:
+        return None
+    payload, signature = token.rsplit(".", 1)
+    expected = _b64(hmac.new(_secret(), payload.encode(), hashlib.sha256).digest())
+    if not hmac.compare_digest(signature, expected):
+        return None
+    try:
+        data = json.loads(base64.urlsafe_b64decode(payload + "=" * (-len(payload) % 4)))
+    except ValueError:
+        return None
+    return data if data.get("exp", 0) > time.time() else None
+
+
+class LoginThrottle:
+    """Bloquea 5 minutos tras 5 intentos fallidos por usuario+IP."""
+
+    def __init__(self, limit: int = 5, window: int = 300):
+        self.limit, self.window, self.fails = limit, window, {}
+
+    def _recent(self, key):
+        now = time.time()
+        self.fails[key] = [t for t in self.fails.get(key, []) if now - t < self.window]
+        return self.fails[key]
+
+    def blocked(self, key) -> bool:
+        return len(self._recent(key)) >= self.limit
+
+    def fail(self, key) -> None:
+        self._recent(key).append(time.time())
+
+    def reset(self, key) -> None:
+        self.fails.pop(key, None)
+
+
+throttle = LoginThrottle()
+
+
+==================== ClinicaPro/app/config.py ====================
+import os
+from pathlib import Path
+
+from dotenv import load_dotenv
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(BASE_DIR / ".env")
+
+APP_NAME = os.getenv("CLINICAPRO_NOMBRE", "Clínica Pro")
+DATA_DIR = Path(os.getenv("CLINICAPRO_DATA_DIR", BASE_DIR / "data"))
+UPLOAD_DIR = DATA_DIR / "uploads"
+DATABASE_PATH = DATA_DIR / "clinica.db"
+MAX_UPLOAD_BYTES = 8 * 1024 * 1024
+
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+
+
+==================== ClinicaPro/app/db.py ====================
+import sqlite3
+from collections.abc import Generator
+
+from .config import DATABASE_PATH
+
+SCHEMA = """
+CREATE TABLE IF NOT EXISTS patients (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    rut TEXT UNIQUE,
+    birth_date TEXT,
+    phone TEXT,
+    email TEXT,
+    insurance TEXT,
+    allergies TEXT,
+    active INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS professionals (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    specialty TEXT NOT NULL,
+    phone TEXT,
+    email TEXT,
+    active INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS appointments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    patient_id INTEGER NOT NULL,
+    professional_id INTEGER NOT NULL,
+    starts_at TEXT NOT NULL,
+    duration_min INTEGER NOT NULL DEFAULT 30,
+    room TEXT,
+    reason TEXT,
+    status TEXT NOT NULL DEFAULT 'scheduled'
+        CHECK (status IN ('scheduled', 'arrived', 'done', 'cancelled', 'no_show')),
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (patient_id) REFERENCES patients(id),
+    FOREIGN KEY (professional_id) REFERENCES professionals(id)
+);
+CREATE TABLE IF NOT EXISTS consultations (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    patient_id INTEGER NOT NULL,
+    professional_id INTEGER NOT NULL,
+    appointment_id INTEGER,
+    diagnosis TEXT,
+    treatment TEXT,
+    notes TEXT,
+    attachment_path TEXT,
+    occurred_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+    FOREIGN KEY (patient_id) REFERENCES patients(id),
+    FOREIGN KEY (professional_id) REFERENCES professionals(id),
+    FOREIGN KEY (appointment_id) REFERENCES appointments(id)
+);
+CREATE TABLE IF NOT EXISTS payments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    patient_id INTEGER NOT NULL,
+    appointment_id INTEGER,
+    concept TEXT NOT NULL,
+    amount INTEGER NOT NULL CHECK (amount >= 0),
+    method TEXT NOT NULL DEFAULT 'cash'
+        CHECK (method IN ('cash', 'card', 'transfer', 'insurance')),
+    paid_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+    FOREIGN KEY (patient_id) REFERENCES patients(id),
+    FOREIGN KEY (appointment_id) REFERENCES appointments(id)
+);
+CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT NOT NULL UNIQUE,
+    name TEXT NOT NULL,
+    password_hash TEXT NOT NULL,
+    role TEXT NOT NULL DEFAULT 'profesional' CHECK (role IN ('admin', 'profesional')),
+    active INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS documents (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    category TEXT NOT NULL DEFAULT 'protocolo',
+    title TEXT NOT NULL UNIQUE,
+    content TEXT,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_appointments_starts_at ON appointments(starts_at);
+CREATE INDEX IF NOT EXISTS idx_consultations_patient ON consultations(patient_id);
+"""
+
+
+def get_connection() -> sqlite3.Connection:
+    connection = sqlite3.connect(str(DATABASE_PATH), check_same_thread=False)
+    connection.row_factory = sqlite3.Row
+    connection.execute("PRAGMA foreign_keys = ON")
+    return connection
+
+
+def init_db() -> None:
+    connection = get_connection()
+    try:
+        connection.executescript(SCHEMA)
+        connection.execute("DROP TABLE IF EXISTS library_items")  # migración: módulo anterior ya no existe
+        connection.commit()
+    finally:
+        connection.close()
+
+
+def get_db() -> Generator[sqlite3.Connection, None, None]:
+    connection = get_connection()
+    try:
+        yield connection
+    finally:
+        connection.close()
+
+
+==================== ClinicaPro/app/exporters.py ====================
+import csv
+import io
+from collections.abc import Iterable
+from sqlite3 import Row
+
+
+def safe_cell(value):
+    """Evita inyección de fórmulas en Excel: texto que empieza con = + - @ se antepone con comilla."""
+    if value is None:
+        return ""
+    if isinstance(value, str) and value[:1] in ("=", "+", "-", "@", "\t", "\r"):
+        return "'" + value
+    return value
+
+
+class CsvExporter:
+    """Exporta filas a CSV con BOM UTF-8 para que Excel respete las tildes."""
+
+    def export(self, rows: Iterable[Row]) -> io.StringIO:
+        rows = list(rows)
+        stream = io.StringIO()
+        stream.write("\ufeff")
+        if rows:
+            writer = csv.writer(stream, delimiter=";")
+            writer.writerow(rows[0].keys())
+            for row in rows:
+                writer.writerow([safe_cell(value) for value in tuple(row)])
+        return stream
+
+
+==================== ClinicaPro/app/main.py ====================
+from contextlib import asynccontextmanager
+from datetime import datetime, timedelta, timezone
+import mimetypes
+from pathlib import Path
+import secrets
+import sqlite3
+from typing import Any
+
+from fastapi import Depends, FastAPI, File, Form, HTTPException, Query, UploadFile
+from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
+from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel, Field
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request
+
+import os
+import time
+import unicodedata
+
+from fastapi.responses import JSONResponse, Response
+
+from .auth import SESSION_COOKIE, SESSION_SECONDS, hash_password, make_token, read_token, throttle, verify_password
+from .config import APP_NAME, DATA_DIR, MAX_UPLOAD_BYTES, UPLOAD_DIR
+from .db import get_connection, get_db, init_db
+from .exporters import CsvExporter
+
+STATIC_DIR = Path(__file__).parent / "static"
+STATUSES = {"scheduled", "arrived", "done", "cancelled", "no_show"}
+METHODS = {"cash", "card", "transfer", "insurance"}
+ACTIVE_STATUSES = ("scheduled", "arrived")
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    init_db()
+    connection = get_connection()
+    try:
+        bootstrap_admin(connection)
+    finally:
+        connection.close()
+    yield
+
+
+def bootstrap_admin(db: sqlite3.Connection) -> None:
+    """Crea el administrador inicial si no hay usuarios. La clave sale del entorno o se genera."""
+    if db.execute("SELECT COUNT(*) FROM users").fetchone()[0]:
+        return
+    username = os.getenv("CLINICAPRO_ADMIN_USER", "admin")
+    password = os.getenv("CLINICAPRO_ADMIN_PASSWORD")
+    if not password:
+        password = secrets.token_urlsafe(12)
+        (DATA_DIR / "admin_inicial.txt").write_text(f"usuario: {username}\nclave: {password}\n(cámbiela al ingresar y borre este archivo)\n")
+    db.execute("INSERT INTO users (username, name, password_hash, role) VALUES (?, ?, ?, 'admin')",
+               (username, "Administrador", hash_password(password)))
+    db.commit()
+
+
+app = FastAPI(title=f"{APP_NAME} - Gestión clínica", version="2.0.0", lifespan=lifespan)
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "SAMEORIGIN"
+        response.headers["Referrer-Policy"] = "same-origin"
+        response.headers["Permissions-Policy"] = "camera=(self), microphone=(), geolocation=()"
+        if os.getenv("CLINICAPRO_COOKIE_SECURE") == "1":
+            response.headers["Strict-Transport-Security"] = "max-age=31536000"
+        if request.url.path.startswith("/api"):
+            response.headers["Cache-Control"] = "no-store"  # datos clínicos: nunca en caché del navegador/proxy
+        if response.headers.get("content-type", "").startswith("text/html") and not request.url.path.startswith(("/docs", "/redoc")):
+            response.headers["Content-Security-Policy"] = (
+                "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; "
+                "img-src 'self' data: blob:; connect-src 'self'; object-src 'none'; base-uri 'none'; "
+                "form-action 'self'; frame-ancestors 'self'")
+        return response
+
+
+PUBLIC_PATHS = {"/api/auth/login", "/api/health", "/api/meta"}
+
+
+class AuthMiddleware(BaseHTTPMiddleware):
+    """Todo lo que cuelga de /api y la documentación exige sesión válida."""
+
+    async def dispatch(self, request: Request, call_next):
+        path = request.url.path
+        protected = path.startswith(("/api", "/docs", "/redoc", "/openapi"))
+        request.state.user = read_token(request.cookies.get(SESSION_COOKIE))
+        if protected and path not in PUBLIC_PATHS and request.state.user is None:
+            return JSONResponse({"detail": "Sesión requerida"}, status_code=401)
+        return await call_next(request)
+
+
+app.add_middleware(AuthMiddleware)

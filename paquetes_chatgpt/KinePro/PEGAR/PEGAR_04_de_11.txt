@@ -1,0 +1,401 @@
+[PARTE 4 de 11] — responde solo: Recibido 4/11
+
+        raise HTTPException(503, "El asistente no está activado (falta OPENAI_API_KEY)")
+    uid, now = request.state.user["id"], time.time()
+    recent = [t for t in ask_log.get(uid, []) if now - t < 3600]
+    if len(recent) >= ASK_LIMIT_PER_HOUR:
+        raise HTTPException(429, "Límite de preguntas por hora alcanzado")
+    ask_log[uid] = recent + [now]
+    # recuperación: entradas que coinciden con más palabras de la pregunta
+    words = [w for w in fold(payload.question).replace("?", " ").replace(",", " ").split() if len(w) > 3]
+    scored = []
+    for row in db.execute("SELECT * FROM library_items"):
+        text = fold(" ".join(str(row[c] or "") for c in ("title", "summary", "content", "tags", "region")))
+        title = fold(row["title"])
+        score = sum((3 if w in title else 1) for w in words if w in text)
+        if score:
+            scored.append((score, dict(row)))
+    top = [r for _, r in sorted(scored, key=lambda x: -x[0])[:6]]
+    if not top:
+        return {"answer": "No encontré información sobre eso en la biblioteca. Intente con otras palabras o consulte guías clínicas.", "sources": []}
+    context = "\n\n".join(f"[{r['title']}]\n{r['summary'] or ''}\n{r['content'] or ''}\nPrecauciones: {r['precautions'] or '-'}" for r in top)
+    try:
+        response = httpx.post(
+            "https://api.openai.com/v1/chat/completions",
+            headers={"Authorization": f"Bearer {api_key}"},
+            json={"model": os.getenv("OPENAI_MODEL", "gpt-4o-mini"), "temperature": 0.2,
+                  "messages": [{"role": "system", "content": ASK_PROMPT},
+                               {"role": "user", "content": f"Contexto:\n{context}\n\nPregunta: {payload.question}"}]},
+            timeout=40,
+        )
+        response.raise_for_status()
+        answer = response.json()["choices"][0]["message"]["content"]
+    except (httpx.HTTPError, KeyError, IndexError, ValueError) as error:
+        raise HTTPException(502, "El servicio de IA no respondió; intente más tarde") from error
+    return {"answer": answer, "sources": [{"id": r["id"], "title": r["title"]} for r in top]}
+
+
+@app.get("/api/library/{item_id}")
+def library_get(item_id: int, db: sqlite3.Connection = Depends(get_db)) -> dict[str, Any]:
+    row = db.execute("SELECT * FROM library_items WHERE id = ?", (item_id,)).fetchone()
+    if row is None:
+        raise HTTPException(404, "Entrada no encontrada")
+    return dict(row)
+
+
+def _check_category(payload: LibraryIn) -> None:
+    if payload.category not in CATEGORIES:
+        raise HTTPException(422, "Categoría no válida")
+
+
+@app.post("/api/library", status_code=201)
+def library_create(payload: LibraryIn, request: Request, db: sqlite3.Connection = Depends(get_db)) -> dict[str, Any]:
+    admin_only(request)
+    _check_category(payload)
+    values = payload.model_dump()
+    try:
+        cursor = db.execute(f"INSERT INTO library_items ({', '.join(LIB_COLUMNS)}) VALUES ({', '.join('?' for _ in LIB_COLUMNS)})",
+                            tuple(values[c] for c in LIB_COLUMNS))
+        db.commit()
+    except sqlite3.IntegrityError as error:
+        raise HTTPException(409, "Ya existe una entrada con ese título en la categoría") from error
+    return dict(db.execute("SELECT * FROM library_items WHERE id = ?", (cursor.lastrowid,)).fetchone())
+
+
+@app.put("/api/library/{item_id}")
+def library_update(item_id: int, payload: LibraryIn, request: Request, db: sqlite3.Connection = Depends(get_db)) -> dict[str, Any]:
+    admin_only(request)
+    _check_category(payload)
+    values = payload.model_dump()
+    try:
+        cursor = db.execute(f"UPDATE library_items SET {', '.join(f'{c}=?' for c in LIB_COLUMNS)} WHERE id=?",
+                            (*(values[c] for c in LIB_COLUMNS), item_id))
+        db.commit()
+    except sqlite3.IntegrityError as error:
+        raise HTTPException(409, "Ya existe una entrada con ese título en la categoría") from error
+    if cursor.rowcount == 0:
+        raise HTTPException(404, "Entrada no encontrada")
+    return dict(db.execute("SELECT * FROM library_items WHERE id = ?", (item_id,)).fetchone())
+
+
+@app.delete("/api/library/{item_id}", status_code=204)
+def library_delete(item_id: int, request: Request, db: sqlite3.Connection = Depends(get_db)) -> None:
+    admin_only(request)
+    try:
+        cursor = db.execute("DELETE FROM library_items WHERE id = ?", (item_id,))
+        db.commit()
+    except sqlite3.IntegrityError as error:
+        raise HTTPException(409, "La entrada está enlazada a atenciones o plantillas; edítela en vez de borrarla") from error
+    if cursor.rowcount == 0:
+        raise HTTPException(404, "Entrada no encontrada")
+
+
+class PatientIn(BaseModel):
+    name: str = Field(min_length=1, max_length=120)
+    rut: str | None = Field(default=None, max_length=20)
+    birth_date: str | None = Field(default=None, max_length=10)
+    phone: str | None = Field(default=None, max_length=40)
+    email: str | None = Field(default=None, max_length=160)
+    insurance: str | None = Field(default=None, max_length=80)
+    allergies: str | None = Field(default=None, max_length=300)
+    occupation: str | None = Field(default=None, max_length=120)
+    history: str | None = Field(default=None, max_length=1500)  # antecedentes mórbidos, quirúrgicos, deportivos
+    active: bool = True
+
+
+class ProfessionalIn(BaseModel):
+    name: str = Field(min_length=1, max_length=120)
+    specialty: str = Field(min_length=1, max_length=80)
+    phone: str | None = Field(default=None, max_length=40)
+    email: str | None = Field(default=None, max_length=160)
+    active: bool = True
+
+
+class PaymentIn(BaseModel):
+    patient_id: int
+    appointment_id: int | None = None
+    concept: str = Field(min_length=1, max_length=160)
+    amount: int = Field(ge=0)
+    method: str = "cash"
+
+
+class AppointmentIn(BaseModel):
+    patient_id: int
+    professional_id: int
+    starts_at: str = Field(min_length=16, max_length=19)  # YYYY-MM-DDTHH:MM
+    duration_min: int = Field(default=30, ge=5, le=480)
+    room: str | None = Field(default=None, max_length=40)
+    reason: str | None = Field(default=None, max_length=200)
+    plan_id: int | None = None
+    status: str = "scheduled"
+
+
+MAGIC = {".pdf": (b"%PDF",), ".png": (b"\x89PNG\r\n\x1a\n",), ".jpg": (b"\xff\xd8\xff",), ".jpeg": (b"\xff\xd8\xff",)}
+
+
+def looks_like(extension: str, content: bytes) -> bool:
+    """Comprueba los primeros bytes (firma) para no aceptar otro tipo de archivo con extensión cambiada."""
+    if extension == ".webp":
+        return content[:4] == b"RIFF" and content[8:12] == b"WEBP"
+    return content.startswith(MAGIC.get(extension, (b"",)))
+
+
+def row_dict(row: sqlite3.Row) -> dict[str, Any]:
+    result = dict(row)
+    if "active" in result:
+        result["active"] = bool(result["active"])
+    return result
+
+
+def normalize_rut(rut: str | None) -> str | None:
+    if rut is None:
+        return None
+    cleaned = "".join(ch for ch in rut.upper() if ch.isalnum())
+    if not cleaned:
+        return None
+    return f"{cleaned[:-1]}-{cleaned[-1]}" if len(cleaned) > 1 else cleaned
+
+
+def parse_start(value: str) -> datetime:
+    try:
+        return datetime.fromisoformat(value)
+    except ValueError as error:
+        raise HTTPException(422, "Fecha/hora inválida (use AAAA-MM-DDTHH:MM)") from error
+
+
+def bind(values: dict[str, Any], columns: tuple[str, ...]) -> tuple:
+    return tuple(int(values[c]) if isinstance(values[c], bool) else values[c] for c in columns)
+
+
+def crud_router(table: str, model: type[BaseModel], columns: tuple[str, ...], before_save=None):
+    """CRUD pequeño y consistente para una tabla. `before_save` puede validar/normalizar."""
+    prefix = f"/api/{table}"
+
+    def prepare(payload: BaseModel, db: sqlite3.Connection, item_id: int | None = None) -> dict:
+        values = payload.model_dump()
+        if before_save:
+            before_save(values, db, item_id)
+        return values
+
+    @app.get(prefix)
+    def list_items(db: sqlite3.Connection = Depends(get_db)) -> list[dict[str, Any]]:
+        return [row_dict(r) for r in db.execute(f"SELECT * FROM {table} ORDER BY id DESC")]
+
+    @app.get(f"{prefix}/{{item_id}}")
+    def get_item(item_id: int, db: sqlite3.Connection = Depends(get_db)) -> dict[str, Any]:
+        row = db.execute(f"SELECT * FROM {table} WHERE id = ?", (item_id,)).fetchone()
+        if row is None:
+            raise HTTPException(404, "Registro no encontrado")
+        return row_dict(row)
+
+    @app.post(prefix, status_code=201)
+    def create_item(payload: model, db: sqlite3.Connection = Depends(get_db)) -> dict[str, Any]:  # type: ignore[valid-type]
+        values = prepare(payload, db)
+        try:
+            cursor = db.execute(
+                f"INSERT INTO {table} ({', '.join(columns)}) VALUES ({', '.join('?' for _ in columns)})",
+                bind(values, columns),
+            )
+            db.commit()
+        except sqlite3.IntegrityError as error:
+            raise HTTPException(409, f"Registro duplicado o referencia inválida: {error}") from error
+        return row_dict(db.execute(f"SELECT * FROM {table} WHERE id = ?", (cursor.lastrowid,)).fetchone())
+
+    @app.put(f"{prefix}/{{item_id}}")
+    def update_item(item_id: int, payload: model, db: sqlite3.Connection = Depends(get_db)) -> dict[str, Any]:  # type: ignore[valid-type]
+        values = prepare(payload, db, item_id)
+        assignments = ", ".join(f"{c} = ?" for c in columns)
+        try:
+            cursor = db.execute(
+                f"UPDATE {table} SET {assignments} WHERE id = ?", bind(values, columns) + (item_id,)
+            )
+            db.commit()
+        except sqlite3.IntegrityError as error:
+            raise HTTPException(409, f"Registro duplicado o referencia inválida: {error}") from error
+        if cursor.rowcount == 0:
+            raise HTTPException(404, "Registro no encontrado")
+        return row_dict(db.execute(f"SELECT * FROM {table} WHERE id = ?", (item_id,)).fetchone())
+
+    @app.delete(f"{prefix}/{{item_id}}", status_code=204)
+    def delete_item(item_id: int, db: sqlite3.Connection = Depends(get_db)) -> None:
+        try:
+            cursor = db.execute(f"DELETE FROM {table} WHERE id = ?", (item_id,))
+            db.commit()
+        except sqlite3.IntegrityError as error:
+            raise HTTPException(409, "Tiene registros asociados; desactívelo en vez de borrarlo") from error
+        if cursor.rowcount == 0:
+            raise HTTPException(404, "Registro no encontrado")
+
+
+def patient_rules(values: dict, db: sqlite3.Connection, item_id: int | None) -> None:
+    values["rut"] = normalize_rut(values["rut"])
+
+
+def payment_rules(values: dict, db: sqlite3.Connection, item_id: int | None) -> None:
+    if values["method"] not in METHODS:
+        raise HTTPException(422, "Medio de pago no válido")
+
+
+def appointment_rules(values: dict, db: sqlite3.Connection, item_id: int | None) -> None:
+    if values["status"] not in STATUSES:
+        raise HTTPException(422, "Estado no válido")
+    if values.get("plan_id") is not None:
+        plan = db.execute("SELECT patient_id, status FROM treatment_plans WHERE id = ?", (values["plan_id"],)).fetchone()
+        if plan is None or plan["patient_id"] != values["patient_id"]:
+            raise HTTPException(422, "El plan no existe o pertenece a otro paciente")
+        if plan["status"] != "active" and values["status"] in ("scheduled", "arrived"):
+            raise HTTPException(409, "El plan no está activo")
+    elif item_id is not None:  # PUT sin plan_id no debe desvincular la cita de su plan
+        current = db.execute("SELECT plan_id FROM appointments WHERE id = ?", (item_id,)).fetchone()
+        values["plan_id"] = current["plan_id"] if current else None
+    start = parse_start(values["starts_at"])
+    values["starts_at"] = start.strftime("%Y-%m-%dT%H:%M")
+    if values["status"] in ("cancelled", "no_show"):
+        return
+    end = start + timedelta(minutes=values["duration_min"])
+    rows = db.execute(
+        """SELECT id, starts_at, duration_min, room, professional_id, patient_id FROM appointments
+           WHERE status IN ('scheduled','arrived') AND date(starts_at) = date(?) AND id IS NOT ?""",
+        (values["starts_at"], item_id),
+    )
+    for row in rows:
+        other_start = datetime.fromisoformat(row["starts_at"])
+        other_end = other_start + timedelta(minutes=row["duration_min"])
+        if not (start < other_end and other_start < end):
+            continue
+        if row["professional_id"] == values["professional_id"]:
+            raise HTTPException(409, "El profesional ya tiene una cita en ese horario")
+        if row["patient_id"] == values["patient_id"]:
+            raise HTTPException(409, "El paciente ya tiene una cita en ese horario")
+        if values["room"] and row["room"] == values["room"]:
+            raise HTTPException(409, "La sala ya está ocupada en ese horario")
+
+
+crud_router("patients", PatientIn, ("name", "rut", "birth_date", "phone", "email", "insurance", "allergies", "occupation", "history", "active"), patient_rules)
+crud_router("professionals", ProfessionalIn, ("name", "specialty", "phone", "email", "active"))
+crud_router("appointments", AppointmentIn, ("patient_id", "professional_id", "starts_at", "duration_min", "room", "reason", "plan_id", "status"), appointment_rules)
+register_kine(app, appointment_rules)
+crud_router("payments", PaymentIn, ("patient_id", "appointment_id", "concept", "amount", "method"), payment_rules)
+
+
+@app.get("/api/agenda")
+def agenda(
+    day: str | None = Query(default=None, description="AAAA-MM-DD; por defecto hoy"),
+    professional_id: int | None = None,
+    db: sqlite3.Connection = Depends(get_db),
+) -> list[dict[str, Any]]:
+    day = day or datetime.now().strftime("%Y-%m-%d")
+    sql = """SELECT a.*, p.name AS patient_name, p.allergies, pr.name AS professional_name, pr.specialty,
+                    tp.title AS plan_title, tp.total_sessions AS plan_total,
+                    CASE
+                      WHEN a.plan_id IS NULL THEN NULL
+                      WHEN a.status IN ('scheduled','arrived') THEN
+                        (SELECT COUNT(*) FROM consultations c WHERE c.plan_id = a.plan_id)
+                        + (SELECT COUNT(*) FROM appointments b WHERE b.plan_id = a.plan_id AND b.status IN ('scheduled','arrived')
+                             AND (b.starts_at < a.starts_at OR (b.starts_at = a.starts_at AND b.id <= a.id)))
+                      WHEN a.status = 'done' THEN
+                        (SELECT COUNT(*) FROM consultations c WHERE c.plan_id = a.plan_id
+                           AND c.id <= (SELECT MAX(x.id) FROM consultations x WHERE x.appointment_id = a.id))
+                    END AS session_no
+             FROM appointments a
+             JOIN patients p ON p.id = a.patient_id
+             JOIN professionals pr ON pr.id = a.professional_id
+             LEFT JOIN treatment_plans tp ON tp.id = a.plan_id
+             WHERE date(a.starts_at) = date(?)"""
+    params: list[Any] = [day]
+    if professional_id is not None:
+        sql += " AND a.professional_id = ?"
+        params.append(professional_id)
+    return [row_dict(r) for r in db.execute(sql + " ORDER BY a.starts_at", params)]
+
+
+@app.post("/api/appointments/{appointment_id}/status")
+def set_status(appointment_id: int, status: str = Form(...), db: sqlite3.Connection = Depends(get_db)) -> dict[str, Any]:
+    if status not in STATUSES:
+        raise HTTPException(422, "Estado no válido")
+    cursor = db.execute("UPDATE appointments SET status = ? WHERE id = ?", (status, appointment_id))
+    db.commit()
+    if cursor.rowcount == 0:
+        raise HTTPException(404, "Cita no encontrada")
+    return row_dict(db.execute("SELECT * FROM appointments WHERE id = ?", (appointment_id,)).fetchone())
+
+
+CONSULTATION_SELECT = """SELECT c.*, p.name AS patient_name, pr.name AS professional_name
+    FROM consultations c JOIN patients p ON p.id = c.patient_id
+    JOIN professionals pr ON pr.id = c.professional_id"""
+
+
+@app.get("/api/consultations")
+def list_consultations(
+    patient_id: int | None = None,
+    limit: int = Query(default=50, ge=1, le=500),
+    db: sqlite3.Connection = Depends(get_db),
+) -> list[dict[str, Any]]:
+    sql, params = CONSULTATION_SELECT, []
+    if patient_id is not None:
+        sql += " WHERE c.patient_id = ?"
+        params.append(patient_id)
+    rows = [row_dict(r) for r in db.execute(sql + " ORDER BY c.occurred_at DESC, c.id DESC LIMIT ?", (*params, limit))]
+    return enrich_consultations(db, rows)
+
+
+@app.post("/api/consultations", status_code=201)
+async def create_consultation(
+    patient_id: int = Form(...),
+    professional_id: int = Form(...),
+    appointment_id: int | None = Form(None),
+    diagnosis: str | None = Form(None),
+    treatment: str | None = Form(None),
+    notes: str | None = Form(None),
+    plan_id: int | None = Form(None),
+    eva: int | None = Form(None, ge=0, le=10),
+    measurements: str | None = Form(None, description='JSON: [{"name":"Flexión rodilla","value":95,"unit":"°"}]'),
+    library_ids: str | None = Form(None, description="IDs de entradas de biblioteca separados por coma"),
+    attachment: UploadFile | None = File(None),
+    db: sqlite3.Connection = Depends(get_db),
+) -> dict[str, Any]:
+    marks, links = parse_measurements(measurements), parse_ids(library_ids)
+    if appointment_id is not None:
+        appt = db.execute("SELECT plan_id, status FROM appointments WHERE id = ?", (appointment_id,)).fetchone()
+        if appt is not None:
+            if appt["status"] == "done" or db.execute("SELECT 1 FROM consultations WHERE appointment_id = ?", (appointment_id,)).fetchone():
+                raise HTTPException(409, "Esa cita ya tiene su atención registrada")
+            if plan_id is None:
+                plan_id = appt["plan_id"]
+    if plan_id is not None:
+        plan = db.execute("SELECT patient_id, status FROM treatment_plans WHERE id = ?", (plan_id,)).fetchone()
+        if plan is None or plan["patient_id"] != patient_id:
+            raise HTTPException(422, "El plan no existe o pertenece a otro paciente")
+        if plan["status"] != "active":
+            raise HTTPException(409, "El plan no está activo")
+    stored: str | None = None
+    if attachment and attachment.filename:
+        extension = Path(attachment.filename).suffix.lower()
+        if extension not in {".jpg", ".jpeg", ".png", ".webp", ".pdf"}:
+            raise HTTPException(415, "Solo se aceptan JPG, PNG, WEBP o PDF")
+        content = await attachment.read(MAX_UPLOAD_BYTES + 1)
+        if len(content) > MAX_UPLOAD_BYTES:
+            raise HTTPException(413, "El archivo excede el tamaño máximo permitido")
+        if not looks_like(extension, content):
+            raise HTTPException(415, "El contenido del archivo no corresponde a su extensión")
+        stored = f"{datetime.now(timezone.utc):%Y%m%d%H%M%S}_{secrets.token_hex(8)}{extension}"
+        (UPLOAD_DIR / stored).write_bytes(content)
+    try:
+        cursor = db.execute(
+            """INSERT INTO consultations (patient_id, professional_id, appointment_id, diagnosis, treatment, notes, attachment_path, plan_id, eva, occurred_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (patient_id, professional_id, appointment_id, diagnosis, treatment, notes, stored, plan_id, eva,
+             datetime.now().strftime("%Y-%m-%d %H:%M:%S")),  # hora local del servidor (fijar KINEPRO/TZ), no UTC
+        )
+        save_consultation_extras(db, cursor.lastrowid, marks, links)
+        if appointment_id is not None:
+            db.execute("UPDATE appointments SET status = 'done' WHERE id = ?", (appointment_id,))
+        refresh_plan_status(db, plan_id)
+        db.commit()
+    except (sqlite3.IntegrityError, HTTPException) as error:
+        db.rollback()
+        if stored:
+            (UPLOAD_DIR / stored).unlink(missing_ok=True)
+        if isinstance(error, HTTPException):
+            raise error
+        raise HTTPException(409, f"Referencia inválida: {error}") from error
