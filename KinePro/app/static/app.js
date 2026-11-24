@@ -35,6 +35,7 @@ const fail = x => say(x.message);
 
 let pats = [], pros = [], plansAll = [], me = null, cat = "", lastFocus = null;
 const patient = id => pats.find(p => p.id === +id);
+let showArchived = false;
 const opts = (l, f) => l.map(x => `<option value="${x.id}">${esc(f(x))}</option>`).join("");
 const activePlans = pid => plansAll.filter(p => p.patient_id === +pid && p.status === "active");
 
@@ -44,7 +45,7 @@ function go(t) {
   document.querySelectorAll("main section").forEach(s => s.hidden = s.id !== t);
   $("fab").hidden = t !== "agenda";
   if (t === "caja") pays().catch(fail);
-  if (t === "admin") users().catch(fail);
+  if (t === "admin") { users().catch(fail); audits().catch(fail); }
   if (t === "biblioteca" && !$("tplPane").hidden) tplList().catch(fail);
   window.scrollTo({ top: 0 });
 }
@@ -99,7 +100,7 @@ const slotHTML = (a, next) => {
 };
 let agendaCache = [];
 async function agenda() {
-  const day = $("day").value, l = agendaCache = await api("/api/agenda?day=" + day);
+  const day = $("day").value, l = agendaCache = await api("/api/agenda?day=" + day + ($("agPro").value ? "&professional_id=" + $("agPro").value : ""));
   $("agTitle").textContent = longDate(parseDay(day));
   const live = l.filter(a => ["scheduled", "arrived"].includes(a.status)), done = l.filter(a => a.status === "done").length;
   $("agSub").textContent = l.length ? `${l.length} ${l.length === 1 ? "sesión" : "sesiones"} · ${live.length} por atender · ${done} ${done === 1 ? "realizada" : "realizadas"}` : "Sin sesiones agendadas";
@@ -113,8 +114,9 @@ async function agenda() {
 /* ---------- carga de datos ---------- */
 async function load() {
   [pats, pros, plansAll] = await Promise.all([api("/api/patients"), api("/api/professionals"), api("/api/plans")]);
-  const keepP = $("cPatient").value, keepR = $("cPro").value;
-  $("cPatient").innerHTML = opts(pats, p => p.name + (p.rut ? " · " + p.rut : "")); $("cPro").innerHTML = opts(pros, p => p.name + " · " + p.specialty);
+  const keepP = $("cPatient").value, keepR = $("cPro").value, keepF = $("agPro").value;
+  $("agPro").innerHTML = '<option value="">Todos</option>' + opts(pros, p => p.name); $("agPro").value = keepF;
+  $("cPatient").innerHTML = opts(pats.filter(p => p.active), p => p.name + (p.rut ? " · " + p.rut : "")); $("cPro").innerHTML = opts(pros, p => p.name + " · " + p.specialty);
   if (keepP) $("cPatient").value = keepP; if (keepR) $("cPro").value = keepR;
   renderPatients(); await loadPlans($("cPlan").value);
 }
@@ -123,13 +125,14 @@ const refresh = () => load().then(() => Promise.all([agenda(), cons()])).catch(f
 /* ---------- pacientes ---------- */
 function renderPatients() {
   const q = fold($("pSearch").value);
-  $("patCount").textContent = pats.length + (pats.length === 1 ? " paciente" : " pacientes");
-  const l = pats.filter(p => !q || fold(p.name + " " + (p.rut || "")).includes(q));
+  const nAct = pats.filter(p => p.active).length; $("patCount").textContent = nAct + (nAct === 1 ? " paciente" : " pacientes") + (pats.length > nAct ? ` · ${pats.length - nAct} archivados` : "");
+  const l = pats.filter(p => (showArchived || p.active) && (!q || fold(p.name + " " + (p.rut || "")).includes(q)));
   $("patList").innerHTML = l.map(p => { const pl = activePlans(p.id)[0];
-    return `<div class="prow" data-act="patient" data-id="${p.id}" tabindex="0" role="button">${avatar(p.name)}<div><div class="nm">${esc(p.name)}</div><div class="sub">${pl ? `${pips(pl.sessions_done, pl.sessions_scheduled, pl.total_sessions)}<span>${esc(pl.title)}</span>` : `<span>${esc(p.rut || "Sin RUT")}</span>`}${p.allergies ? `<span class="tag wait">${ic("alert")}Precaución</span>` : ""}</div></div>${ic("right", "")}</div>`; }).join("")
+    return `<div class="prow" data-act="patient" data-id="${p.id}" tabindex="0" role="button">${avatar(p.name)}<div><div class="nm">${esc(p.name)}</div><div class="sub">${pl ? `${pips(pl.sessions_done, pl.sessions_scheduled, pl.total_sessions)}<span>${esc(pl.title)}</span>` : `<span>${esc(p.rut || "Sin RUT")}</span>`}${p.active ? "" : `<span class="tag">Archivado</span>`}${p.allergies ? `<span class="tag wait">${ic("alert")}Precaución</span>` : ""}</div></div>${ic("right", "")}</div>`; }).join("")
     || (pats.length ? empty("Sin coincidencias", "Pruebe con otro nombre o RUT.") : empty("Aún no hay pacientes", "Registre al primero para crear su plan de tratamiento.", `<br><button class="btn" data-act="newPatient">${ic("plus")}Nuevo paciente</button>`));
 }
 $("pSearch").addEventListener("input", renderPatients);
+$("showArch").addEventListener("click", e => { showArchived = !showArchived; e.currentTarget.setAttribute("aria-pressed", showArchived); renderPatients(); });
 const patientForm = p => `${sheetTop(p ? { act: "patient", id: p.id, label: "Ficha" } : null)}<h2>${p ? "Editar paciente" : "Nuevo paciente"}</h2>
 <form class="stack" data-form="patient" data-id="${p?.id ?? ""}" style="margin-top:1rem"><label class="field"><span>Nombre completo</span><input name="name" value="${esc(p?.name)}" required maxlength="120"></label>
 <div class="cols"><label class="field"><span>RUT</span><input name="rut" value="${esc(p?.rut)}" maxlength="20"></label><label class="field"><span>Fecha de nacimiento</span><input type="date" name="birth_date" value="${esc(p?.birth_date)}"></label></div>
@@ -159,7 +162,7 @@ async function openPatient(id, tab = "resumen") {
       body = `<dl class="info"><dt>RUT</dt><dd>${esc(p.rut || "—")}</dd>${p.birth_date ? `<dt>Edad</dt><dd>${age(p.birth_date)}</dd>` : ""}<dt>Teléfono</dt><dd>${esc(p.phone || "—")}</dd>${p.email ? `<dt>Correo</dt><dd>${esc(p.email)}</dd>` : ""}<dt>Previsión</dt><dd>${esc(p.insurance || "—")}</dd>${p.occupation ? `<dt>Ocupación</dt><dd>${esc(p.occupation)}</dd>` : ""}</dl>
       ${p.history ? `<h3>Antecedentes</h3><p style="white-space:pre-wrap;margin:0">${esc(p.history)}</p>` : ""}
       ${p.allergies ? `<div class="alert">${ic("alert")}<span>${esc(p.allergies)}</span></div>` : ""}
-      <div class="pick" style="margin-top:1rem"><button class="btn sm" data-act="attendPat" data-id="${id}">${ic("note")}Atención rápida</button><button class="btn ghost sm" data-act="editPatient" data-id="${id}">${ic("edit")}Editar datos</button></div>
+      <div class="pick" style="margin-top:1rem"><button class="btn sm" data-act="attendPat" data-id="${id}">${ic("note")}Atención rápida</button><button class="btn ghost sm" data-act="editPatient" data-id="${id}">${ic("edit")}Editar datos</button><button class="btn ghost sm" data-act="archive" data-id="${id}">${p.active ? "Archivar paciente" : "Reactivar paciente"}</button></div>
       <h3>Plan en curso</h3>${plans.filter(x => x.status === "active").map(planCard).join("") || `<p class="muted">Sin plan en curso. Cree uno en la pestaña Planes.</p>`}
       <h3>Última atención</h3>${cs.slice(0, 1).map(consRow).join("") || `<p class="muted">Sin atenciones registradas.</p>`}`;
     } else if (tab === "planes") {
@@ -226,10 +229,10 @@ function schedForm(id) {
 
 /* ---------- citas, pagos (hojas) ---------- */
 function apptForm(pre = {}) {
-  const ed = pre.edit, day = pre.day || $("day").value, pid = ed ? ed.patient_id : pre.patient || pats[0]?.id;
-  if (!pats.length) { sheet(`${sheetTop()}<h2>Agendar sesión</h2>${empty("Primero registre un paciente", "Necesita al menos un paciente para agendar.", `<br><button class="btn" data-act="newPatient">${ic("plus")}Nuevo paciente</button>`)}`); return; }
+  const ed = pre.edit, day = pre.day || $("day").value, pid = ed ? ed.patient_id : pre.patient || pats.find(p => p.active)?.id;
+  if (!pats.some(p => p.active)) { sheet(`${sheetTop()}<h2>Agendar sesión</h2>${empty("Primero registre un paciente", "Necesita al menos un paciente para agendar.", `<br><button class="btn" data-act="newPatient">${ic("plus")}Nuevo paciente</button>`)}`); return; }
   sheet(`${sheetTop()}<h2>${ed ? "Reprogramar sesión" : "Agendar sesión"}</h2><form class="stack" data-form="appt" data-id="${ed ? ed.id : ""}" style="margin-top:1rem">
-  <label class="field"><span>Paciente</span><select name="patient" id="apPat" required>${opts(pats, p => p.name)}</select></label>
+  <label class="field"><span>Paciente</span><select name="patient" id="apPat" required>${opts(pats.filter(p => p.active), p => p.name)}</select></label>
   <label class="field"><span>Plan de tratamiento</span><select name="plan" id="apPlan"></select></label>
   <label class="field"><span>Profesional</span><select name="pro" required>${opts(pros, p => p.name + " · " + p.specialty)}</select></label>
   <div class="cols"><label class="field"><span>Fecha y hora</span><input type="datetime-local" name="start" value="${ed ? ed.starts_at : day + "T09:00"}" required></label><label class="field"><span>Duración (min)</span><input type="number" name="dur" value="${ed ? ed.duration_min : 45}" min="5" max="480" inputmode="numeric"></label></div>
@@ -238,13 +241,13 @@ function apptForm(pre = {}) {
 }
 function fillApPlans() { $("apPlan").innerHTML = '<option value="">Cita suelta (sin plan)</option>' + opts(activePlans($("apPat").value), p => `${p.title} · ${p.sessions_done}/${p.total_sessions}`); }
 function payForm() {
-  sheet(`${sheetTop()}<h2>Registrar pago</h2><form class="stack" data-form="pay" style="margin-top:1rem"><label class="field"><span>Paciente</span><select name="patient" required>${opts(pats, p => p.name)}</select></label>
+  sheet(`${sheetTop()}<h2>Registrar pago</h2><form class="stack" data-form="pay" style="margin-top:1rem"><label class="field"><span>Paciente</span><select name="patient" required>${opts(pats.filter(p => p.active), p => p.name)}</select></label>
   <label class="field"><span>Concepto</span><input name="concept" required maxlength="160" placeholder="Sesión de kinesiología"></label>
   <div class="cols"><label class="field"><span>Monto (CLP)</span><input name="amount" type="number" min="0" required inputmode="numeric"></label><label class="field"><span>Medio</span><select name="method"><option value="cash">Efectivo</option><option value="card">Tarjeta</option><option value="transfer">Transferencia</option><option value="insurance">Seguro / Isapre</option></select></label></div><button class="btn block">Guardar pago</button></form>`);
 }
 async function pays() {
   const [d, l] = await Promise.all([api("/api/dashboard"), api("/api/payments")]);
-  $("money").textContent = clp(d.month_revenue);
+  $("money").textContent = clp(d.month_revenue); $("monthSess").textContent = d.month_sessions + (d.month_sessions === 1 ? " sesión realizada este mes" : " sesiones realizadas este mes");
   $("payList").innerHTML = l.slice(0, 40).map(y => { const p = patient(y.patient_id); return `<div class="pay"><span>${esc(y.concept)}<br><span class="muted">${esc(p ? p.name : "")} · ${y.paid_at.slice(0, 10).split("-").reverse().join("/")}</span></span><b>${clp(y.amount)}</b></div>`; }).join("") || empty("Sin pagos registrados", "Los pagos del mes aparecerán aquí.");
 }
 
@@ -344,6 +347,10 @@ async function saveTemplate() {
 $("libTabs").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; document.querySelectorAll("#libTabs button").forEach(x => x.setAttribute("aria-pressed", x === b)); $("libPane").hidden = b.dataset.p !== "lib"; $("tplPane").hidden = b.dataset.p !== "tpl"; if (b.dataset.p === "tpl") tplList().catch(fail); });
 
 /* ---------- administración ---------- */
+async function audits() {
+  const l = await api("/api/admin/audit?limit=60");
+  $("auditList").innerHTML = l.map(e => `<div class="rowl" style="padding:.5rem .1rem"><div class="d" style="min-width:5.6rem;font-size:.8rem">${esc(e.at.slice(5, 16).replace("-", "/"))}</div><div class="grow" style="font-size:.88rem"><b>${esc(e.username || "—")}</b> · ${esc(e.method)} ${esc(e.path.replace("/api/", ""))} <span class="tag ${e.status >= 400 ? "wait" : ""}">${+e.status}</span></div></div>`).join("") || '<p class="muted">Sin actividad registrada.</p>';
+}
 async function users() { const l = await api("/api/users"); $("userList").innerHTML = l.map(u => `<div class="rowl"><div class="grow"><b>${esc(u.name)}</b> <span class="muted">@${esc(u.username)}</span></div><span class="tag">${u.role}${u.active ? "" : " · inactivo"}</span></div>`).join(""); }
 const simple = (id, fn) => $(id).addEventListener("submit", async e => { e.preventDefault(); try { await fn(); e.target.reset(); say("Guardado"); } catch (x) { fail(x); } });
 simple("fUser", async () => { await post("/api/users", { username: $("uUser").value, name: $("uName").value, password: $("uPass").value, role: $("uRole").value }); users(); });
@@ -359,6 +366,7 @@ const A = {
   day: b => setDay(b.dataset.d),
   newAppt: () => apptForm(), newPatient: () => sheet(patientForm()), newPay: payForm,
   patient: b => openPatient(+b.dataset.id), ptab: b => openPatient(+b.dataset.id, b.dataset.tab),
+  archive: async b => { const p = patient(b.dataset.id); if (p.active && !confirm("¿Archivar a " + p.name + "? Su historial se conserva y deja de aparecer en las listas de trabajo.")) return; try { await send("PUT", "/api/patients/" + p.id, { name: p.name, rut: p.rut, birth_date: p.birth_date, phone: p.phone, email: p.email, insurance: p.insurance, allergies: p.allergies, occupation: p.occupation, history: p.history, active: !p.active }); say(p.active ? "Paciente archivado" : "Paciente reactivado"); await load(); openPatient(p.id); } catch (x) { fail(x); } },
   editPatient: b => sheet(patientForm(patient(b.dataset.id))),
   plan: b => openPlan(+b.dataset.id), sched: b => schedForm(b.dataset.id),
   planStatus: b => planStatus(+b.dataset.id, b.dataset.s),
@@ -387,6 +395,7 @@ document.addEventListener("change", async e => {
   try { const f = new FormData(); f.append("status", e.target.value); await api(`/api/appointments/${s}/status`, { method: "POST", body: f }); await refresh(); } catch (x) { fail(x); await agenda(); }
 });
 $("day").addEventListener("change", () => agenda().catch(fail));
+$("agPro").addEventListener("change", () => agenda().catch(fail));
 
 document.addEventListener("submit", async e => {
   const f = e.target, kind = f.dataset.form; if (!kind) return; e.preventDefault(); const q = f.elements;

@@ -292,3 +292,30 @@ def test_respaldo_solo_admin_y_es_zip(client):
         other.post("/api/auth/login", json={"username": "kine2", "password": "clave-larga-123"})
         assert other.get("/api/admin/backup").status_code == 403
     client.delete(f"/api/users/{r['id']}")
+
+
+def test_registro_de_actividad(client, base):
+    patient, _, doctor = base
+    client.get(f"/api/patients/{patient['id']}")          # lectura de ficha: se registra
+    client.get("/api/patients")                            # lista: no
+    consult(client, patient, doctor, diagnosis="dato clínico secreto")
+    log = client.get("/api/admin/audit").json()
+    paths = [(e["method"], e["path"]) for e in log]
+    assert ("GET", f"/api/patients/{patient['id']}") in paths and ("POST", "/api/consultations") in paths
+    assert ("GET", "/api/patients") not in paths
+    assert "secreto" not in str(log)
+
+
+def test_login_fallido_queda_registrado_y_solo_admin_lee(client):
+    from fastapi.testclient import TestClient
+    from app.main import app
+    with TestClient(app) as anon:
+        assert anon.post("/api/auth/login", json={"username": "intruso", "password": "x"}).status_code == 401
+        assert anon.get("/api/admin/audit").status_code == 401
+    assert any(e["username"] == "intruso" and e["status"] == 401 for e in client.get("/api/admin/audit").json())
+
+
+def test_resumen_mensual_de_sesiones(client, base):
+    patient, _, doctor = base
+    consult(client, patient, doctor)
+    assert client.get("/api/dashboard").json()["month_sessions"] >= 1

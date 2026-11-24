@@ -45,12 +45,13 @@
   <div class="head"><div><h2 id="agTitle"></h2><p class="muted" id="agSub"></p></div><button class="btn soft sm" data-act="today">Hoy</button></div>
   <div class="days"><button class="iconbtn" data-act="week" data-n="-7" aria-label="Semana anterior"><svg class="ic"><use href="#i-left"/></svg></button><div class="strip" id="strip"></div><button class="iconbtn" data-act="week" data-n="7" aria-label="Semana siguiente"><svg class="ic"><use href="#i-right"/></svg></button></div>
   <div class="timeline" id="agendaList" aria-live="polite"></div>
-  <label class="field" style="max-width:220px;margin-top:1.4rem"><span>Ir a una fecha</span><input type="date" id="day"></label>
+  <div class="cols" style="max-width:480px;margin-top:1.4rem"><label class="field"><span>Ir a una fecha</span><input type="date" id="day"></label><label class="field"><span>Profesional</span><select id="agPro"><option value="">Todos</option></select></label></div>
 </section>
 
 <section id="pacientes" hidden>
   <div class="head"><div><h2>Pacientes</h2><p class="muted" id="patCount"></p></div><button class="btn sm" data-act="newPatient"><svg class="ic sm"><use href="#i-plus"/></svg>Nuevo</button></div>
   <div class="search"><svg class="ic"><use href="#i-search"/></svg><input id="pSearch" type="search" placeholder="Buscar por nombre o RUT" aria-label="Buscar paciente"></div>
+  <div class="chips" style="margin-top:.5rem"><button class="chip" id="showArch" aria-pressed="false">Ver archivados</button></div>
   <div class="plist" id="patList"></div>
 </section>
 
@@ -90,7 +91,7 @@
 </section>
 
 <section id="caja" hidden>
-  <div class="head"><div><h2>Caja</h2><p class="muted">Ingresos del mes</p><div class="money" id="money">—</div></div><button class="btn sm" data-act="newPay"><svg class="ic sm"><use href="#i-plus"/></svg>Pago</button></div>
+  <div class="head"><div><h2>Caja</h2><p class="muted">Ingresos del mes</p><div class="money" id="money">—</div><p class="muted" id="monthSess"></p></div><button class="btn sm" data-act="newPay"><svg class="ic sm"><use href="#i-plus"/></svg>Pago</button></div>
   <a class="btn ghost sm" href="/api/export/payments.csv"><svg class="ic sm"><use href="#i-down"/></svg>Descargar pagos (Excel)</a>
   <div id="payList" style="margin-top:.8rem"></div>
 </section>
@@ -100,6 +101,7 @@
   <div class="panel"><h3>Usuarios</h3><div id="userList"></div>
     <form id="fUser" class="stack"><div class="cols"><label class="field"><span>Nombre</span><input id="uName" required></label><label class="field"><span>Usuario</span><input id="uUser" required autocomplete="off"></label></div>
     <div class="cols"><label class="field"><span>Clave (mín. 10 caracteres)</span><input id="uPass" type="password" minlength="10" required autocomplete="new-password"></label><label class="field"><span>Rol</span><select id="uRole"><option value="profesional">Profesional</option><option value="admin">Administrador</option></select></label></div><button class="btn">Crear usuario</button></form></div>
+  <div class="panel"><h3>Actividad reciente</h3><p class="muted">Quién entró, creó, modificó o consultó fichas, exportó o descargó respaldos. No guarda el contenido clínico.</p><div id="auditList"></div></div>
   <div class="panel"><h3>Respaldo</h3><p class="muted">Descarga la base de datos y los adjuntos en un .zip. Guárdelo fuera del servidor: en el plan gratuito de Render los datos se pierden al reiniciar.</p><a class="btn soft" href="/api/admin/backup" download>Descargar respaldo</a></div>
   <div class="panel"><h3>Mi clave</h3><form id="fPass" class="stack"><div class="cols"><label class="field"><span>Clave actual</span><input id="pwOld" type="password" required autocomplete="current-password"></label><label class="field"><span>Nueva clave (mín. 10)</span><input id="pwNew" type="password" minlength="10" required autocomplete="new-password"></label></div><button class="btn">Cambiar clave</button></form></div>
   <div class="panel"><h3>Agregar a la biblioteca</h3><form id="fLib" class="stack"><div class="cols"><label class="field"><span>Categoría</span><select id="lCat"></select></label><label class="field"><span>Región</span><input id="lRegion" placeholder="Ej.: Hombro"></label></div>

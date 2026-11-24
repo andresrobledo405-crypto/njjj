@@ -14,6 +14,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 
 import os
+import re
 import time
 import unicodedata
 
@@ -77,6 +78,20 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         return response
 
 
+SENSITIVE_GET = re.compile(r"^/api/(patients/\d+|plans/\d+(/report)?|consultations(/\d+/attachment)?|export/[\w.]+|admin/backup|templates/\d+/print)$")
+
+
+def audit(user: dict | None, method: str, path: str, status: int, username: str | None = None) -> None:
+    """Registro de actividad (quién, qué, cuándo). No guarda contenido de fichas ni cuerpos de petición."""
+    db = get_connection()
+    try:
+        db.execute("INSERT INTO audit_log (at, user_id, username, method, path, status) VALUES (?,?,?,?,?,?)",
+                   (datetime.now().strftime("%Y-%m-%d %H:%M:%S"), user["id"] if user else None, (user or {}).get("u") or username, method, path, status))
+        db.commit()
+    finally:
+        db.close()
+
+
 PUBLIC_PATHS = {"/api/auth/login", "/api/health", "/api/meta"}
 
 
@@ -97,7 +112,11 @@ class AuthMiddleware(BaseHTTPMiddleware):
         request.state.user = user
         if protected and path not in PUBLIC_PATHS and request.state.user is None:
             return JSONResponse({"detail": "Sesión requerida"}, status_code=401)
-        return await call_next(request)
+        response = await call_next(request)
+        if user is not None and path.startswith("/api") and path != "/api/admin/audit" and (
+                request.method != "GET" or SENSITIVE_GET.match(path)):
+            audit(user, request.method, path, response.status_code)
+        return response
 
 
 app.add_middleware(AuthMiddleware)
@@ -134,8 +153,10 @@ def login(payload: LoginIn, request: Request, db: sqlite3.Connection = Depends(g
     row = db.execute("SELECT * FROM users WHERE username = ? AND active = 1", (payload.username,)).fetchone()
     if row is None or not verify_password(payload.password, row["password_hash"]):
         throttle.fail(key)
+        audit(None, "POST", "/api/auth/login", 401, payload.username[:60])
         raise HTTPException(401, "Usuario o clave incorrectos")
     throttle.reset(key)
+    audit({"id": row["id"], "u": row["username"]}, "POST", "/api/auth/login", 200)
     user = {"id": row["id"], "username": row["username"], "role": row["role"], "name": row["name"]}
     response = JSONResponse(user)
     response.set_cookie(SESSION_COOKIE, make_token(user), max_age=SESSION_SECONDS, httponly=True, samesite="strict",
@@ -724,6 +745,7 @@ def dashboard(db: sqlite3.Connection = Depends(get_db)) -> dict[str, Any]:
         "today_appointments": count(f"SELECT COUNT(*) FROM appointments WHERE {today} AND status NOT IN ('cancelled','no_show')"),
         "today_done": count(f"SELECT COUNT(*) FROM appointments WHERE {today} AND status = 'done'"),
         "today_pending": count(f"SELECT COUNT(*) FROM appointments WHERE {today} AND status IN ('scheduled','arrived')"),
+        "month_sessions": count("SELECT COUNT(*) FROM consultations WHERE strftime('%Y-%m', occurred_at) = strftime('%Y-%m','now','localtime')"),
         "month_revenue": count(
             "SELECT COALESCE(SUM(amount),0) FROM payments WHERE strftime('%Y-%m', paid_at) = strftime('%Y-%m','now','localtime')"
         ),
@@ -759,6 +781,12 @@ def export_payments(db: sqlite3.Connection = Depends(get_db)) -> StreamingRespon
            FROM payments y JOIN patients p ON p.id = y.patient_id ORDER BY y.paid_at DESC""",
         "pagos.csv",
     )
+
+
+@app.get("/api/admin/audit")
+def audit_list(request: Request, limit: int = Query(default=100, ge=1, le=500), db: sqlite3.Connection = Depends(get_db)) -> list[dict[str, Any]]:
+    admin_only(request)
+    return [dict(r) for r in db.execute("SELECT at, username, method, path, status FROM audit_log ORDER BY id DESC LIMIT ?", (limit,))]
 
 
 @app.get("/api/admin/backup")
