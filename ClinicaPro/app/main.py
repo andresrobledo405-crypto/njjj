@@ -14,7 +14,10 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 
 import os
+import time
 import unicodedata
+
+import httpx
 
 from fastapi.responses import JSONResponse, Response
 
@@ -101,8 +104,8 @@ def health() -> dict[str, str]:
 
 
 @app.get("/api/meta")
-def meta() -> dict[str, str]:
-    return {"name": APP_NAME}
+def meta() -> dict[str, Any]:
+    return {"name": APP_NAME, "ask_enabled": bool(os.getenv("OPENAI_API_KEY"))}
 
 
 class LoginIn(BaseModel):
@@ -261,6 +264,61 @@ def library_search(q: str | None = None, category: str | None = None, region: st
             return -sum(3 if t in title else 1 for t in terms)
         rows = sorted((r for r in rows if all(t in haystack(r) for t in terms)), key=rank)
     return rows
+
+
+class AskIn(BaseModel):
+    question: str = Field(min_length=5, max_length=500)
+
+
+ASK_PROMPT = (
+    "Eres un asistente de apoyo educativo para kinesiólogos. Responde en español, de forma breve y clara, "
+    "usando EXCLUSIVAMENTE las entradas de la biblioteca entregadas como contexto. Si el contexto no alcanza "
+    "para responder, dilo y sugiere consultar guías clínicas o a un especialista. No des diagnósticos ni "
+    "indicaciones para un paciente concreto. Menciona siempre las precauciones y banderas rojas pertinentes. "
+    "Cita las entradas usadas por su título entre corchetes."
+)
+ask_log: dict[int, list[float]] = {}
+ASK_LIMIT_PER_HOUR = int(os.getenv("KINEPRO_ASK_LIMIT", "20"))
+
+
+@app.post("/api/library/ask")
+def library_ask(payload: AskIn, request: Request, db: sqlite3.Connection = Depends(get_db)) -> dict[str, Any]:
+    """Pregunta a un modelo de OpenAI. Solo se envían la pregunta y entradas de la biblioteca; nunca datos de pacientes."""
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        raise HTTPException(503, "El asistente no está activado (falta OPENAI_API_KEY)")
+    uid, now = request.state.user["id"], time.time()
+    recent = [t for t in ask_log.get(uid, []) if now - t < 3600]
+    if len(recent) >= ASK_LIMIT_PER_HOUR:
+        raise HTTPException(429, "Límite de preguntas por hora alcanzado")
+    ask_log[uid] = recent + [now]
+    # recuperación: entradas que coinciden con más palabras de la pregunta
+    words = [w for w in fold(payload.question).replace("?", " ").replace(",", " ").split() if len(w) > 3]
+    scored = []
+    for row in db.execute("SELECT * FROM library_items"):
+        text = fold(" ".join(str(row[c] or "") for c in ("title", "summary", "content", "tags", "region")))
+        title = fold(row["title"])
+        score = sum((3 if w in title else 1) for w in words if w in text)
+        if score:
+            scored.append((score, dict(row)))
+    top = [r for _, r in sorted(scored, key=lambda x: -x[0])[:6]]
+    if not top:
+        return {"answer": "No encontré información sobre eso en la biblioteca. Intente con otras palabras o consulte guías clínicas.", "sources": []}
+    context = "\n\n".join(f"[{r['title']}]\n{r['summary'] or ''}\n{r['content'] or ''}\nPrecauciones: {r['precautions'] or '-'}" for r in top)
+    try:
+        response = httpx.post(
+            "https://api.openai.com/v1/chat/completions",
+            headers={"Authorization": f"Bearer {api_key}"},
+            json={"model": os.getenv("OPENAI_MODEL", "gpt-4o-mini"), "temperature": 0.2,
+                  "messages": [{"role": "system", "content": ASK_PROMPT},
+                               {"role": "user", "content": f"Contexto:\n{context}\n\nPregunta: {payload.question}"}]},
+            timeout=40,
+        )
+        response.raise_for_status()
+        answer = response.json()["choices"][0]["message"]["content"]
+    except (httpx.HTTPError, KeyError, IndexError, ValueError) as error:
+        raise HTTPException(502, "El servicio de IA no respondió; intente más tarde") from error
+    return {"answer": answer, "sources": [{"id": r["id"], "title": r["title"]} for r in top]}
 
 
 @app.get("/api/library/{item_id}")

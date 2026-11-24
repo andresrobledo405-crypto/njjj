@@ -47,6 +47,7 @@ button.p{background:var(--brand);color:var(--brand-ink);border:0;font-weight:700
 <section id="biblioteca" hidden>
 <input id="q" type="search" placeholder="Buscar: ciática, Lachman, hombro, TENS…" autocomplete="off">
 <div class="chips" id="cats" style="margin:.5rem 0"></div><select id="regSel"><option value="">Todas las regiones</option></select>
+<div id="askBox" hidden><form id="fAsk" style="margin:.5rem 0"><input id="askQ" placeholder="✨ Pregunte a la biblioteca: ¿cómo diferencio Lachman de cajón anterior?" minlength="5" maxlength="500"><button class="p">Preguntar con IA</button></form><div id="askOut"></div><p class="note">La pregunta se envía a OpenAI junto con entradas de la biblioteca. <b>No escriba nombres ni datos de pacientes.</b> La respuesta puede contener errores: verifique en las entradas citadas.</p></div>
 <p class="note" id="libCount"></p><div id="libList"></div>
 <p class="note">Material de apoyo educativo para profesionales de la salud. No reemplaza el juicio clínico, la evaluación individual ni las guías vigentes; verifique contraindicaciones antes de aplicar cualquier técnica.</p></section>
 <section id="admin" hidden>
@@ -102,7 +103,9 @@ document.querySelector("nav").addEventListener("click",e=>{if(e.target.dataset.t
 form("fUser",async()=>{await post("/api/users",{username:$("uUser").value,name:$("uName").value,password:$("uPass").value,role:$("uRole").value});users()});
 form("fPass",async()=>{await post("/api/auth/password",{current:$("pwOld").value,new:$("pwNew").value})});
 form("fLib",async()=>{await post("/api/library",{category:$("lCat").value,region:$("lRegion").value||null,title:$("lTitle").value,summary:$("lSum").value||null,content:$("lBody").value||null,precautions:$("lPrec").value||null,tags:$("lTags").value||null});libMeta();libSearch()});
-fetch("/api/meta").then(r=>r.json()).then(m=>{document.title=m.name;$("brand").textContent="🩺 "+m.name}).catch(()=>{});
+fetch("/api/meta").then(r=>r.json()).then(m=>{$("askBox").hidden=!m.ask_enabled;document.title=m.name;$("brand").textContent="🩺 "+m.name}).catch(()=>{});
+$("fAsk").addEventListener("submit",async e=>{e.preventDefault();$("askOut").innerHTML='<p class="mute">Consultando…</p>';try{const r=await post("/api/library/ask",{question:$("askQ").value});$("askOut").innerHTML=`<div class="card"><div class="body">${esc(r.answer)}</div><div class="mute" style="margin-top:.4rem">Fuentes: ${r.sources.map(s=>`<a href="#" data-src="${s.id}">${esc(s.title)}</a>`).join(" · ")||"—"}</div></div>`}catch(x){$("askOut").innerHTML="";say(x.message)}});
+$("askOut").addEventListener("click",e=>{const a=e.target.closest("a[data-src]");if(!a)return;e.preventDefault();$("q").value="";api("/api/library/"+a.dataset.src).then(i=>{$("detailBody").innerHTML=`<button class="mini" id="dClose">Cerrar</button><h2>${esc(i.title)}</h2><p><b>${esc(i.summary||"")}</b></p><div class="body">${esc(i.content||"")}</div>${i.precautions?`<div class="prec"><b>⚠ Precauciones</b><br>${esc(i.precautions)}</div>`:""}`;$("detail").classList.add("on")})});
 if("serviceWorker" in navigator)navigator.serviceWorker.register("/sw.js").catch(()=>{});
 start();
 </script>
