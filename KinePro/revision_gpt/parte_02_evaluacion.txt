@@ -1,0 +1,68 @@
+CATEGORÍA: Evaluación
+
+### FABER (Patrick) y FADIR (Cadera)
+Resumen: Provocación de cadera y articulación sacroilíaca.
+FABER: flexión, abducción y rotación externa (posición "4"); dolor inguinal sugiere cadera, dolor posterior sugiere sacroilíaca.
+FADIR: flexión, aducción y rotación interna; dolor inguinal sugiere pinzamiento femoroacetabular o patología intraarticular.
+Un FADIR negativo hace poco probable el pinzamiento.
+
+### Test de Thomas y Ober (Cadera)
+Resumen: Longitud de flexores de cadera, recto femoral y banda iliotibial.
+Thomas: paciente en el borde de la camilla abraza una rodilla al pecho; si el muslo contrario se eleva, hay acortamiento de psoas-ilíaco; si la rodilla se extiende, del recto femoral.
+Ober: decúbito lateral, cadera en extensión y abducción; si el muslo no desciende a la horizontal, hay tensión de la banda iliotibial/tensor de la fascia lata.
+
+### Signo de Trendelenburg (Cadera)
+Resumen: Evalúa la función del glúteo medio durante el apoyo unipodal.
+Pida apoyo en una pierna 30 s. Positivo: la pelvis contraria cae (o el tronco compensa inclinándose hacia el lado de apoyo).
+Sugiere debilidad del glúteo medio, dolor, o alteración de palanca (cadera). Relevante en artrosis de cadera y tendinopatía glútea.
+
+### Elevación de pierna recta (SLR/Lasègue) y Slump (Columna lumbar)
+Resumen: Pruebas de tensión neural para radiculopatía lumbar.
+SLR: en supino eleve la pierna con rodilla extendida; es positivo si reproduce dolor radicular entre ~30° y 70°, que aumenta con dorsiflexión. El SLR cruzado (dolor al elevar la pierna contraria) es muy específico de hernia discal.
+Slump: sentado, flexione el tronco, extienda rodilla y dorsiflexione; la diferenciación estructural (soltar la flexión cervical) confirma el origen neural.
+
+### Test de Schober modificado (Columna lumbar)
+Resumen: Mide movilidad en flexión del raquis lumbar.
+Marque la línea de las espinas ilíacas posterosuperiores (L5-S1), una marca 10 cm sobre ella y otra 5 cm bajo ella (15 cm de distancia). Con flexión máxima, el aumento normal es de al menos 5 cm (≥20 cm total).
+Útil para seguimiento de espondiloartritis axial y rigidez lumbar.
+
+### Spurling, distracción y ULTT1 (Columna cervical)
+Resumen: Pruebas para radiculopatía cervical.
+Spurling: extensión, inclinación lateral hacia el lado doloroso y compresión axial suave; reproduce dolor radicular.
+Distracción cervical: la tracción manual alivia los síntomas. ULTT1 (test de tensión del miembro superior, nervio mediano).
+Agrupadas (clúster de Wainner: Spurling, distracción, ULTT1 y rotación cervical homolateral <60°) aumentan la certeza diagnóstica.
+Precauciones: Evite Spurling si hay sospecha de inestabilidad, mielopatía o lesión traumática reciente.
+
+### Test de flexión craneocervical (Columna cervical)
+Resumen: Evalúa el control de los flexores profundos del cuello.
+En supino, con un biofeedback de presión (unidad estabilizadora a 20 mmHg), el paciente realiza un "asentimiento" suave para subir de a 2 mmHg (22 a 30). Registre el nivel que puede sostener 10 s sin sustituir con flexores superficiales.
+Útil en cervicalgia y cefalea cervicogénica para guiar el entrenamiento motor.
+
+### Cozen, Mill y flexión resistida de muñeca (Codo y muñeca)
+Resumen: Provocación de epicondilalgia lateral y medial.
+Cozen: extensión resistida de muñeca con codo extendido y pronación; dolor en el epicóndilo lateral. Mill: estiramiento pasivo de los extensores.
+Epicondilalgia medial: dolor con flexión y pronación resistida.
+Palpe el origen tendinoso y compare con el lado contrario.
+
+### Phalen, Tinel, Durkan y Finkelstein (Codo y muñeca)
+Resumen: Pruebas para síndrome del túnel carpiano y tenosinovitis de De Quervain.
+Phalen: flexión de muñecas 60 s; Tinel: percusión sobre el nervio mediano; Durkan: compresión directa del túnel carpiano 30 s. Parestesias en dedos radiales son positivas.
+Finkelstein: con el pulgar dentro del puño, desviación cubital; dolor en el 1.er compartimento dorsal sugiere De Quervain.
+Combine pruebas y síntomas nocturnos; ninguna es determinante por sí sola.
+
+### Fuerza muscular (escala MRC) y reflejos (Neurológica)
+Resumen: Graduación estándar de 0 a 5.
+0 sin contracción; 1 contracción visible sin movimiento; 2 movimiento sin gravedad; 3 vence la gravedad; 4 vence resistencia parcial; 5 fuerza normal. Registre el miotoma evaluado (ej.: L4 dorsiflexión, L5 extensión del hallux, S1 flexión plantar).
+Reflejos: rotuliano (L3-L4), aquíleo (S1), bicipital (C5-C6), tricipital (C7). Compare siempre ambos lados.
+
+### Escala de Ashworth modificada (Neurológica)
+Resumen: Mide el tono muscular (espasticidad).
+0 sin aumento; 1 leve aumento con "enganche" al final del rango; 1+ leve aumento con resistencia en menos de la mitad del rango; 2 aumento marcado en casi todo el rango; 3 aumento considerable, movimiento pasivo difícil; 4 rigidez en flexión o extensión.
+Mida siempre con la misma velocidad de estiramiento y posición. Útil en rehabilitación neurológica (ACV, paraplejía).
+
+### Escala de Berg, TUG y Tinetti (Equilibrio)
+Resumen: Valoración funcional del equilibrio y riesgo de caídas en adultos mayores.
+Berg: 14 tareas, 0–56 puntos; <45 se asocia a mayor riesgo de caídas.
+Timed Up and Go (TUG): levantarse, caminar 3 m, volver y sentarse; ≥13,5 s en adultos mayores se asocia a riesgo de caídas.
+Tinetti (POMA): máximo 28; <19 riesgo alto, 19–23 riesgo moderado.
+Use la misma prueba en cada control para comparar.
