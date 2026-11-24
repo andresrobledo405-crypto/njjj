@@ -159,3 +159,15 @@ def test_endpoints_nuevos_exigen_sesion(client):
         for url in ("/api/plans", "/api/plans/1", "/api/templates", "/api/templates/1/print"):
             assert anon.get(url).status_code == 401, url
         assert anon.post("/api/plans/1/schedule", json={}).status_code == 401
+
+
+def test_numero_de_sesion_cuenta_las_atenciones_ya_hechas(client, base):
+    patient, _, doctor = base
+    plan = make_plan(client, patient, doctor, total=5)
+    consult(client, patient, doctor, plan)
+    consult(client, patient, doctor, plan)
+    a = client.post("/api/appointments", json=appt(patient, doctor, "2030-06-03T09:00", plan_id=plan["id"])).json()
+    day = client.get("/api/agenda", params={"day": "2030-06-03"}).json()
+    assert day[0]["session_no"] == 3 and day[0]["plan_total"] == 5
+    client.post(f"/api/appointments/{a['id']}/status", data={"status": "cancelled"})
+    assert client.get("/api/agenda", params={"day": "2030-06-03"}).json()[0]["session_no"] is None

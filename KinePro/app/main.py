@@ -554,9 +554,16 @@ def agenda(
     day = day or datetime.now().strftime("%Y-%m-%d")
     sql = """SELECT a.*, p.name AS patient_name, p.allergies, pr.name AS professional_name, pr.specialty,
                     tp.title AS plan_title, tp.total_sessions AS plan_total,
-                    CASE WHEN a.plan_id IS NULL THEN NULL ELSE (SELECT COUNT(*) FROM appointments b
-                         WHERE b.plan_id = a.plan_id AND b.status NOT IN ('cancelled','no_show')
-                           AND (b.starts_at < a.starts_at OR (b.starts_at = a.starts_at AND b.id <= a.id))) END AS session_no
+                    CASE
+                      WHEN a.plan_id IS NULL THEN NULL
+                      WHEN a.status IN ('scheduled','arrived') THEN
+                        (SELECT COUNT(*) FROM consultations c WHERE c.plan_id = a.plan_id)
+                        + (SELECT COUNT(*) FROM appointments b WHERE b.plan_id = a.plan_id AND b.status IN ('scheduled','arrived')
+                             AND (b.starts_at < a.starts_at OR (b.starts_at = a.starts_at AND b.id <= a.id)))
+                      WHEN a.status = 'done' THEN
+                        (SELECT COUNT(*) FROM consultations c WHERE c.plan_id = a.plan_id
+                           AND c.id <= (SELECT MAX(x.id) FROM consultations x WHERE x.appointment_id = a.id))
+                    END AS session_no
              FROM appointments a
              JOIN patients p ON p.id = a.patient_id
              JOIN professionals pr ON pr.id = a.professional_id
