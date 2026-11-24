@@ -7,7 +7,7 @@ Servicio web **clinicapro** (plan gratuito, Python), independiente de cualquier 
 | Repo / rama | `https://github.com/andresrobledo405-crypto/njjj` · rama `claude/clinicapro-general` |
 | Build | `cd ClinicaPro && pip install -r requirements.txt` |
 | Start | `cd ClinicaPro && uvicorn app.main:app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips='*'` |
-| Variables | `CLINICAPRO_NOMBRE=Clínica Pro`, `CLINICAPRO_ADMIN_USER=admin`, `CLINICAPRO_ADMIN_PASSWORD=<aleatoria>`, `CLINICAPRO_SECRET=<aleatoria>`, `CLINICAPRO_COOKIE_SECURE=1` |
+| Variables | `CLINICAPRO_NOMBRE=Clínica Pro`, `CLINICAPRO_ADMIN_USER=admin`, `CLINICAPRO_ADMIN_PASSWORD=<aleatoria>`, `CLINICAPRO_SECRET=<aleatoria>`, `CLINICAPRO_COOKIE_SECURE=1`, `TZ=America/Santiago` (horas y caja en hora de Chile) |
 
 Genere las claves con `python -c "import secrets;print(secrets.token_urlsafe(18))"`. **No las suba al repositorio.**
 

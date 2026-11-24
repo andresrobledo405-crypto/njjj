@@ -48,7 +48,7 @@ CREATE TABLE IF NOT EXISTS consultations (
     treatment TEXT,
     notes TEXT,
     attachment_path TEXT,
-    occurred_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    occurred_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
     FOREIGN KEY (patient_id) REFERENCES patients(id),
     FOREIGN KEY (professional_id) REFERENCES professionals(id),
     FOREIGN KEY (appointment_id) REFERENCES appointments(id)
@@ -61,7 +61,7 @@ CREATE TABLE IF NOT EXISTS payments (
     amount INTEGER NOT NULL CHECK (amount >= 0),
     method TEXT NOT NULL DEFAULT 'cash'
         CHECK (method IN ('cash', 'card', 'transfer', 'insurance')),
-    paid_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    paid_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
     FOREIGN KEY (patient_id) REFERENCES patients(id),
     FOREIGN KEY (appointment_id) REFERENCES appointments(id)
 );

@@ -58,7 +58,7 @@ button.p{background:var(--brand);color:var(--brand-ink);border:0;font-weight:700
 <select id="yMethod"><option value="cash">Efectivo</option><option value="card">Tarjeta</option><option value="transfer">Transferencia</option><option value="insurance">Seguro / Isapre</option></select><button class="p">Registrar pago</button></form><div class="chips" id="repTabs"><button class="chip" aria-pressed="true" data-p="day">Hoy</button><button class="chip" aria-pressed="false" data-p="month">Este mes</button></div><div id="report" class="card"></div><a class="mini" href="/api/export/payments.csv">Descargar pagos (Excel)</a><div id="payList"></div></section>
 </main>
 <nav role="tablist"><button aria-selected="true" data-t="agenda">Agenda</button><button data-t="pacientes">Pacientes</button><button data-t="atencion">Atención</button><button data-t="recordatorios">Recordatorios</button><button data-t="caja">Caja</button><button data-t="documentos">Documentos</button><button data-t="admin" id="tabAdmin" hidden>Admin</button></nav>
-<div id="detail"><div id="detailBody"></div></div>
+<div id="detail"><div id="detailBody" role="dialog" aria-modal="true" aria-label="Detalle"></div></div>
 <div id="login"><form id="fLogin"><h2 id="lgBrand" style="margin:0 0 .6rem">🩺 Clínica Pro</h2><input id="lgUser" placeholder="Usuario" autocomplete="username" required><input id="lgPass" type="password" placeholder="Clave" autocomplete="current-password" required><button class="p">Ingresar</button><p class="note" id="lgErr" role="alert"></p></form></div>
 <div id="msg" role="status"></div>
 <script>
@@ -118,6 +118,10 @@ $("detailBody").innerHTML=`<button class="mini" id="dClose">Cerrar</button><h2>$
 <h3>Atenciones (${h.consultations.length})</h3>${h.consultations.map(c=>`<div class="card"><b>${c.occurred_at.slice(0,16)}</b> <span class="mute">${esc(c.professional_name)}</span><div>${esc(c.diagnosis||"")}</div><div class="mute">${esc(c.treatment||"")}</div>${c.attachment_path?`<a class="mini" href="/api/consultations/${c.id}/attachment" target="_blank">Ver adjunto</a>`:""}</div>`).join("")||'<p class="mute">Sin atenciones.</p>'}
 <h3>Pagos · total ${clp(h.total_paid)}</h3>${h.payments.map(y=>`<div class="card row"><span>${esc(y.concept)}<br><span class="mute">${y.paid_at.slice(0,16)}</span></span><b>${clp(y.amount)}</b></div>`).join("")||'<p class="mute">Sin pagos.</p>'}`;$("detail").classList.add("on")});
 fetch("/api/meta").then(r=>r.json()).then(m=>{document.title=m.name;$("brand").textContent="🩺 "+m.name;$("lgBrand").textContent="🩺 "+m.name}).catch(()=>{});
+// Accesibilidad: etiquetas desde placeholder, pestañas con rol, Escape cierra el detalle
+document.querySelectorAll("input,select,textarea").forEach(el=>{if(!el.getAttribute("aria-label"))el.setAttribute("aria-label",el.placeholder||el.id)});
+document.querySelectorAll("nav button").forEach(b=>b.setAttribute("role","tab"));
+document.addEventListener("keydown",e=>{if(e.key==="Escape")$("detail").classList.remove("on")});
 if("serviceWorker" in navigator)navigator.serviceWorker.register("/sw.js").catch(()=>{});
 start();
 </script>
