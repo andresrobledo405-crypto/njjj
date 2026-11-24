@@ -65,6 +65,16 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "SAMEORIGIN"
         response.headers["Referrer-Policy"] = "same-origin"
+        response.headers["Permissions-Policy"] = "camera=(self), microphone=(), geolocation=()"
+        if os.getenv("CLINICAPRO_COOKIE_SECURE") == "1":
+            response.headers["Strict-Transport-Security"] = "max-age=31536000"
+        if request.url.path.startswith("/api"):
+            response.headers["Cache-Control"] = "no-store"  # datos clínicos: nunca en caché del navegador/proxy
+        if response.headers.get("content-type", "").startswith("text/html") and not request.url.path.startswith(("/docs", "/redoc")):
+            response.headers["Content-Security-Policy"] = (
+                "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; "
+                "img-src 'self' data: blob:; connect-src 'self'; object-src 'none'; base-uri 'none'; "
+                "form-action 'self'; frame-ancestors 'self'")
         return response
 
 
@@ -418,6 +428,17 @@ def set_status(appointment_id: int, status: str = Form(...), db: sqlite3.Connect
     return row_dict(db.execute("SELECT * FROM appointments WHERE id = ?", (appointment_id,)).fetchone())
 
 
+
+MAGIC = {".jpg": (b"\xff\xd8\xff",), ".jpeg": (b"\xff\xd8\xff",), ".png": (b"\x89PNG\r\n\x1a\n",), ".pdf": (b"%PDF-",)}
+
+
+def _looks_like(extension: str, content: bytes) -> bool:
+    """Verifica la firma real del archivo, no solo la extensión."""
+    if extension == ".webp":
+        return content[:4] == b"RIFF" and content[8:12] == b"WEBP"
+    return any(content.startswith(sig) for sig in MAGIC.get(extension, ()))
+
+
 CONSULTATION_SELECT = """SELECT c.*, p.name AS patient_name, pr.name AS professional_name
     FROM consultations c JOIN patients p ON p.id = c.patient_id
     JOIN professionals pr ON pr.id = c.professional_id"""
@@ -455,6 +476,8 @@ async def create_consultation(
         content = await attachment.read(MAX_UPLOAD_BYTES + 1)
         if len(content) > MAX_UPLOAD_BYTES:
             raise HTTPException(413, "El archivo excede el tamaño máximo permitido")
+        if not _looks_like(extension, content):
+            raise HTTPException(415, "El contenido del archivo no coincide con su tipo")
         stored = f"{datetime.now(timezone.utc):%Y%m%d%H%M%S}_{secrets.token_hex(8)}{extension}"
         (UPLOAD_DIR / stored).write_bytes(content)
     try:

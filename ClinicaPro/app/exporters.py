@@ -4,6 +4,15 @@ from collections.abc import Iterable
 from sqlite3 import Row
 
 
+def safe_cell(value):
+    """Evita inyección de fórmulas en Excel: texto que empieza con = + - @ se antepone con comilla."""
+    if value is None:
+        return ""
+    if isinstance(value, str) and value[:1] in ("=", "+", "-", "@", "\t", "\r"):
+        return "'" + value
+    return value
+
+
 class CsvExporter:
     """Exporta filas a CSV con BOM UTF-8 para que Excel respete las tildes."""
 
@@ -15,5 +24,5 @@ class CsvExporter:
             writer = csv.writer(stream, delimiter=";")
             writer.writerow(rows[0].keys())
             for row in rows:
-                writer.writerow(["" if value is None else value for value in tuple(row)])
+                writer.writerow([safe_cell(value) for value in tuple(row)])
         return stream

@@ -65,3 +65,25 @@ def test_solo_admin_borra_registros(client, base):
         assert c.get(f"/api/patients/{patient['id']}").status_code == 200
     client.delete(f"/api/users/{u['id']}")
     assert client.delete(f"/api/patients/{patient['id']}").status_code == 204
+
+
+def test_adjunto_con_contenido_falso_rechazado(client, base):
+    patient, _, doctor = base
+    r = client.post("/api/consultations", data={"patient_id": patient["id"], "professional_id": doctor["id"]},
+                    files={"attachment": ("falso.pdf", b"MZ\x90\x00 no soy pdf", "application/pdf")})
+    assert r.status_code == 415
+
+
+def test_csv_neutraliza_formulas(client):
+    client.post("/api/patients", json={"name": "=HYPERLINK(\"http://x\")"})
+    p = client.post("/api/patients", json={"name": "Normal"}).json()
+    client.post("/api/payments", json={"patient_id": p["id"], "concept": "+cmd|' /C calc'!A0", "amount": 1})
+    csv_text = client.get("/api/export/payments.csv").text
+    assert "'+cmd" in csv_text and ";+cmd" not in csv_text
+
+
+def test_cabeceras_de_seguridad(client):
+    home = client.get("/")
+    assert "default-src 'self'" in home.headers["content-security-policy"]
+    api = client.get("/api/patients")
+    assert api.headers["cache-control"] == "no-store" and api.headers["x-content-type-options"] == "nosniff"
