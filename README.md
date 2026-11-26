@@ -19,6 +19,11 @@ npm start
 Endpoints: `GET /health`, `POST /chat`, `POST /chat/stream` (header `x-app-key`), `POST /sms`, `POST /voice`.
 La clave de Anthropic vive solo en el servidor, nunca en la app.
 
+Protecciones incluidas: comparación de `APP_KEY` en tiempo constante, límite de peticiones por IP
+(`RATE_LIMIT_PER_MIN`, por defecto 30), validación de `messages` (roles `user`/`assistant`, máx. 40,
+el último de `user`), historial de SMS/llamadas acotado (500 conversaciones × 20 mensajes), y el
+streaming se cancela si el cliente se desconecta.
+
 ## 2. App móvil
 ```bash
 cd mobile

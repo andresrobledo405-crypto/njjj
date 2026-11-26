@@ -15,11 +15,27 @@ export async function askCloud(history, imageBase64) {
     }
     return m;
   });
-  const res = await fetch(`${SERVER_URL}/chat`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "x-app-key": APP_KEY },
-    body: JSON.stringify({ messages }),
-  });
-  if (!res.ok) throw new Error(`Servidor: ${res.status}`);
-  return (await res.json()).reply;
+  // Solo los últimos 20 mensajes: acota costo y tamaño; el servidor acepta hasta 40.
+  const recent = messages.slice(-20);
+  if (recent[0]?.role === "assistant") recent.shift(); // la conversación debe empezar con "user"
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), 30000);
+  try {
+    const res = await fetch(`${SERVER_URL}/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-app-key": APP_KEY },
+      body: JSON.stringify({ messages: recent }),
+      signal: ctl.signal,
+    });
+    if (res.status === 401) throw new Error("Clave incorrecta: revise APP_KEY en config.js");
+    if (res.status === 429) throw new Error("Demasiadas peticiones, espere un minuto");
+    if (!res.ok) throw new Error(`Servidor: ${res.status}`);
+    return (await res.json()).reply;
+  } catch (e) {
+    if (e.name === "AbortError") throw new Error("El servidor tardó demasiado en responder");
+    if (e instanceof TypeError) throw new Error("No se pudo conectar al servidor. Revise SERVER_URL y la red");
+    throw e;
+  } finally {
+    clearTimeout(timer);
+  }
 }

@@ -107,12 +107,20 @@ export default function App() {
     }
   };
 
+  const newChat = () => {
+    Speech.stop();
+    setMessages([]);
+    setImage(null);
+    setInput("");
+  };
+
   const pickImage = async () => {
     const r = await ImagePicker.launchImageLibraryAsync({ base64: true, quality: 0.5 });
     if (!r.canceled) setImage({ uri: r.assets[0].uri, base64: r.assets[0].base64 });
   };
 
   const send = async () => {
+    Speech.stop();
     const text = input.trim();
     if ((!text && !image) || busy) return;
     const next = [...messages, { role: "user", content: text, uri: image?.uri }];
@@ -137,7 +145,14 @@ export default function App() {
   return (
     <SafeAreaView style={s.root}>
       <View style={s.bar}>
-        <Text style={s.title}>Asistente IA</Text>
+        <View style={[s.row, { marginTop: 0, justifyContent: "space-between" }]}>
+          <Text style={s.title}>Asistente IA</Text>
+          {messages.length > 0 && (
+            <PressScale onPress={newChat} disabled={busy} reduced={reduced} label="Nueva conversación" style={s.newChat}>
+              <Text style={s.newChatText}>Nueva</Text>
+            </PressScale>
+          )}
+        </View>
         <View style={s.row}>
           <Text style={s.label}>Local</Text>
           <Switch value={local} onValueChange={toggleLocal} disabled={busy} trackColor={{ true: c.accent }} />
@@ -210,6 +225,8 @@ const styles = (c) => StyleSheet.create({
   input: { flex: 1, backgroundColor: c.surface, color: c.text, borderRadius: 20, paddingHorizontal: 14, paddingTop: 10, paddingBottom: 10, marginHorizontal: 8, maxHeight: 120, fontSize: 16 },
   ghost: { width: 40, height: 40, borderRadius: 20, backgroundColor: c.surface, alignItems: "center", justifyContent: "center" },
   ghostText: { fontSize: 24, color: c.text, marginTop: -2 },
+  newChat: { paddingHorizontal: 14, height: 32, borderRadius: 16, backgroundColor: c.surface, alignItems: "center", justifyContent: "center" },
+  newChatText: { fontSize: 14, fontWeight: "600", color: c.text },
   send: { width: 40, height: 40, borderRadius: 20, backgroundColor: c.accent, alignItems: "center", justifyContent: "center" },
   sendText: { fontSize: 20, fontWeight: "700", color: "#fff" },
 });
