@@ -11,6 +11,7 @@
   --f-body:"Inter", "Halyard Display", Arial, sans-serif; --f-mono:var(--f-body); color-scheme:dark;
 }
 html,body{height:100%}
+body{overflow-x:clip}
 body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.47;letter-spacing:-.011em;-webkit-font-smoothing:antialiased}
 .fd{font-family:var(--f-display);letter-spacing:-.03em;font-weight:700;line-height:1.05}
 .italic{font-style:normal}

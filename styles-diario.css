@@ -27,6 +27,7 @@
   --side:#1A1918; --side-ink:#E8E3DE; --side-muted:#A39C95;
   --shadow:0 0 0 1px rgba(255,255,255,.06); --shadow-lg:0 0 0 1px rgba(255,255,255,.08); color-scheme:dark;}
 html,body{height:100%}
+body{overflow-x:clip}
 body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.47;letter-spacing:-.011em;-webkit-font-smoothing:antialiased}
 .fd{font-family:var(--f-display);letter-spacing:-.03em;font-weight:700;line-height:1.05}
 .italic{font-style:normal}

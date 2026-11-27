@@ -34,6 +34,7 @@
   --shadow:0 0 0 1px rgba(255,255,255,.05); --shadow-lg:0 0 0 1px rgba(255,255,255,.06), 0 40px 80px -30px rgba(0,0,0,.8); color-scheme:dark;
 }
 html,body{height:100%}
+body{overflow-x:clip}
 body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.47;letter-spacing:-.011em;-webkit-font-smoothing:antialiased}
 .fd{font-family:var(--f-display);letter-spacing:-.03em;font-weight:700;line-height:1.05}
 .italic{font-style:normal}
