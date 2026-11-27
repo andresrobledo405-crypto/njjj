@@ -88,4 +88,5 @@ button.rounded-full,a.rounded-full{border-radius:36px!important;text-transform:u
 .bg-ember.text-emberink.overflow-hidden{background:var(--sunk)!important;color:var(--chalk)!important}
 [style*="color: var(--ember)"]{color:var(--gold)!important}
 .bg-ember.ping,.bg-ember.w-2\.5,.bg-ember.w-3{background:var(--gold)!important}
-h1.fd:not(main h1){font-size:clamp(3rem,13.5vw,12rem)!important}
+h1.fd:not(main h1){font-size:clamp(3rem,12.4vw,12rem)!important}
+footer p.fd{font-size:clamp(3rem,12vw,12rem)!important}
